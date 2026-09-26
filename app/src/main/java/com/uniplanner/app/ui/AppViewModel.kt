@@ -38,6 +38,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         db.studySessions().observeFrom(weekStart)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val allStudy: StateFlow<List<StudySession>> =
+        db.studySessions().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val weekPlan: StateFlow<WeekPlan?> =
         combine(courses, deadlines) { cs, ds ->
             val now = System.currentTimeMillis()
@@ -58,6 +61,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             .forEach { ReminderScheduler.cancelDeadline(getApplication(), it.id) }
         db.courses().delete(course)
     }
+
+    fun updateCourse(course: Course) = viewModelScope.launch { db.courses().update(course) }
+
+    fun updateDeadline(deadline: Deadline) = viewModelScope.launch { db.deadlines().update(deadline) }
 
     fun addDeadline(deadline: Deadline) = viewModelScope.launch {
         val id = db.deadlines().insert(deadline)

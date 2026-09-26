@@ -21,8 +21,17 @@ interface CourseDao {
     @Insert
     suspend fun insert(course: Course): Long
 
+    @Update
+    suspend fun update(course: Course)
+
     @Delete
     suspend fun delete(course: Course)
+
+    @Insert
+    suspend fun insertAll(courses: List<Course>)
+
+    @Query("DELETE FROM courses")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -50,6 +59,15 @@ interface DeadlineDao {
 
     @Delete
     suspend fun delete(deadline: Deadline)
+
+    @Query("SELECT * FROM deadlines")
+    suspend fun getAll(): List<Deadline>
+
+    @Insert
+    suspend fun insertAll(deadlines: List<Deadline>)
+
+    @Query("DELETE FROM deadlines")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -62,6 +80,18 @@ interface StudySessionDao {
 
     @Insert
     suspend fun insert(session: StudySession): Long
+
+    @Query("SELECT * FROM study_sessions ORDER BY startedAt DESC")
+    fun observeAll(): Flow<List<StudySession>>
+
+    @Query("SELECT * FROM study_sessions")
+    suspend fun getAll(): List<StudySession>
+
+    @Insert
+    suspend fun insertAll(sessions: List<StudySession>)
+
+    @Query("DELETE FROM study_sessions")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -80,4 +110,13 @@ interface WorkoutDao {
 
     @Delete
     suspend fun delete(workout: Workout)
+
+    @Query("SELECT * FROM workouts")
+    suspend fun getAll(): List<Workout>
+
+    @Insert
+    suspend fun insertAll(workouts: List<Workout>)
+
+    @Query("DELETE FROM workouts")
+    suspend fun deleteAll()
 }

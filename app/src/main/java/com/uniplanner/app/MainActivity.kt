@@ -45,13 +45,17 @@ import com.uniplanner.app.moodle.MoodleScreen
 import com.uniplanner.app.moodle.MoodleSso
 import com.uniplanner.app.moodle.MoodleSsoCallback
 import com.uniplanner.app.moodle.MoodleWebScreen
+import com.uniplanner.app.online.BackupChoicePrompt
+import com.uniplanner.app.online.BackupScreen
 import com.uniplanner.app.online.OnlineViewModel
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
 import com.uniplanner.app.ui.screens.DeadlinesScreen
+import com.uniplanner.app.ui.screens.GradesScreen
 import com.uniplanner.app.ui.screens.GymScreen
 import com.uniplanner.app.ui.screens.MoreScreen
+import com.uniplanner.app.ui.screens.StatsScreen
 import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.screens.WeekScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
@@ -96,7 +100,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar")
+private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup")
 
 @Composable
 private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
@@ -105,6 +109,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     val current = backStack?.destination?.route
 
     UpdatePrompt()
+    BackupChoicePrompt()
 
     // Coming back from the university login page: show the Moodle screen, which finishes the sign-in.
     val moodleLink by MoodleSsoCallback.link.collectAsState()
@@ -142,6 +147,16 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
             composable("gym") { GymScreen(vm) }
+            composable("grades") { GradesScreen(vm) }
+            composable("stats") { StatsScreen(vm) }
+            composable("backup") {
+                BackupScreen(online, onSignIn = {
+                    nav.navigate(Tab.Social.route) {
+                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                    }
+                })
+            }
             composable("moodle") { MoodleScreen(onOpenWeb = { calendar -> nav.navigate(if (calendar) "moodle_calendar" else "moodle_web") }) }
             composable("moodle_web") { MoodleWebScreen(calendarPage = false, onClose = { nav.popBackStack() }) }
             composable("moodle_calendar") { MoodleWebScreen(calendarPage = true, onClose = { nav.popBackStack() }) }

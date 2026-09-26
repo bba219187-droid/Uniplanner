@@ -11,6 +11,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if signedIn() && me() == uid;
       allow delete: if false;
+
+      // The student's own planner copy; nobody else can read it.
+      match /private/{doc} {
+        allow read, write: if signedIn() && me() == uid;
+      }
     }
 
     match /friendships/{id} {

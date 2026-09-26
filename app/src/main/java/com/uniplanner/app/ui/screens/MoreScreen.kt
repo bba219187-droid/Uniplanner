@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,7 +27,10 @@ private data class MoreItem(val route: String, @StringRes val title: Int, @Strin
 private val items = listOf(
     MoreItem("courses", R.string.tab_courses, R.string.more_courses_sub, Icons.Filled.School),
     MoreItem("moodle", R.string.more_moodle, R.string.more_moodle_sub, Icons.AutoMirrored.Filled.MenuBook),
+    MoreItem("grades", R.string.more_grades, R.string.more_grades_sub, Icons.Filled.Grade),
+    MoreItem("stats", R.string.more_stats, R.string.more_stats_sub, Icons.Filled.BarChart),
     MoreItem("gym", R.string.tab_gym, R.string.more_gym_sub, Icons.Filled.FitnessCenter),
+    MoreItem("backup", R.string.more_backup, R.string.more_backup_sub, Icons.Filled.CloudDone),
 )
 
 @Composable

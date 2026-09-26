@@ -13,6 +13,8 @@ data class Course(
     val credits: Int = 0,
     val color: Long = 0xFF3F51B5,
     val moodleCourseId: Long? = null,
+    /** Final grade on the university's scale (0 to 20 in Portugal), once known. */
+    val finalGrade: Double? = null,
 )
 
 enum class DeadlineType { TEST, ASSIGNMENT }

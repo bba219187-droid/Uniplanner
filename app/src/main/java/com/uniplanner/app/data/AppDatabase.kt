@@ -19,7 +19,7 @@ class Converters {
 
 @Database(
     entities = [Course::class, Deadline::class, StudySession::class, Workout::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -45,6 +45,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Version 4 keeps each course's final grade for the average. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE courses ADD COLUMN finalGrade REAL")
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -54,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "uniplanner.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }
