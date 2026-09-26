@@ -41,6 +41,8 @@ data class Deadline(
     val done: Boolean = false,
     val grade: Double? = null,
     val moodleAssignId: Long? = null,
+    /** Id of the Moodle calendar event this came from, so a new sync updates it instead of repeating it. */
+    val calendarUid: String? = null,
 )
 
 @Entity(

@@ -19,7 +19,7 @@ class Converters {
 
 @Database(
     entities = [Course::class, Deadline::class, StudySession::class, Workout::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -38,6 +38,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Version 3 remembers which Moodle calendar event a deadline came from. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE deadlines ADD COLUMN calendarUid TEXT")
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -47,7 +54,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "uniplanner.db",
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
     }
 }

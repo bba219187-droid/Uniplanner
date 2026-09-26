@@ -101,7 +101,7 @@
     <string name="moodle_imported">Foram adicionados %1$d trabalhos e %2$d cadeiras ao teu planeamento.</string>
     <string name="moodle_error_title">Moodle</string>
     <string name="moodle_err_login">Utilizador ou palavra-passe errados.</string>
-    <string name="moodle_err_disabled">A tua universidade tem o acesso móvel ao Moodle desligado, por isso a app não consegue ligar. Podes continuar a adicionar os prazos à mão.</string>
+    <string name="moodle_err_disabled">A tua universidade tem o acesso das apps ao Moodle desligado, por isso a app não consegue entrar diretamente. Usa “Abrir o Moodle dentro da app”.</string>
     <string name="moodle_err_notmoodle">Esse endereço não parece ser um Moodle. Usa o endereço da página com as tuas cadeiras, não o da página de login. Algumas universidades usam outra plataforma, como o Blackboard, que ainda não é suportada.</string>
     <string name="moodle_err_network">Não foi possível chegar ao Moodle. Verifica a ligação à internet.</string>
     <string name="moodle_err_token">A sessão do Moodle expirou. Desliga e volta a ligar.</string>
@@ -168,4 +168,19 @@
     <string name="moodle_sso_button">Entrar com a conta da universidade</string>
     <string name="moodle_sso_note">Se o telemóvel perguntar com que app abrir, escolhe UniPlanner.</string>
     <string name="moodle_err_sso">O login não terminou. Tenta outra vez e, se o telemóvel perguntar com que app abrir, escolhe UniPlanner.</string>
+    <string name="moodle_web_option_help">Apareceu “O web service não está disponível” depois de entrares? A tua universidade desligou o acesso das apps ao Moodle. Podes usar o Moodle dentro da UniPlanner na mesma.</string>
+    <string name="moodle_web_option">Abrir o Moodle dentro da app</string>
+    <string name="moodle_web_help">Entra com a conta da universidade como de costume. Podes entregar trabalhos, descarregar ficheiros e ver tudo como no site, sem sair da app.</string>
+    <string name="moodle_web_open">Abrir o Moodle</string>
+    <string name="moodle_web_downloading">A descarregar %s</string>
+    <string name="moodle_calendar_title">Prazos do Moodle</string>
+    <string name="moodle_calendar_help">A UniPlanner pode trazer os trabalhos e testes do calendário do Moodle e lembrar-te deles. Toca no botão, escolhe “Todos os eventos” e “Eventos recentes e próximos”, e toca em “Obter URL do calendário”. A app guarda o link sozinha.</string>
+    <string name="moodle_calendar_get">Trazer prazos do Moodle</string>
+    <string name="moodle_calendar_paste_help">Já tens o link do calendário? Cola-o aqui.</string>
+    <string name="moodle_calendar_link">Link do calendário</string>
+    <string name="moodle_calendar_save">Usar este link</string>
+    <string name="moodle_calendar_on">Ligado. Os prazos novos ou alterados no Moodle entram no teu planeamento duas vezes por dia.</string>
+    <string name="moodle_calendar_sync">Procurar prazos novos agora</string>
+    <string name="moodle_calendar_relink">Obter o link outra vez</string>
+    <string name="moodle_err_calendar">Isso não é um link do calendário do Moodle. No Moodle abre o Calendário, depois Exportar calendário, e toca em “Obter URL do calendário”.</string>
 </resources>

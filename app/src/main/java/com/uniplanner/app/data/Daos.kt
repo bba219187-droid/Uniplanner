@@ -39,6 +39,9 @@ interface DeadlineDao {
     @Query("SELECT * FROM deadlines WHERE moodleAssignId = :moodleId LIMIT 1")
     suspend fun findByMoodleAssignId(moodleId: Long): Deadline?
 
+    @Query("SELECT * FROM deadlines WHERE calendarUid = :uid LIMIT 1")
+    suspend fun findByCalendarUid(uid: String): Deadline?
+
     @Insert
     suspend fun insert(deadline: Deadline): Long
 

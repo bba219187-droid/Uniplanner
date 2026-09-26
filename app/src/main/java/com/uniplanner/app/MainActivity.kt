@@ -44,6 +44,7 @@ import androidx.navigation.compose.rememberNavController
 import com.uniplanner.app.moodle.MoodleScreen
 import com.uniplanner.app.moodle.MoodleSso
 import com.uniplanner.app.moodle.MoodleSsoCallback
+import com.uniplanner.app.moodle.MoodleWebScreen
 import com.uniplanner.app.online.OnlineViewModel
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
@@ -95,7 +96,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "gym", "moodle")
+private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar")
 
 @Composable
 private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
@@ -141,7 +142,9 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
             composable("gym") { GymScreen(vm) }
-            composable("moodle") { MoodleScreen() }
+            composable("moodle") { MoodleScreen(onOpenWeb = { calendar -> nav.navigate(if (calendar) "moodle_calendar" else "moodle_web") }) }
+            composable("moodle_web") { MoodleWebScreen(calendarPage = false, onClose = { nav.popBackStack() }) }
+            composable("moodle_calendar") { MoodleWebScreen(calendarPage = true, onClose = { nav.popBackStack() }) }
         }
     }
 }

@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -44,16 +47,17 @@ import com.uniplanner.app.R
 import com.uniplanner.app.ui.screens.formatDateTime
 
 @Composable
-fun MoodleScreen(vm: MoodleViewModel = viewModel()) {
+fun MoodleScreen(onOpenWeb: (calendarPage: Boolean) -> Unit, vm: MoodleViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize()) {
         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         val account = state.account
-        if (account == null) {
-            MoodleLogin(state, vm)
-        } else {
-            MoodleHome(state, account, vm)
+        val webSite = state.webSite
+        when {
+            account != null -> MoodleHome(state, account, vm, onOpenWeb)
+            webSite != null -> MoodleWebHome(state, webSite, vm, onOpenWeb)
+            else -> MoodleLogin(state, vm)
         }
     }
 
@@ -88,6 +92,7 @@ private fun moodleErrorText(code: String, detail: String?): String = when (code)
     "network" -> stringResource(R.string.moodle_err_network)
     "invalidtoken" -> stringResource(R.string.moodle_err_token)
     "ssofailed" -> stringResource(R.string.moodle_err_sso)
+    "badcalendar", "notcalendar" -> stringResource(R.string.moodle_err_calendar)
     else -> stringResource(R.string.moodle_err_other, detail ?: code)
 }
 
@@ -123,6 +128,7 @@ private fun MoodleLogin(state: MoodleUiState, vm: MoodleViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                WebMoodleOption(state, vm)
                 TextButton(onClick = vm::changeSite) { Text(stringResource(R.string.moodle_change_site)) }
             }
             formSite != null -> {
@@ -151,6 +157,7 @@ private fun MoodleLogin(state: MoodleUiState, vm: MoodleViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                WebMoodleOption(state, vm)
                 TextButton(onClick = vm::changeSite) { Text(stringResource(R.string.moodle_change_site)) }
             }
             else -> {
@@ -173,8 +180,68 @@ private fun MoodleLogin(state: MoodleUiState, vm: MoodleViewModel) {
     }
 }
 
+/** For universities where the Moodle app service is off: "O web service não está disponível". */
 @Composable
-private fun MoodleHome(state: MoodleUiState, account: MoodleAccount, vm: MoodleViewModel) {
+private fun WebMoodleOption(state: MoodleUiState, vm: MoodleViewModel) {
+    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+    Text(stringResource(R.string.moodle_web_option_help), style = MaterialTheme.typography.bodyMedium)
+    OutlinedButton(enabled = !state.loading, onClick = vm::useWebMoodle, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.moodle_web_option))
+    }
+}
+
+@Composable
+private fun MoodleWebHome(state: MoodleUiState, site: String, vm: MoodleViewModel, onOpenWeb: (Boolean) -> Unit) {
+    var pasted by rememberSaveable { mutableStateOf("") }
+    Column(
+        Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(site.removePrefix("https://"), style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.moodle_web_help), style = MaterialTheme.typography.bodyMedium)
+        Button(onClick = { onOpenWeb(false) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.moodle_web_open))
+        }
+
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        Text(stringResource(R.string.moodle_calendar_title), style = MaterialTheme.typography.titleMedium)
+        if (state.hasCalendarLink) {
+            Text(stringResource(R.string.moodle_calendar_on), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(enabled = !state.loading, onClick = vm::syncCalendar, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.moodle_calendar_sync))
+            }
+            TextButton(onClick = { onOpenWeb(true) }) { Text(stringResource(R.string.moodle_calendar_relink)) }
+        } else {
+            Text(stringResource(R.string.moodle_calendar_help), style = MaterialTheme.typography.bodyMedium)
+            Button(enabled = !state.loading, onClick = { onOpenWeb(true) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.moodle_calendar_get))
+            }
+            Text(
+                stringResource(R.string.moodle_calendar_paste_help),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                pasted, { pasted = it },
+                label = { Text(stringResource(R.string.moodle_calendar_link)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedButton(
+                enabled = !state.loading && pasted.isNotBlank(),
+                onClick = { vm.saveCalendarLink(pasted) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.moodle_calendar_save)) }
+        }
+
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        TextButton(onClick = vm::disconnect) { Text(stringResource(R.string.moodle_change_site)) }
+    }
+}
+
+@Composable
+private fun MoodleHome(state: MoodleUiState, account: MoodleAccount, vm: MoodleViewModel, onOpenWeb: (Boolean) -> Unit) {
     var pending by remember { mutableStateOf<AssignmentRow?>(null) }
     var pickedFile by remember { mutableStateOf<Uri?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -201,6 +268,9 @@ private fun MoodleHome(state: MoodleUiState, account: MoodleAccount, vm: MoodleV
                     Text(stringResource(R.string.moodle_refresh))
                 }
             }
+        }
+        item {
+            TextButton(onClick = { onOpenWeb(false) }) { Text(stringResource(R.string.moodle_web_open)) }
         }
         if (!state.loading && state.assignments.isEmpty()) {
             item { Text(stringResource(R.string.moodle_no_assignments)) }

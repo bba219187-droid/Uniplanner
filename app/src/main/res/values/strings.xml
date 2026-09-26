@@ -103,7 +103,7 @@
     <string name="moodle_imported">Added %1$d assignments and %2$d courses to your planner.</string>
     <string name="moodle_error_title">Moodle</string>
     <string name="moodle_err_login">Wrong username or password.</string>
-    <string name="moodle_err_disabled">Your university has mobile access to Moodle turned off, so the app cannot connect. You can still add deadlines by hand.</string>
+    <string name="moodle_err_disabled">Your university has the Moodle app access switched off, so the app cannot sign in directly. Use “Open Moodle inside the app” instead.</string>
     <string name="moodle_err_notmoodle">That address does not look like a Moodle site. Use the address of the page with your courses, not the login page. Some universities use another platform, like Blackboard, which is not supported yet.</string>
     <string name="moodle_err_network">Could not reach Moodle. Check your internet connection.</string>
     <string name="moodle_err_token">Your Moodle session expired. Disconnect and connect again.</string>
@@ -170,4 +170,19 @@
     <string name="moodle_sso_button">Sign in with my university account</string>
     <string name="moodle_sso_note">If your phone asks which app to open, choose UniPlanner.</string>
     <string name="moodle_err_sso">The sign-in did not finish. Try again, and if your phone asks which app to open, choose UniPlanner.</string>
+    <string name="moodle_web_option_help">Got “The web service is not available” after signing in? Your university has the Moodle app access switched off. You can still use Moodle inside UniPlanner.</string>
+    <string name="moodle_web_option">Open Moodle inside the app</string>
+    <string name="moodle_web_help">Sign in with your university account as usual. You can hand in assignments, download files and read everything as on the website, without leaving the app.</string>
+    <string name="moodle_web_open">Open Moodle</string>
+    <string name="moodle_web_downloading">Downloading %s</string>
+    <string name="moodle_calendar_title">Deadlines from Moodle</string>
+    <string name="moodle_calendar_help">UniPlanner can bring your assignments and tests from the Moodle calendar and remind you of them. Tap the button, choose “All events” and “Recent and next 60 days”, then tap “Get calendar URL”. The app keeps the link on its own.</string>
+    <string name="moodle_calendar_get">Get deadlines from Moodle</string>
+    <string name="moodle_calendar_paste_help">Already have the calendar link? Paste it here.</string>
+    <string name="moodle_calendar_link">Calendar link</string>
+    <string name="moodle_calendar_save">Use this link</string>
+    <string name="moodle_calendar_on">On. New and changed deadlines from Moodle are added to your planner twice a day.</string>
+    <string name="moodle_calendar_sync">Check for new deadlines now</string>
+    <string name="moodle_calendar_relink">Get the link again</string>
+    <string name="moodle_err_calendar">That is not a Moodle calendar link. In Moodle open Calendar, then Export calendar, and tap “Get calendar URL”.</string>
 </resources>

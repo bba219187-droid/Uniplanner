@@ -28,6 +28,9 @@ data class MoodleUiState(
     val browserLogin: MoodlePublicConfig? = null,
     /** A login page the screen should open in the browser, consumed once opened. */
     val openUrl: String? = null,
+    /** Moodle opened inside the app, when the university has switched off the Moodle app service. */
+    val webSite: String? = null,
+    val hasCalendarLink: Boolean = false,
 )
 
 /** Receives the moodlemobile:// link the browser opens after the university login. */
@@ -42,7 +45,11 @@ sealed interface MoodleMessage {
 
 class MoodleViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = MoodleRepository(app)
-    private val _state = MutableStateFlow(MoodleUiState(account = runCatching { repo.account() }.getOrNull()))
+    private val _state = MutableStateFlow(
+        runCatching {
+            MoodleUiState(account = repo.account(), webSite = repo.webSite(), hasCalendarLink = repo.calendarLink() != null)
+        }.getOrDefault(MoodleUiState()),
+    )
     val state: StateFlow<MoodleUiState> = _state.asStateFlow()
 
     init {
@@ -55,6 +62,35 @@ class MoodleViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
+        viewModelScope.launch {
+            MoodleCalendarCapture.link.collect { link ->
+                if (link != null) {
+                    MoodleCalendarCapture.link.value = null
+                    if (link != repo.calendarLink()) saveCalendarLink(link)
+                }
+            }
+        }
+    }
+
+    /** Uses Moodle inside the app instead of signing in through the Moodle app service. */
+    fun useWebMoodle() {
+        val s = _state.value
+        val site = s.browserLogin?.siteUrl ?: s.formLoginSite ?: return
+        repo.setWebSite(site)
+        _state.update { it.copy(webSite = site, browserLogin = null, formLoginSite = null) }
+    }
+
+    /** Checks a pasted or captured calendar link by importing from it, and keeps it only if that works. */
+    fun saveCalendarLink(input: String) = launchAction {
+        val link = MoodleCalendar.normalizeLink(input) ?: throw MoodleException("badcalendar", input)
+        MoodleCalendar.fetch(link)
+        repo.setCalendarLink(link)
+        val result = repo.syncCalendar()
+        _state.update { it.copy(hasCalendarLink = true, message = MoodleMessage.Imported(result)) }
+    }
+
+    fun syncCalendar() = launchAction {
+        _state.update { it.copy(message = MoodleMessage.Imported(repo.syncCalendar())) }
     }
 
     /** Asks the site how students sign in, then shows the matching login. */
