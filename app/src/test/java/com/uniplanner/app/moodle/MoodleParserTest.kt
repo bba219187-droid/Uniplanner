@@ -92,3 +92,54 @@ class MoodleParserTest {
         assertEquals("http://localhost/moodle", MoodleClient.normalizeSite("http://localhost/moodle"))
     }
 }
+
+class MoodleSsoTest {
+    private fun md5(s: String) = java.security.MessageDigest.getInstance("MD5").digest(s.toByteArray())
+        .joinToString("") { "%02x".format(it) }
+
+    private fun callback(site: String, passport: String, token: String): String {
+        val raw = "${md5(site + passport)}:::$token:::private"
+        return "moodlemobile://token=" + java.util.Base64.getEncoder().encodeToString(raw.toByteArray())
+    }
+
+    @Test
+    fun readsTokenWhenSignatureMatches() {
+        val token = MoodleSso.tokenFromCallback(callback("https://elearning.uni.pt", "abc", "T0K"), "https://elearning.uni.pt", "abc")
+        assertEquals("T0K", token)
+    }
+
+    @Test
+    fun rejectsAnswerSignedForAnotherPassport() {
+        try {
+            MoodleSso.tokenFromCallback(callback("https://elearning.uni.pt", "other", "T0K"), "https://elearning.uni.pt", "abc")
+            fail("expected an exception")
+        } catch (e: MoodleException) {
+            assertEquals("ssofailed", e.code)
+        }
+    }
+
+    @Test
+    fun publicConfigDetectsUniversityLogin() {
+        val body = """[{"error":false,"data":{"wwwroot":"https://elearning.uni.pt","httpswwwroot":"https://elearning.uni.pt","sitename":"eLearning","typeoflogin":2,"launchurl":"https://elearning.uni.pt/admin/tool/mobile/launch.php"}}]"""
+        val config = MoodleSso.publicConfig(body, "https://x")
+        assertTrue(config.browserLogin)
+        assertEquals("https://elearning.uni.pt", config.siteUrl)
+        assertEquals(
+            "https://elearning.uni.pt/admin/tool/mobile/launch.php?service=moodle_mobile_app&passport=p1&urlscheme=moodlemobile",
+            MoodleSso.launchUrl(config, "p1"),
+        )
+    }
+
+    @Test
+    fun formLoginSitesUseUsernameAndPassword() {
+        val body = """[{"error":false,"data":{"wwwroot":"https://m.uni.pt","typeoflogin":1}}]"""
+        assertFalse(MoodleSso.publicConfig(body, "https://m.uni.pt").browserLogin)
+    }
+
+    @Test
+    fun pagesInsideMoodleAreTrimmedToTheSite() {
+        assertEquals("https://elearning.uni.pt", MoodleClient.normalizeSite("https://elearning.uni.pt/login/index.php?x=1"))
+        assertEquals("https://elearning.uni.pt", MoodleClient.normalizeSite("elearning.uni.pt/my/"))
+        assertEquals("https://uni.pt/moodle", MoodleClient.normalizeSite("https://uni.pt/moodle/course/view.php?id=3"))
+    }
+}

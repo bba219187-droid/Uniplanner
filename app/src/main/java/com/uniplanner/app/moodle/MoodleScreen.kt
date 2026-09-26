@@ -1,5 +1,6 @@
 package com.uniplanner.app.moodle
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,7 +51,7 @@ fun MoodleScreen(vm: MoodleViewModel = viewModel()) {
         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         val account = state.account
         if (account == null) {
-            MoodleLogin(loading = state.loading, onConnect = vm::connect)
+            MoodleLogin(state, vm)
         } else {
             MoodleHome(state, account, vm)
         }
@@ -84,50 +87,89 @@ private fun moodleErrorText(code: String, detail: String?): String = when (code)
     "notmoodle" -> stringResource(R.string.moodle_err_notmoodle)
     "network" -> stringResource(R.string.moodle_err_network)
     "invalidtoken" -> stringResource(R.string.moodle_err_token)
+    "ssofailed" -> stringResource(R.string.moodle_err_sso)
     else -> stringResource(R.string.moodle_err_other, detail ?: code)
 }
 
 @Composable
-private fun MoodleLogin(loading: Boolean, onConnect: (String, String, String) -> Unit) {
+private fun MoodleLogin(state: MoodleUiState, vm: MoodleViewModel) {
+    val context = LocalContext.current
     var site by rememberSaveable { mutableStateOf("") }
     var user by rememberSaveable { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
 
+    LaunchedEffect(state.openUrl) {
+        state.openUrl?.let { url ->
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            vm.urlOpened()
+        }
+    }
+
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.moodle_connect_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.moodle_connect_help), style = MaterialTheme.typography.bodyMedium)
-        OutlinedTextField(
-            site, { site = it },
-            label = { Text(stringResource(R.string.moodle_site)) },
-            placeholder = { Text("moodle.universidade.pt") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            user, { user = it },
-            label = { Text(stringResource(R.string.moodle_username)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            pass, { pass = it },
-            label = { Text(stringResource(R.string.moodle_password)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(
-            enabled = !loading && site.isNotBlank() && user.isNotBlank() && pass.isNotEmpty(),
-            onClick = { onConnect(site, user, pass) },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.moodle_connect)) }
-        Text(
-            stringResource(R.string.moodle_privacy),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        val formSite = state.formLoginSite
+        val browser = state.browserLogin
+        when {
+            browser != null -> {
+                Text(browser.siteName.ifEmpty { browser.siteUrl }, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.moodle_sso_help), style = MaterialTheme.typography.bodyMedium)
+                Button(
+                    enabled = !state.loading,
+                    onClick = vm::openUniversityLogin,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.moodle_sso_button)) }
+                Text(
+                    stringResource(R.string.moodle_sso_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = vm::changeSite) { Text(stringResource(R.string.moodle_change_site)) }
+            }
+            formSite != null -> {
+                Text(formSite.removePrefix("https://"), style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    user, { user = it },
+                    label = { Text(stringResource(R.string.moodle_username)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    pass, { pass = it },
+                    label = { Text(stringResource(R.string.moodle_password)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    enabled = !state.loading && user.isNotBlank() && pass.isNotEmpty(),
+                    onClick = { vm.connect(formSite, user, pass) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.moodle_connect)) }
+                Text(
+                    stringResource(R.string.moodle_privacy),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = vm::changeSite) { Text(stringResource(R.string.moodle_change_site)) }
+            }
+            else -> {
+                Text(stringResource(R.string.moodle_connect_help), style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    site, { site = it },
+                    label = { Text(stringResource(R.string.moodle_site)) },
+                    placeholder = { Text("elearning.universidade.pt") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    enabled = !state.loading && site.isNotBlank(),
+                    onClick = { vm.checkSite(site) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.moodle_continue)) }
+            }
+        }
     }
 }
 

@@ -40,8 +40,30 @@ class MoodleRepository(private val context: Context) {
 
     fun client(): MoodleClient? = account()?.let { MoodleClient(it.site, it.token) }
 
-    suspend fun connect(site: String, username: String, password: String): MoodleAccount {
-        val token = MoodleClient.login(site, username, password)
+    suspend fun connect(site: String, username: String, password: String): MoodleAccount =
+        saveAccount(site, MoodleClient.login(site, username, password))
+
+    /** Remembers the site and one-time passport until the university login page sends the student back. */
+    fun startBrowserLogin(config: MoodlePublicConfig): String {
+        val passport = MoodleSso.newPassport()
+        pending.edit().putString("site", config.siteUrl).putString("passport", passport).apply()
+        return MoodleSso.launchUrl(config, passport)
+    }
+
+    suspend fun finishBrowserLogin(callback: String): MoodleAccount {
+        val site = pending.getString("site", null)
+        val passport = pending.getString("passport", null)
+        if (site == null || passport == null) throw MoodleException("ssofailed", "No sign-in in progress")
+        val token = MoodleSso.tokenFromCallback(callback, site, passport)
+        pending.edit().clear().apply()
+        return saveAccount(site, token)
+    }
+
+    private val pending: SharedPreferences by lazy {
+        context.getSharedPreferences("moodle_sso_pending", Context.MODE_PRIVATE)
+    }
+
+    private suspend fun saveAccount(site: String, token: String): MoodleAccount {
         val client = MoodleClient(site, token)
         val info = client.siteInfo()
         val account = MoodleAccount(client.siteUrl, token, info.userId, info.siteName, info.fullName)

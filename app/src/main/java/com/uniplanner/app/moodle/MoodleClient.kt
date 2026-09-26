@@ -120,10 +120,30 @@ class MoodleClient(site: String, private val token: String) {
             MoodleParser.token(body)
         }
 
+        /**
+         * Reads what the site allows before login: how students sign in (form or the
+         * university's own login page) and the site's canonical address.
+         */
+        suspend fun publicConfig(site: String): MoodlePublicConfig = withContext(Dispatchers.IO) {
+            val url = URL("${normalizeSite(site)}/lib/ajax/service-nologin.php?info=tool_mobile_get_public_config")
+            val body = post(url, "application/json") {
+                it.write("""[{"index":0,"methodname":"tool_mobile_get_public_config","args":{}}]""".toByteArray())
+            }
+            MoodleSso.publicConfig(body, normalizeSite(site))
+        }
+
+        /**
+         * Accepts what students paste: a bare host, a full URL, or a page inside Moodle
+         * (login, dashboard, course) and keeps only the site's base address.
+         */
         fun normalizeSite(site: String): String {
-            var s = site.trim().trimEnd('/')
+            var s = site.trim().substringBefore('?').substringBefore('#').trimEnd('/') + "/"
             if (!s.startsWith("http://") && !s.startsWith("https://")) s = "https://$s"
-            return s
+            for (marker in listOf("/login/", "/my/", "/course/", "/mod/", "/user/", "/index.php", "/admin/")) {
+                val i = s.indexOf(marker, startIndex = s.indexOf("//") + 2)
+                if (i > 0) s = s.substring(0, i)
+            }
+            return s.trimEnd('/')
         }
 
         private fun enc(v: String) = URLEncoder.encode(v, "UTF-8")
@@ -145,6 +165,68 @@ class MoodleClient(site: String, private val token: String) {
             }
         }
     }
+}
+
+data class MoodlePublicConfig(
+    val siteUrl: String,
+    val siteName: String,
+    /** True when students sign in on the university's own page (SSO) rather than a Moodle form. */
+    val browserLogin: Boolean,
+    val launchUrl: String,
+)
+
+/**
+ * Sign-in through the university's login page, the way the official Moodle app
+ * does it: Moodle sends the token back to a moodlemobile:// link after login.
+ */
+object MoodleSso {
+    const val SCHEME = "moodlemobile"
+
+    fun publicConfig(body: String, fallbackSite: String): MoodlePublicConfig {
+        val trimmed = body.trim()
+        if (!trimmed.startsWith("[")) throw MoodleException("notmoodle", "Unexpected response from server")
+        val first = JSONArray(trimmed).getJSONObject(0)
+        if (first.optBoolean("error")) {
+            val ex = first.optJSONObject("exception")
+            throw MoodleException(ex?.optString("errorcode") ?: "error", ex?.optString("message") ?: "Moodle error")
+        }
+        val data = first.getJSONObject("data")
+        val site = data.optString("httpswwwroot").ifEmpty { data.optString("wwwroot") }.ifEmpty { fallbackSite }
+            .trimEnd('/')
+        // typeoflogin: 1 = inside the app, 2 = browser, 3 = embedded browser.
+        return MoodlePublicConfig(
+            siteUrl = site,
+            siteName = data.optString("sitename"),
+            browserLogin = data.optInt("typeoflogin", 1) != 1,
+            launchUrl = data.optString("launchurl").ifEmpty { "$site/admin/tool/mobile/launch.php" },
+        )
+    }
+
+    fun newPassport(): String = java.util.UUID.randomUUID().toString().replace("-", "")
+
+    fun launchUrl(config: MoodlePublicConfig, passport: String): String =
+        "${config.launchUrl}?service=moodle_mobile_app&passport=$passport&urlscheme=$SCHEME"
+
+    /**
+     * Reads moodlemobile://token=BASE64 where BASE64 decodes to
+     * "signature:::token[:::privatetoken]" and signature = md5(siteUrl + passport).
+     */
+    fun tokenFromCallback(callback: String, siteUrl: String, passport: String): String {
+        val encoded = java.net.URLDecoder.decode(callback.substringAfter("token=", ""), "UTF-8").trim()
+        if (encoded.isEmpty()) throw MoodleException("ssofailed", "No token in the answer from Moodle")
+        val decoded = String(java.util.Base64.getMimeDecoder().decode(encoded))
+        val parts = decoded.split(":::")
+        if (parts.size < 2) throw MoodleException("ssofailed", "Unexpected answer from Moodle")
+        val candidates = listOf(siteUrl, "$siteUrl/", siteUrl.replaceFirst("https://", "http://"))
+        if (candidates.none { md5(it + passport).equals(parts[0], ignoreCase = true) }) {
+            throw MoodleException("ssofailed", "The answer did not come from this Moodle")
+        }
+        return parts[1]
+    }
+
+    private fun md5(text: String): String =
+        java.security.MessageDigest.getInstance("MD5").digest(text.toByteArray())
+            .joinToString("") { "%02x".format(it) }
 }
 
 /** JSON handling kept apart from networking so it can be unit-tested. */

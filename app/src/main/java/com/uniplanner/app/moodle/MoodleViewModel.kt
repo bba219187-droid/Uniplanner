@@ -22,7 +22,18 @@ data class MoodleUiState(
     val error: String? = null,
     val errorDetail: String? = null,
     val message: MoodleMessage? = null,
+    /** Set once the site has been checked and it signs students in with a Moodle form. */
+    val formLoginSite: String? = null,
+    /** Set once the site has been checked and it signs students in on the university's page. */
+    val browserLogin: MoodlePublicConfig? = null,
+    /** A login page the screen should open in the browser, consumed once opened. */
+    val openUrl: String? = null,
 )
+
+/** Receives the moodlemobile:// link the browser opens after the university login. */
+object MoodleSsoCallback {
+    val link = MutableStateFlow<String?>(null)
+}
 
 sealed interface MoodleMessage {
     data class Imported(val result: ImportResult) : MoodleMessage
@@ -36,10 +47,51 @@ class MoodleViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         if (_state.value.account != null) refresh()
+        viewModelScope.launch {
+            MoodleSsoCallback.link.collect { link ->
+                if (link != null) {
+                    MoodleSsoCallback.link.value = null
+                    finishBrowserLogin(link)
+                }
+            }
+        }
+    }
+
+    /** Asks the site how students sign in, then shows the matching login. */
+    fun checkSite(site: String) = launchAction {
+        val config = try {
+            MoodleClient.publicConfig(site)
+        } catch (e: MoodleException) {
+            if (e.code == "notmoodle") throw e
+            null
+        } catch (e: org.json.JSONException) {
+            null
+        }
+        _state.update {
+            when {
+                config == null -> it.copy(formLoginSite = MoodleClient.normalizeSite(site))
+                config.browserLogin -> it.copy(browserLogin = config)
+                else -> it.copy(formLoginSite = config.siteUrl)
+            }
+        }
+    }
+
+    fun changeSite() = _state.update { it.copy(formLoginSite = null, browserLogin = null) }
+
+    fun openUniversityLogin() {
+        val config = _state.value.browserLogin ?: return
+        _state.update { it.copy(openUrl = repo.startBrowserLogin(config)) }
+    }
+
+    fun urlOpened() = _state.update { it.copy(openUrl = null) }
+
+    private fun finishBrowserLogin(link: String) = launchAction {
+        _state.update { it.copy(account = repo.finishBrowserLogin(link), browserLogin = null) }
+        load()
     }
 
     fun connect(site: String, username: String, password: String) = launchAction {
-        _state.update { it.copy(account = repo.connect(site, username, password)) }
+        _state.update { it.copy(account = repo.connect(site, username, password), formLoginSite = null) }
         load()
     }
 

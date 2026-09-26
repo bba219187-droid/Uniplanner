@@ -1,6 +1,7 @@
 package com.uniplanner.app
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +42,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.uniplanner.app.moodle.MoodleScreen
+import com.uniplanner.app.moodle.MoodleSso
+import com.uniplanner.app.moodle.MoodleSsoCallback
 import com.uniplanner.app.online.OnlineViewModel
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
@@ -63,11 +67,22 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        handleLink(intent)
         setContent {
             UniPlannerTheme {
                 UniPlannerRoot()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleLink(intent)
+    }
+
+    private fun handleLink(intent: Intent?) {
+        val link = intent?.data ?: return
+        if (link.scheme == MoodleSso.SCHEME) MoodleSsoCallback.link.value = link.toString()
     }
 }
 
@@ -89,6 +104,12 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     val current = backStack?.destination?.route
 
     UpdatePrompt()
+
+    // Coming back from the university login page: show the Moodle screen, which finishes the sign-in.
+    val moodleLink by MoodleSsoCallback.link.collectAsState()
+    LaunchedEffect(moodleLink) {
+        if (moodleLink != null && current != "moodle") nav.navigate("moodle") { launchSingleTop = true }
+    }
 
     Scaffold(
         bottomBar = {

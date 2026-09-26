@@ -78,7 +78,7 @@
     <string name="more_gym_sub">Plan and log workouts</string>
     <string name="more_version">Version %s</string>
     <string name="moodle_connect_title">Connect to Moodle</string>
-    <string name="moodle_connect_help">Use the same username and password you use on your university’s Moodle.</string>
+    <string name="moodle_connect_help">Write the address of your university’s Moodle (the page with your courses), for example elearning.ipca.pt. Not the login page.</string>
     <string name="moodle_site">Moodle address</string>
     <string name="moodle_username">Username</string>
     <string name="moodle_password">Password</string>
@@ -102,9 +102,9 @@
     <string name="moodle_saved_draft">File saved as a draft in “%s”. Remember to submit it.</string>
     <string name="moodle_imported">Added %1$d assignments and %2$d courses to your planner.</string>
     <string name="moodle_error_title">Moodle</string>
-    <string name="moodle_err_login">Wrong username or password. If your university signs you in through another page (single sign-on), this is not supported yet.</string>
+    <string name="moodle_err_login">Wrong username or password.</string>
     <string name="moodle_err_disabled">Your university has mobile access to Moodle turned off, so the app cannot connect. You can still add deadlines by hand.</string>
-    <string name="moodle_err_notmoodle">That address does not look like a Moodle site. Check it on your university’s website.</string>
+    <string name="moodle_err_notmoodle">That address does not look like a Moodle site. Use the address of the page with your courses, not the login page. Some universities use another platform, like Blackboard, which is not supported yet.</string>
     <string name="moodle_err_network">Could not reach Moodle. Check your internet connection.</string>
     <string name="moodle_err_token">Your Moodle session expired. Disconnect and connect again.</string>
     <string name="moodle_err_other">Moodle said: %s</string>
@@ -164,4 +164,10 @@
     <string name="post_link">Link (optional)</string>
     <string name="post_share">Share</string>
     <string name="posts_empty">Nothing shared yet. Be the first!</string>
+    <string name="moodle_continue">Continue</string>
+    <string name="moodle_change_site">Use another Moodle</string>
+    <string name="moodle_sso_help">Your university signs you in on its own page. Tap the button, sign in as usual, and you come back here.</string>
+    <string name="moodle_sso_button">Sign in with my university account</string>
+    <string name="moodle_sso_note">If your phone asks which app to open, choose UniPlanner.</string>
+    <string name="moodle_err_sso">The sign-in did not finish. Try again, and if your phone asks which app to open, choose UniPlanner.</string>
 </resources>

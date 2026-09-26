@@ -76,7 +76,7 @@
     <string name="more_gym_sub">Planear e registar treinos</string>
     <string name="more_version">Versão %s</string>
     <string name="moodle_connect_title">Ligar ao Moodle</string>
-    <string name="moodle_connect_help">Usa o mesmo utilizador e palavra-passe do Moodle da tua universidade.</string>
+    <string name="moodle_connect_help">Escreve o endereço do Moodle da tua universidade (a página com as tuas cadeiras), por exemplo elearning.ipca.pt. Não é a página de login.</string>
     <string name="moodle_site">Endereço do Moodle</string>
     <string name="moodle_username">Utilizador</string>
     <string name="moodle_password">Palavra-passe</string>
@@ -100,9 +100,9 @@
     <string name="moodle_saved_draft">Ficheiro guardado como rascunho em “%s”. Lembra-te de o submeter.</string>
     <string name="moodle_imported">Foram adicionados %1$d trabalhos e %2$d cadeiras ao teu planeamento.</string>
     <string name="moodle_error_title">Moodle</string>
-    <string name="moodle_err_login">Utilizador ou palavra-passe errados. Se a tua universidade te faz entrar por outra página (autenticação única), isso ainda não é suportado.</string>
+    <string name="moodle_err_login">Utilizador ou palavra-passe errados.</string>
     <string name="moodle_err_disabled">A tua universidade tem o acesso móvel ao Moodle desligado, por isso a app não consegue ligar. Podes continuar a adicionar os prazos à mão.</string>
-    <string name="moodle_err_notmoodle">Esse endereço não parece ser um Moodle. Confirma-o no site da tua universidade.</string>
+    <string name="moodle_err_notmoodle">Esse endereço não parece ser um Moodle. Usa o endereço da página com as tuas cadeiras, não o da página de login. Algumas universidades usam outra plataforma, como o Blackboard, que ainda não é suportada.</string>
     <string name="moodle_err_network">Não foi possível chegar ao Moodle. Verifica a ligação à internet.</string>
     <string name="moodle_err_token">A sessão do Moodle expirou. Desliga e volta a ligar.</string>
     <string name="moodle_err_other">O Moodle respondeu: %s</string>
@@ -162,4 +162,10 @@
     <string name="post_link">Link (opcional)</string>
     <string name="post_share">Partilhar</string>
     <string name="posts_empty">Ainda não há nada partilhado. Sê o primeiro!</string>
+    <string name="moodle_continue">Continuar</string>
+    <string name="moodle_change_site">Usar outro Moodle</string>
+    <string name="moodle_sso_help">A tua universidade faz o login na própria página. Toca no botão, entra como de costume e voltas aqui.</string>
+    <string name="moodle_sso_button">Entrar com a conta da universidade</string>
+    <string name="moodle_sso_note">Se o telemóvel perguntar com que app abrir, escolhe UniPlanner.</string>
+    <string name="moodle_err_sso">O login não terminou. Tenta outra vez e, se o telemóvel perguntar com que app abrir, escolhe UniPlanner.</string>
 </resources>
