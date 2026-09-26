@@ -12,7 +12,20 @@
           "package_name": "com.uniplanner.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "949737259498-u6t9u5ng8ql8pbre5jgsrsmfs0t6bgvq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uniplanner.app",
+            "certificate_hash": "48150f6017cc11833a1e89f24312a3f639d40549"
+          }
+        },
+        {
+          "client_id": "949737259498-h7k5jtbgnf8c3j9hd6fp3mharcl0hqdr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyATLy493mc0aCfdkR2UbQmHZAwtXVDEO-A"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "949737259498-h7k5jtbgnf8c3j9hd6fp3mharcl0hqdr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
