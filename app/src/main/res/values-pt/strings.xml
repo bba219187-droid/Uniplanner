@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_week">Semana</string>
+    <string name="tab_courses">Cadeiras</string>
+    <string name="tab_deadlines">Prazos</string>
+    <string name="tab_study">Estudo</string>
+    <string name="tab_gym">Ginásio</string>
+
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete">Apagar</string>
+
+    <string name="type_test">Teste</string>
+    <string name="type_assignment">Trabalho</string>
+
+    <string name="channel_deadlines">Testes e trabalhos</string>
+    <string name="channel_weekly">Plano semanal</string>
+
+    <string name="week_title">Esta semana</string>
+    <string name="week_summary">Estudaste %1$s de %2$s planeadas</string>
+    <string name="week_empty">Começa por adicionar as tuas cadeiras no separador Cadeiras.</string>
+    <string name="week_deadlines">Testes e trabalhos desta semana</string>
+    <string name="week_gym">Ginásio</string>
+    <string name="weekly_title">A tua semana: %1$s de estudo planeadas</string>
+    <string name="weekly_no_deadlines">Não tens testes nem trabalhos esta semana.</string>
+    <string name="weekly_study_goals">Objetivos de estudo</string>
+
+    <string name="courses_empty">Ainda não tens cadeiras. Toca em + para adicionar.</string>
+    <string name="course_add">Adicionar cadeira</string>
+    <string name="course_name">Nome</string>
+    <string name="course_teacher">Professor (opcional)</string>
+    <string name="course_credits_label">ECTS (opcional)</string>
+    <string name="course_credits">%d ECTS</string>
+    <string name="course_delete_title">Apagar %s?</string>
+    <string name="course_delete_text">Os testes, trabalhos e horas de estudo desta cadeira também são apagados.</string>
+
+    <string name="deadlines_empty">Nada pendente. Toca em + para adicionar um teste ou trabalho.</string>
+    <string name="deadlines_need_course">Adiciona primeiro uma cadeira.</string>
+    <string name="deadlines_show_done">Mostrar concluídos</string>
+    <string name="deadline_add">Adicionar teste ou trabalho</string>
+    <string name="deadline_course">Cadeira</string>
+    <string name="deadline_title">Título</string>
+    <string name="deadline_weight" formatted="false">Peso na nota final % (opcional)</string>
+    <string name="deadline_weight_value">Peso: %d%%</string>
+    <plurals name="deadline_days_left">
+        <item quantity="one">Falta %d dia</item>
+        <item quantity="other">Faltam %d dias</item>
+    </plurals>
+
+    <string name="study_need_course">Adiciona primeiro uma cadeira para registar o estudo.</string>
+    <string name="study_pick_course">Cadeira</string>
+    <string name="study_start">Começar</string>
+    <string name="study_stop">Parar e guardar</string>
+    <string name="study_add_manual">Adicionar tempo</string>
+    <string name="study_minutes">Minutos</string>
+    <string name="study_week_total">Esta semana: %s</string>
+
+    <string name="gym_empty">Ainda não tens treinos. Toca em + para planear um.</string>
+    <string name="gym_empty_week">Sem treinos planeados esta semana.</string>
+    <string name="gym_add">Planear treino</string>
+    <string name="gym_title_hint">Treino (ex.: Pernas, Corrida)</string>
+</resources>

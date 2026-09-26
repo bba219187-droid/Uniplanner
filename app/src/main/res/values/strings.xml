@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UniPlanner</string>
+
+    <string name="tab_week">Week</string>
+    <string name="tab_courses">Courses</string>
+    <string name="tab_deadlines">Deadlines</string>
+    <string name="tab_study">Study</string>
+    <string name="tab_gym">Gym</string>
+
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+
+    <string name="type_test">Test</string>
+    <string name="type_assignment">Assignment</string>
+
+    <string name="channel_deadlines">Tests and assignments</string>
+    <string name="channel_weekly">Weekly plan</string>
+
+    <string name="week_title">This week</string>
+    <string name="week_summary">Studied %1$s of %2$s planned</string>
+    <string name="week_empty">Start by adding your courses in the Courses tab.</string>
+    <string name="week_deadlines">Tests and assignments this week</string>
+    <string name="week_gym">Gym</string>
+    <string name="weekly_title">Your week: %1$s of study planned</string>
+    <string name="weekly_no_deadlines">No tests or assignments this week.</string>
+    <string name="weekly_study_goals">Study goals</string>
+
+    <string name="courses_empty">No courses yet. Tap + to add one.</string>
+    <string name="course_add">Add course</string>
+    <string name="course_name">Name</string>
+    <string name="course_teacher">Teacher (optional)</string>
+    <string name="course_credits_label">Credits / ECTS (optional)</string>
+    <string name="course_credits">%d ECTS</string>
+    <string name="course_delete_title">Delete %s?</string>
+    <string name="course_delete_text">Its tests, assignments and study hours are deleted too.</string>
+
+    <string name="deadlines_empty">Nothing pending. Tap + to add a test or assignment.</string>
+    <string name="deadlines_need_course">Add a course first.</string>
+    <string name="deadlines_show_done">Show completed</string>
+    <string name="deadline_add">Add test or assignment</string>
+    <string name="deadline_course">Course</string>
+    <string name="deadline_title">Title</string>
+    <string name="deadline_weight" formatted="false">Weight in final grade % (optional)</string>
+    <string name="deadline_weight_value">Weight: %d%%</string>
+    <plurals name="deadline_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+
+    <string name="study_need_course">Add a course first to track study time.</string>
+    <string name="study_pick_course">Course</string>
+    <string name="study_start">Start</string>
+    <string name="study_stop">Stop and save</string>
+    <string name="study_add_manual">Add time</string>
+    <string name="study_minutes">Minutes</string>
+    <string name="study_week_total">This week: %s</string>
+
+    <string name="gym_empty">No workouts yet. Tap + to plan one.</string>
+    <string name="gym_empty_week">No workouts planned this week.</string>
+    <string name="gym_add">Plan workout</string>
+    <string name="gym_title_hint">Workout (e.g. Legs, Running)</string>
+</resources>
