@@ -10,34 +10,48 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.uniplanner.app.moodle.MoodleScreen
+import com.uniplanner.app.online.OnlineViewModel
+import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
 import com.uniplanner.app.ui.screens.DeadlinesScreen
 import com.uniplanner.app.ui.screens.GymScreen
+import com.uniplanner.app.ui.screens.MoreScreen
 import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.screens.WeekScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
+import com.uniplanner.app.update.AvailableUpdate
+import com.uniplanner.app.update.UpdateChecker
 
 class MainActivity : ComponentActivity() {
     private val askNotifications =
@@ -59,24 +73,31 @@ class MainActivity : ComponentActivity() {
 
 private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
     Week("week", R.string.tab_week, Icons.Filled.CalendarMonth),
-    Courses("courses", R.string.tab_courses, Icons.Filled.School),
     Deadlines("deadlines", R.string.tab_deadlines, Icons.AutoMirrored.Filled.EventNote),
     Study("study", R.string.tab_study, Icons.Filled.Timer),
-    Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter),
+    Social("social", R.string.tab_social, Icons.Filled.Group),
+    More("more", R.string.tab_more, Icons.Filled.Menu),
 }
 
+/** Screens reached from the More tab; the More tab stays highlighted while they are open. */
+private val moreRoutes = setOf("more", "courses", "gym", "moodle")
+
 @Composable
-private fun UniPlannerRoot(vm: AppViewModel = viewModel()) {
+private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
+
+    UpdatePrompt()
 
     Scaffold(
         bottomBar = {
             NavigationBar {
                 Tab.entries.forEach { tab ->
+                    val selected = if (tab == Tab.More) current in moreRoutes
+                    else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                     NavigationBarItem(
-                        selected = current == tab.route,
+                        selected = selected,
                         onClick = {
                             nav.navigate(tab.route) {
                                 popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -93,10 +114,35 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel()) {
     ) { padding ->
         NavHost(nav, startDestination = Tab.Week.route, modifier = Modifier.padding(padding)) {
             composable(Tab.Week.route) { WeekScreen(vm) }
-            composable(Tab.Courses.route) { CoursesScreen(vm) }
             composable(Tab.Deadlines.route) { DeadlinesScreen(vm) }
             composable(Tab.Study.route) { StudyScreen(vm) }
-            composable(Tab.Gym.route) { GymScreen(vm) }
+            composable(Tab.Social.route) { SocialScreen(online) }
+            composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
+            composable("courses") { CoursesScreen(vm) }
+            composable("gym") { GymScreen(vm) }
+            composable("moodle") { MoodleScreen() }
         }
+    }
+}
+
+/** Checks once per launch whether a newer build was published and offers to install it. */
+@Composable
+private fun UpdatePrompt() {
+    val context = LocalContext.current
+    var update by remember { mutableStateOf<AvailableUpdate?>(null) }
+    LaunchedEffect(Unit) { update = UpdateChecker.check() }
+    update?.let { u ->
+        AlertDialog(
+            onDismissRequest = { update = null },
+            title = { Text(stringResource(R.string.update_title)) },
+            text = { Text(stringResource(R.string.update_text, u.versionName)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    UpdateChecker.openDownload(context)
+                    update = null
+                }) { Text(stringResource(R.string.update_now)) }
+            },
+            dismissButton = { TextButton(onClick = { update = null }) { Text(stringResource(R.string.update_later)) } },
+        )
     }
 }

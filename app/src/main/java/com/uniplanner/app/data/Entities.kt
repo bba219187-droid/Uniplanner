@@ -12,6 +12,7 @@ data class Course(
     val teacher: String = "",
     val credits: Int = 0,
     val color: Long = 0xFF3F51B5,
+    val moodleCourseId: Long? = null,
 )
 
 enum class DeadlineType { TEST, ASSIGNMENT }
@@ -39,6 +40,7 @@ data class Deadline(
     val notes: String = "",
     val done: Boolean = false,
     val grade: Double? = null,
+    val moodleAssignId: Long? = null,
 )
 
 @Entity(

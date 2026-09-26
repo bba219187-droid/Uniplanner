@@ -25,9 +25,12 @@ jobs:
         with:
           name: uniplanner-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-      - name: Rename APK
+      - name: Prepare release files
         if: github.event_name == 'push'
-        run: cp app/build/outputs/apk/debug/app-debug.apk UniPlanner.apk
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk UniPlanner.apk
+          echo "{\"versionCode\": ${GITHUB_RUN_NUMBER}, \"versionName\": \"0.2.${GITHUB_RUN_NUMBER}\"}" > version.json
+          cat version.json
       # Direct phone-friendly link: /releases/latest/download/UniPlanner.apk
       - name: Publish test release
         if: github.event_name == 'push'
@@ -38,4 +41,6 @@ jobs:
           body: Versão de teste gerada automaticamente a partir do commit ${{ github.sha }}.
           target_commitish: ${{ github.sha }}
           make_latest: true
-          files: UniPlanner.apk
+          files: |
+            UniPlanner.apk
+            version.json

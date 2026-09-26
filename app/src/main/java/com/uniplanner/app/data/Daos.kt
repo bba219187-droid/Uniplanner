@@ -15,6 +15,9 @@ interface CourseDao {
     @Query("SELECT * FROM courses")
     suspend fun getAll(): List<Course>
 
+    @Query("SELECT * FROM courses WHERE moodleCourseId = :moodleId LIMIT 1")
+    suspend fun findByMoodleId(moodleId: Long): Course?
+
     @Insert
     suspend fun insert(course: Course): Long
 
@@ -32,6 +35,9 @@ interface DeadlineDao {
 
     @Query("SELECT * FROM deadlines WHERE id = :id")
     suspend fun getById(id: Long): Deadline?
+
+    @Query("SELECT * FROM deadlines WHERE moodleAssignId = :moodleId LIMIT 1")
+    suspend fun findByMoodleAssignId(moodleId: Long): Deadline?
 
     @Insert
     suspend fun insert(deadline: Deadline): Long
