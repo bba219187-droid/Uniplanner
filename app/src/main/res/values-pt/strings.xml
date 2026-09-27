@@ -270,4 +270,5 @@
     <string name="activities_connect_agenda">Dá acesso à agenda do telemóvel para veres aqui também os teus eventos.</string>
     <string name="activities_today">Hoje · %s</string>
     <string name="activities_tomorrow">Amanhã · %s</string>
+    <string name="splash_copyright">© 2026 TecSolve. Todos os direitos reservados.</string>
 </resources>

@@ -271,4 +271,5 @@
     <string name="activities_connect_agenda">Allow access to the phone agenda to see your events here too.</string>
     <string name="activities_today">Today · %s</string>
     <string name="activities_tomorrow">Tomorrow · %s</string>
+    <string name="splash_copyright">© 2026 TecSolve. All rights reserved.</string>
 </resources>

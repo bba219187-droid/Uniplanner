@@ -29,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +59,7 @@ import com.uniplanner.app.ui.screens.ActivitiesScreen
 import com.uniplanner.app.ui.screens.GradesScreen
 import com.uniplanner.app.ui.screens.GymScreen
 import com.uniplanner.app.ui.screens.MoreScreen
+import com.uniplanner.app.ui.screens.SplashScreen
 import com.uniplanner.app.ui.screens.StatsScreen
 import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.screens.WeekScreen
@@ -80,7 +82,8 @@ class MainActivity : ComponentActivity() {
         handleLink(intent)
         setContent {
             UniPlannerTheme {
-                UniPlannerRoot()
+                var splash by rememberSaveable { mutableStateOf(true) }
+                if (splash) SplashScreen(onFinished = { splash = false }) else UniPlannerRoot()
             }
         }
     }
