@@ -278,4 +278,10 @@
     <string name="gym_week_count">%1$d de %2$d treinos</string>
     <string name="gym_next">Próximos</string>
     <string name="gym_history">Feitos e passados</string>
+    <string name="activities_subtitle">Próximos 14 dias</string>
+    <string name="social_subtitle">Estudar em conjunto</string>
+    <string name="courses_subtitle">%d este semestre</string>
+    <string name="more_group_studies">Estudos</string>
+    <string name="more_group_connections">Ligações</string>
+    <string name="more_group_account">Conta</string>
 </resources>

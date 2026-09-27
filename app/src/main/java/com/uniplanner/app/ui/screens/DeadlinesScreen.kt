@@ -1,5 +1,9 @@
 package com.uniplanner.app.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +77,7 @@ fun DeadlinesScreen(vm: AppViewModel) {
             when {
                 courses.isEmpty() -> EmptyState(stringResource(R.string.deadlines_need_course))
                 visible.isEmpty() -> EmptyState(stringResource(R.string.deadlines_empty))
-                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 88.dp)) {
                     items(visible, key = { it.id }) { d ->
                         DeadlineCard(
                             deadline = d,
@@ -86,10 +90,12 @@ fun DeadlinesScreen(vm: AppViewModel) {
             }
         }
         if (courses.isNotEmpty()) {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { adding = true },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.deadline_add)) },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            ) { Icon(Icons.Filled.Add, stringResource(R.string.deadline_add)) }
+            )
         }
     }
 
@@ -128,10 +134,16 @@ private fun DeadlineCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (!deadline.done && daysLeft >= 0) {
+                    val urgent = daysLeft <= 3
+                    val tone = if (urgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     Text(
                         pluralStringResource(R.plurals.deadline_days_left, daysLeft.toInt(), daysLeft.toInt()),
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (daysLeft <= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        color = tone,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .background(tone.copy(alpha = 0.12f), CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 3.dp),
                     )
                 }
                 if (deadline.weightPercent > 0) {

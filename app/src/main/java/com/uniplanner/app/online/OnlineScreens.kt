@@ -55,6 +55,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uniplanner.app.R
+import com.uniplanner.app.ui.screens.PillTabs
+import com.uniplanner.app.ui.screens.ScreenHeader
 import com.uniplanner.app.ui.screens.EmptyState
 import com.uniplanner.app.ui.screens.SectionTitle
 import com.uniplanner.app.ui.screens.formatDateTime
@@ -82,9 +84,14 @@ fun SocialScreen(vm: OnlineViewModel) {
         return
     }
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
-            Tab(tab == 0, { tab = 0 }, text = { Text(stringResource(R.string.social_friends)) })
-            Tab(tab == 1, { tab = 1 }, text = { Text(stringResource(R.string.social_groups)) })
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            ScreenHeader(stringResource(R.string.tab_social), stringResource(R.string.social_subtitle))
+            PillTabs(
+                listOf(stringResource(R.string.social_friends), stringResource(R.string.social_groups)),
+                selected = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
         }
         when (tab) {
             0 -> FriendsScreen(vm)

@@ -71,9 +71,14 @@ fun ActivitiesScreen(vm: AppViewModel, onOpenAgenda: () -> Unit, agenda: AgendaV
     val pager = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = pager.currentPage) {
-            Tab(pager.currentPage == 0, { scope.launch { pager.animateScrollToPage(0) } }, text = { Text(stringResource(R.string.activities_all)) })
-            Tab(pager.currentPage == 1, { scope.launch { pager.animateScrollToPage(1) } }, text = { Text(stringResource(R.string.tab_deadlines)) })
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            ScreenHeader(stringResource(R.string.tab_activities), stringResource(R.string.activities_subtitle))
+            PillTabs(
+                listOf(stringResource(R.string.activities_all), stringResource(R.string.tab_deadlines)),
+                selected = pager.currentPage,
+                onSelect = { scope.launch { pager.animateScrollToPage(it) } },
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
         }
         // Swipe left and right between everything and the deadline list.
         HorizontalPager(pager, Modifier.weight(1f)) { page ->

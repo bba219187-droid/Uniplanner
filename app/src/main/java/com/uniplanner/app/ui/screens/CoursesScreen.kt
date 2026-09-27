@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,9 +55,10 @@ fun CoursesScreen(vm: AppViewModel) {
             EmptyState(stringResource(R.string.courses_empty))
         } else {
             LazyColumn(
-                Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { ScreenHeader(stringResource(R.string.tab_courses), stringResource(R.string.courses_subtitle, courses.size)) }
                 items(courses, key = { it.id }) { course ->
                     Card(Modifier.fillMaxWidth()) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -79,10 +80,12 @@ fun CoursesScreen(vm: AppViewModel) {
                 }
             }
         }
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = { adding = true },
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text(stringResource(R.string.course_add)) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        ) { Icon(Icons.Filled.Add, stringResource(R.string.course_add)) }
+        )
     }
 
     if (adding) {

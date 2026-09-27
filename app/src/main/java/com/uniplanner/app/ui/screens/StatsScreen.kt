@@ -62,8 +62,9 @@ fun StatsScreen(vm: AppViewModel) {
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { ScreenHeader(stringResource(R.string.more_stats)) }
         item {
-            Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(stringResource(R.string.stats_this_week), formatMinutes(thisWeek), Modifier.weight(1f))
                 StatTile(stringResource(R.string.stats_last_week), formatMinutes(lastWeek), Modifier.weight(1f))
                 StatTile(
