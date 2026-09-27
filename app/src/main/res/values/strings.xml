@@ -285,4 +285,14 @@
     <string name="more_group_studies">Studies</string>
     <string name="more_group_connections">Connections</string>
     <string name="more_group_account">Account</string>
+    <string name="settings_title">Settings</string>
+    <string name="more_settings_sub">Theme and language</string>
+    <string name="settings_theme">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_theme_hint">With System, the app follows your phone\'s light or dark mode.</string>
+    <string name="settings_language">Language</string>
+    <string name="lang_system">System</string>
+    <string name="lang_system_sub">Your phone\'s language</string>
 </resources>

@@ -1,11 +1,13 @@
 package com.uniplanner.app
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -62,6 +64,10 @@ import com.uniplanner.app.online.BackupScreen
 import com.uniplanner.app.online.OnlineViewModel
 import com.uniplanner.app.phone.AgendaScreen
 import com.uniplanner.app.phone.AgendaSync
+import com.uniplanner.app.settings.AppSettings
+import com.uniplanner.app.settings.SettingsScreen
+import com.uniplanner.app.settings.ThemeMode
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
@@ -82,6 +88,10 @@ class MainActivity : ComponentActivity() {
     private val askNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppSettings.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -90,7 +100,18 @@ class MainActivity : ComponentActivity() {
         }
         handleLink(intent)
         setContent {
-            UniPlannerTheme {
+            val mode by AppSettings.themeFlow(applicationContext).collectAsState()
+            val dark = when (mode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                else -> isSystemInDarkTheme()
+            }
+            // The status bar icons follow the app's theme, not only the phone's.
+            LaunchedEffect(dark) {
+                val bars = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark }
+                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+            }
+            UniPlannerTheme(dark) {
                 var splash by rememberSaveable { mutableStateOf(true) }
                 AnimatedContent(
                     targetState = splash,
@@ -129,7 +150,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda")
+private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda", "settings")
 
 @Composable
 private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
@@ -191,6 +212,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable("courses") { CoursesScreen(vm) }
             composable(Tab.Gym.route) { GymScreen(vm) }
             composable("agenda") { AgendaScreen() }
+            composable("settings") { SettingsScreen() }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
             composable("backup") {

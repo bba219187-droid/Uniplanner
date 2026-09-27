@@ -98,9 +98,9 @@ val HeroGradient = Brush.linearGradient(listOf(Indigo, Violet))
 val GymGradient = Brush.linearGradient(listOf(Teal, Color(0xFF0EA5E9)))
 
 @Composable
-fun UniPlannerTheme(content: @Composable () -> Unit) {
+fun UniPlannerTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
+        colorScheme = if (darkTheme) Dark else Light,
         shapes = AppShapes,
         typography = AppTypography,
         content = content,

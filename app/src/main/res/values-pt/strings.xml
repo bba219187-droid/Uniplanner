@@ -284,4 +284,14 @@
     <string name="more_group_studies">Estudos</string>
     <string name="more_group_connections">Ligações</string>
     <string name="more_group_account">Conta</string>
+    <string name="settings_title">Definições</string>
+    <string name="more_settings_sub">Tema e língua</string>
+    <string name="settings_theme">Aparência</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="settings_theme_hint">Em Sistema, a app acompanha o modo claro ou escuro do telemóvel.</string>
+    <string name="settings_language">Língua</string>
+    <string name="lang_system">Sistema</string>
+    <string name="lang_system_sub">A língua do telemóvel</string>
 </resources>
