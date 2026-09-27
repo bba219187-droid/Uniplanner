@@ -26,12 +26,53 @@ service cloud.firestore {
         && request.resource.data.members.size() == 2
         && request.resource.data.status == 'pending';
       // Only the person who received the request can accept it.
-      allow update: if signedIn()
-        && me() in resource.data.members
-        && me() != resource.data.requestedBy
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        && request.resource.data.status == 'accepted';
+      allow update: if signedIn() && me() in resource.data.members && (
+        (me() != resource.data.requestedBy
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'accepted')
+        // Either friend keeps the newest message on the chat, for the chat list.
+        || (resource.data.status == 'accepted'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy', 'lastName']))
+      );
       allow delete: if signedIn() && me() in resource.data.members;
+
+      function isFriendChat() {
+        let f = get(/databases/$(database)/documents/friendships/$(id)).data;
+        return me() in f.members && f.status == 'accepted';
+      }
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && isFriendChat();
+        allow create: if signedIn() && isFriendChat() && request.resource.data.authorId == me();
+        allow delete: if signedIn() && resource.data.authorId == me();
+        allow update: if false;
+      }
+    }
+
+    // Where students are, only for those who said yes in the app.
+    function isAdmin() { return exists(/databases/$(database)/documents/admins/$(me())); }
+    function isFriend(other) {
+      let a = /databases/$(database)/documents/friendships/$(me() + '_' + other);
+      let b = /databases/$(database)/documents/friendships/$(other + '_' + me());
+      return (exists(a) && get(a).data.status == 'accepted') || (exists(b) && get(b).data.status == 'accepted');
+    }
+
+    // Admins are added by hand in the Firebase console; nobody can add themselves.
+    match /admins/{uid} {
+      allow read: if signedIn() && me() == uid;
+      allow write: if false;
+    }
+
+    // City and country, for the admin's overview.
+    match /stats/{uid} {
+      allow read: if signedIn() && (me() == uid || isAdmin());
+      allow write: if signedIn() && me() == uid;
+    }
+
+    // A location shared with friends.
+    match /friendLocations/{uid} {
+      allow read: if signedIn() && (me() == uid || isFriend(uid));
+      allow write: if signedIn() && me() == uid;
     }
 
     match /groups/{groupId} {
@@ -43,6 +84,9 @@ service cloud.firestore {
       // Owners edit the group; anyone else may only add or remove themselves.
       allow update: if signedIn() && (
         resource.data.ownerId == me()
+        // Members keep the newest message on the group, for the chat list.
+        || (me() in resource.data.members
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy', 'lastName']))
         || (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
           && (

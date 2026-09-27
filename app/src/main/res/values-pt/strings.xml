@@ -321,4 +321,18 @@
     <string name="gym_exercise_name">Exercício (ex.: Supino reto)</string>
     <string name="gym_sets">Séries</string>
     <string name="gym_reps">Reps</string>
+    <string name="chat_title">Conversas</string>
+    <string name="chat_wants_friend">quer ser teu amigo</string>
+    <string name="chat_empty">Ainda não tens conversas. Adiciona um amigo com o código dele ou cria um grupo para a tua turma com os botões lá em cima.</string>
+    <string name="chat_you">Tu</string>
+    <string name="chat_group_new">Grupo · %d membros</string>
+    <string name="chat_friend_new">Diz olá</string>
+    <string name="groups_join_title">Entrar num grupo</string>
+    <string name="chat_friend">Amigo</string>
+    <string name="chat_options">Opções</string>
+    <string name="chat_say_hi">Ainda não há mensagens. Manda a primeira.</string>
+    <string name="chat_placeholder">Mensagem</string>
+    <string name="chat_send">Enviar</string>
+    <string name="chat_remove_friend_title">Remover %s dos teus amigos?</string>
+    <string name="chat_yesterday">ontem</string>
 </resources>

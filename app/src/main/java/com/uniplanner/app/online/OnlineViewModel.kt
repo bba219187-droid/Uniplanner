@@ -15,11 +15,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** One row of the chat list: a friend or a group. */
+data class Conversation(
+    val kind: ChatKind,
+    val id: String,
+    val title: String,
+    val last: LastMessage?,
+    val unread: Boolean,
+    val memberCount: Int,
+)
 
 /** What to tell the student after an online action. */
 enum class OnlineNotice { FRIEND_REQUEST_SENT, CODE_NOT_FOUND, JOINED_GROUP, RESET_EMAIL_SENT, PROFILE_SAVED }
@@ -48,6 +59,35 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
 
     val groups: StateFlow<List<Group>> = uid.flatMapLatest { id -> listFlow(id) { repo!!.groups(it) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val readPrefs = app.getSharedPreferences("chat_read", Context.MODE_PRIVATE)
+    private val readAt = MutableStateFlow(readPrefs.all.mapValues { (it.value as? Long) ?: 0L })
+
+    /** Friends and groups, newest conversation first, as in a messaging app. */
+    val conversations: StateFlow<List<Conversation>> =
+        combine(friendships, groups, readAt, uid) { fs, gs, read, me ->
+            val friends = fs.filter { it.accepted }.map { f ->
+                Conversation(ChatKind.FRIEND, f.id, f.otherName, f.last, isUnread(f.last, read["f_${f.id}"], me), 2)
+            }
+            val groupRows = gs.map { g ->
+                Conversation(ChatKind.GROUP, g.id, g.name, g.last, isUnread(g.last, read["g_${g.id}"], me), g.memberCount)
+            }
+            (friends + groupRows).sortedWith(compareByDescending<Conversation> { it.last?.at ?: 0L }.thenBy { it.title.lowercase() })
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private fun isUnread(last: LastMessage?, read: Long?, me: String?) =
+        last != null && last.byUid != me && last.at > (read ?: 0L)
+
+    fun markRead(kind: ChatKind, id: String) {
+        val key = (if (kind == ChatKind.FRIEND) "f_" else "g_") + id
+        val now = System.currentTimeMillis()
+        readPrefs.edit().putLong(key, now).apply()
+        readAt.value = readAt.value + (key to now)
+    }
+
+    fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = repo?.messages(kind, id) ?: emptyFlow()
+
+    fun sendMessage(kind: ChatKind, id: String, text: String) = withProfile { r, me -> r.sendMessage(me, kind, id, text) }
 
     private fun <T> listFlow(id: String?, source: (String) -> Flow<List<T>>): Flow<List<T>> =
         if (id == null) flowOf(emptyList()) else source(id)

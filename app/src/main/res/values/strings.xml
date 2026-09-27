@@ -322,4 +322,18 @@
     <string name="gym_exercise_name">Exercise (e.g. Bench press)</string>
     <string name="gym_sets">Sets</string>
     <string name="gym_reps">Reps</string>
+    <string name="chat_title">Chats</string>
+    <string name="chat_wants_friend">wants to be your friend</string>
+    <string name="chat_empty">No chats yet. Add a friend with their code or create a group for your class with the buttons above.</string>
+    <string name="chat_you">You</string>
+    <string name="chat_group_new">Group · %d members</string>
+    <string name="chat_friend_new">Say hi</string>
+    <string name="groups_join_title">Join a group</string>
+    <string name="chat_friend">Friend</string>
+    <string name="chat_options">Options</string>
+    <string name="chat_say_hi">No messages yet. Send the first one.</string>
+    <string name="chat_placeholder">Message</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_remove_friend_title">Remove %s from your friends?</string>
+    <string name="chat_yesterday">yesterday</string>
 </resources>

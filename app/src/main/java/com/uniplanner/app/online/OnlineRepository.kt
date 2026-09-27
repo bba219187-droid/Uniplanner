@@ -31,7 +31,23 @@ data class Friendship(
     val accepted: Boolean,
     /** True when the other person sent the request and it is waiting for me. */
     val incoming: Boolean,
+    val last: LastMessage? = null,
 )
+
+/** The newest message of a conversation, kept on the conversation so the list needs one read. */
+data class LastMessage(val text: String, val at: Long, val byUid: String, val byName: String)
+
+data class ChatMessage(
+    val id: String,
+    val authorId: String,
+    val authorName: String,
+    val text: String,
+    val createdAt: Long,
+    /** Still on its way to the server. */
+    val pending: Boolean,
+)
+
+enum class ChatKind { FRIEND, GROUP }
 
 data class Group(
     val id: String,
@@ -40,6 +56,7 @@ data class Group(
     val inviteCode: String,
     val memberCount: Int,
     val ownerId: String,
+    val last: LastMessage? = null,
 )
 
 data class Post(
@@ -160,6 +177,7 @@ class OnlineRepository {
                         otherName = names[other].orEmpty(),
                         accepted = d.getString("status") == "accepted",
                         incoming = d.getString("requestedBy") != uid,
+                        last = d.lastMessage(),
                     )
                 }
                 trySend(list.sortedBy { it.otherName.lowercase() })
@@ -209,6 +227,7 @@ class OnlineRepository {
                             inviteCode = d.getString("inviteCode").orEmpty(),
                             memberCount = (d.get("members") as? List<*>)?.size ?: 0,
                             ownerId = d.getString("ownerId").orEmpty(),
+                            last = d.lastMessage(),
                         )
                     }.sortedBy { it.name.lowercase() },
                 )
@@ -272,4 +291,66 @@ class OnlineRepository {
             ),
         ).await()
     }
+
+    // --- Chat --------------------------------------------------------------
+
+    private fun conversation(kind: ChatKind, id: String) =
+        if (kind == ChatKind.FRIEND) db.collection("friendships").document(id) else db.collection("groups").document(id)
+
+    // Group messages live in "posts", where the first version of groups kept them.
+    private fun messagesOf(kind: ChatKind, id: String) =
+        conversation(kind, id).collection(if (kind == ChatKind.FRIEND) "messages" else "posts")
+
+    fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = callbackFlow {
+        val reg = messagesOf(kind, id).orderBy("createdAt", Query.Direction.DESCENDING).limit(300)
+            .addSnapshotListener { snap, _ ->
+                trySend(
+                    snap?.documents.orEmpty().map { d ->
+                        val text = d.getString("text").orEmpty()
+                        val link = d.getString("link").orEmpty()
+                        ChatMessage(
+                            id = d.id,
+                            authorId = d.getString("authorId").orEmpty(),
+                            authorName = d.getString("authorName").orEmpty(),
+                            text = if (link.isNotBlank() && link !in text) listOf(text, link).filter { it.isNotBlank() }.joinToString("\n") else text,
+                            createdAt = d.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
+                            pending = d.metadata.hasPendingWrites(),
+                        )
+                    },
+                )
+            }
+        awaitClose { reg.remove() }
+    }
+
+    suspend fun sendMessage(me: Profile, kind: ChatKind, id: String, text: String) {
+        val clean = text.trim()
+        if (clean.isEmpty()) return
+        val batch = db.batch()
+        batch.set(
+            messagesOf(kind, id).document(),
+            mapOf(
+                "authorId" to me.uid,
+                "authorName" to me.name,
+                "text" to clean,
+                "link" to "",
+                "createdAt" to FieldValue.serverTimestamp(),
+            ),
+        )
+        batch.update(
+            conversation(kind, id),
+            mapOf(
+                "lastText" to clean.take(200),
+                "lastAt" to FieldValue.serverTimestamp(),
+                "lastBy" to me.uid,
+                "lastName" to me.name,
+            ),
+        )
+        batch.commit().await()
+    }
+}
+
+private fun com.google.firebase.firestore.DocumentSnapshot.lastMessage(): LastMessage? {
+    val text = getString("lastText") ?: return null
+    val at = getTimestamp("lastAt")?.toDate()?.time ?: System.currentTimeMillis()
+    return LastMessage(text, at, getString("lastBy").orEmpty(), getString("lastName").orEmpty())
 }

@@ -87,6 +87,9 @@ import com.uniplanner.app.settings.SettingsScreen
 import com.uniplanner.app.settings.ThemeMode
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.uniplanner.app.online.SocialScreen
+import com.uniplanner.app.online.ChatScreen
+import com.uniplanner.app.online.ChatKind
+import androidx.compose.foundation.layout.consumeWindowInsets
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
 import com.uniplanner.app.ui.screens.ActivitiesScreen
@@ -187,10 +190,12 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
 
     Scaffold(
         bottomBar = {
-            FloatingTabBar(
+            // A chat takes the whole screen, like in a messaging app.
+            if (current?.startsWith("chat/") != true) FloatingTabBar(
                 selected = { tab ->
                     if (tab == Tab.More) current in moreRoutes
                     else if (tab == Tab.Gym && current?.startsWith("workout") == true) true
+                    else if (tab == Tab.Social && current?.startsWith("chat/") == true) true
                     else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                 },
                 onSelect = { tab ->
@@ -212,7 +217,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
         NavHost(
             nav,
             startDestination = Tab.Study.route,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             enterTransition = { slideIn(direction(initialState.destination.route, targetState.destination.route)) },
             exitTransition = { slideOut(direction(initialState.destination.route, targetState.destination.route)) },
             popEnterTransition = { slideIn(-1) },
@@ -228,7 +233,15 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     onOpenProfile = { nav.navigate(Tab.More.route) { launchSingleTop = true } },
                 )
             }
-            composable(Tab.Social.route) { SocialScreen(online) }
+            composable(Tab.Social.route) { SocialScreen(online, onOpenChat = { kind, id -> nav.navigate("chat/${kind.name}/$id") }) }
+            composable("chat/{kind}/{id}") { entry ->
+                ChatScreen(
+                    online,
+                    kind = ChatKind.valueOf(entry.arguments?.getString("kind") ?: ChatKind.FRIEND.name),
+                    id = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { nav.popBackStack() },
+                )
+            }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
             composable(Tab.Gym.route) { GymScreen(vm, onOpenWorkout = { nav.navigate("workout/$it") }) }
