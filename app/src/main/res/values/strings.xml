@@ -420,4 +420,22 @@
     <string name="health_import_nothing">No meals found. Each meal needs a time, like 13:00 Lunch.</string>
     <string name="health_import_replaces">This replaces your current plan.</string>
     <string name="health_import_edit_later">You can change each meal later by holding it.</string>
+    <string name="location_title">Location</string>
+    <string name="location_intro">Nothing is shared until you turn it on. The app only reads where you are while it is open.</string>
+    <string name="location_sign_in">Sign in on the Social tab to share your location.</string>
+    <string name="location_friends">Share with my friends</string>
+    <string name="location_friends_detail">Your friends see your area (about 100 m) and when it was updated.</string>
+    <string name="location_stats">Help the app with my city</string>
+    <string name="location_stats_detail">Only your city and country go into an overview without names.</string>
+    <string name="location_no_permission">Allow location in the phone settings for sharing to work.</string>
+    <string name="location_friends_title">Friends</string>
+    <string name="location_friends_empty">None of your friends shares their location yet.</string>
+    <string name="location_open_map">Open in maps</string>
+    <string name="admin_title">Students overview</string>
+    <string name="admin_not_admin">Only admins can see this.</string>
+    <string name="admin_sharing">Students sharing their city</string>
+    <string name="admin_cities">In %d places</string>
+    <string name="admin_unknown">Unknown place</string>
+    <string name="more_location">Location</string>
+    <string name="more_location_sub">Share with friends, and your choices</string>
 </resources>

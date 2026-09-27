@@ -420,4 +420,22 @@
     <string name="health_import_nothing">Não encontrei refeições. Cada refeição precisa de uma hora, como 13:00 Almoço.</string>
     <string name="health_import_replaces">Isto substitui o teu plano atual.</string>
     <string name="health_import_edit_later">Podes mudar cada refeição depois, mantendo-a premida.</string>
+    <string name="location_title">Localização</string>
+    <string name="location_intro">Nada é partilhado até ligares. A app só vê onde estás enquanto está aberta.</string>
+    <string name="location_sign_in">Entra na tua conta na aba Amigos para partilhar a localização.</string>
+    <string name="location_friends">Partilhar com os meus amigos</string>
+    <string name="location_friends_detail">Os teus amigos veem a tua zona (cerca de 100 m) e quando foi atualizada.</string>
+    <string name="location_stats">Ajudar a app com a minha cidade</string>
+    <string name="location_stats_detail">Só a cidade e o país entram num resumo sem nomes.</string>
+    <string name="location_no_permission">Permite a localização nas definições do telemóvel para a partilha funcionar.</string>
+    <string name="location_friends_title">Amigos</string>
+    <string name="location_friends_empty">Nenhum amigo partilha a localização ainda.</string>
+    <string name="location_open_map">Abrir no mapa</string>
+    <string name="admin_title">Resumo dos estudantes</string>
+    <string name="admin_not_admin">Só os administradores veem isto.</string>
+    <string name="admin_sharing">Estudantes a partilhar a cidade</string>
+    <string name="admin_cities">Em %d sítios</string>
+    <string name="admin_unknown">Sítio desconhecido</string>
+    <string name="more_location">Localização</string>
+    <string name="more_location_sub">Partilhar com amigos e as tuas escolhas</string>
 </resources>

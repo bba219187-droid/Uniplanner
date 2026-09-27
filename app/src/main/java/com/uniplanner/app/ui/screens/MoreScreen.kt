@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Grade
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -67,6 +68,7 @@ private val groups = listOf(
     MoreGroup(
         R.string.more_group_account,
         listOf(
+            MoreItem("location", R.string.more_location, R.string.more_location_sub, Icons.Filled.LocationOn, Color(0xFFC94220)),
             MoreItem("backup", R.string.more_backup, R.string.more_backup_sub, Icons.Filled.CloudDone, Color(0xFF7C3AED)),
             MoreItem("settings", R.string.settings_title, R.string.more_settings_sub, Icons.Filled.Settings, Color(0xFF64748B)),
         ),

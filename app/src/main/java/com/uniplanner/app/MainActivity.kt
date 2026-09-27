@@ -102,6 +102,9 @@ import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.health.HealthScreen
 import com.uniplanner.app.health.Steps
+import com.uniplanner.app.location.AdminScreen
+import com.uniplanner.app.location.LocationScreen
+import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
@@ -152,6 +155,7 @@ class MainActivity : ComponentActivity() {
         // Picks up tests and deadlines the student moved in the phone's agenda.
         lifecycleScope.launch(Dispatchers.IO) { runCatching { AgendaSync.pullChanges(applicationContext) } }
         lifecycleScope.launch(Dispatchers.IO) { runCatching { Steps.refresh(applicationContext) } }
+        lifecycleScope.launch { runCatching { LocationShare.refresh(applicationContext) } }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -244,6 +248,8 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             }
             composable("more") { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable(Tab.Health.route) { HealthScreen() }
+            composable("location") { LocationScreen(onOpenAdmin = { nav.navigate("admin") }) }
+            composable("admin") { AdminScreen() }
             composable("courses") { CoursesScreen(vm) }
             composable(Tab.Gym.route) { GymScreen(vm, onOpenWorkout = { nav.navigate("workout/$it") }) }
             composable("workout/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
