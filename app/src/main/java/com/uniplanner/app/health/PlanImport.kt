@@ -22,7 +22,8 @@ object PlanImport {
             val type = ctx.contentResolver.getType(uri).orEmpty()
             val images = if (type == "application/pdf") pdfPages(ctx, uri).map { InputImage.fromBitmap(it, 0) }
             else listOf(InputImage.fromFilePath(ctx, uri))
-            images.joinToString("\n") { image ->
+            val pages = mutableListOf<String>()
+            for (image in images) {
                 val result = recognizer.process(image).await()
                 // Line by line, top to bottom, so a time and its meal stay on one line when they share a row.
                 val lines = result.textBlocks.flatMap { it.lines }
@@ -35,8 +36,9 @@ object PlanImport {
                     rows.last() += line.text
                     lastRow = row
                 }
-                rows.joinToString("\n") { it.joinToString(" ") }
+                pages += rows.joinToString("\n") { it.joinToString(" ") }
             }
+            pages.joinToString("\n")
         } finally {
             recognizer.close()
         }
