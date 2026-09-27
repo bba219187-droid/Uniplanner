@@ -9,6 +9,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
@@ -83,7 +93,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             UniPlannerTheme {
                 var splash by rememberSaveable { mutableStateOf(true) }
-                if (splash) SplashScreen(onFinished = { splash = false }) else UniPlannerRoot()
+                AnimatedContent(
+                    targetState = splash,
+                    transitionSpec = { fadeIn(tween(450)) togetherWith fadeOut(tween(450)) },
+                    label = "splash",
+                ) { showSplash ->
+                    if (showSplash) SplashScreen(onFinished = { splash = false }) else UniPlannerRoot()
+                }
             }
         }
     }
@@ -153,7 +169,15 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = Tab.Week.route, modifier = Modifier.padding(padding)) {
+        NavHost(
+            nav,
+            startDestination = Tab.Week.route,
+            modifier = Modifier.padding(padding),
+            enterTransition = { slideIn(direction(initialState.destination.route, targetState.destination.route)) },
+            exitTransition = { slideOut(direction(initialState.destination.route, targetState.destination.route)) },
+            popEnterTransition = { slideIn(-1) },
+            popExitTransition = { slideOut(-1) },
+        ) {
             composable(Tab.Week.route) { WeekScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
             composable(Tab.Activities.route) { ActivitiesScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
             composable(Tab.Study.route) { StudyScreen(vm) }
@@ -178,6 +202,32 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
         }
     }
 }
+
+private val tabRoutes = Tab.entries.map { it.route }
+
+/**
+ * 1 slides the new screen in from the right, -1 from the left. Between tabs it follows their order
+ * in the bottom bar; opening a screen from a tab goes forward, going back to a tab goes back.
+ */
+private fun direction(from: String?, to: String?): Int {
+    val a = tabRoutes.indexOf(from)
+    val b = tabRoutes.indexOf(to)
+    return when {
+        a >= 0 && b >= 0 -> if (b >= a) 1 else -1
+        b >= 0 -> -1
+        else -> 1
+    }
+}
+
+private const val SLIDE_MS = 320
+
+private fun slideIn(direction: Int): EnterTransition =
+    slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { width -> direction * width } +
+        fadeIn(tween(SLIDE_MS))
+
+private fun slideOut(direction: Int): ExitTransition =
+    slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { width -> -direction * width / 3 } +
+        fadeOut(tween(SLIDE_MS))
 
 /** Checks once per launch whether a newer build was published and offers to install it. */
 @Composable

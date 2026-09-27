@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -39,6 +42,7 @@ import com.uniplanner.app.data.DeadlineType
 import com.uniplanner.app.phone.AgendaViewModel
 import com.uniplanner.app.phone.PhoneCalendar
 import com.uniplanner.app.ui.AppViewModel
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -64,14 +68,20 @@ private data class ActivityItem(
 /** One place for everything coming up: agenda events, tests, deadlines and gym, day by day. */
 @Composable
 fun ActivitiesScreen(vm: AppViewModel, onOpenAgenda: () -> Unit, agenda: AgendaViewModel = viewModel()) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val pager = rememberPagerState(pageCount = { 2 })
+    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
-            Tab(tab == 0, { tab = 0 }, text = { Text(stringResource(R.string.activities_all)) })
-            Tab(tab == 1, { tab = 1 }, text = { Text(stringResource(R.string.tab_deadlines)) })
+        TabRow(selectedTabIndex = pager.currentPage) {
+            Tab(pager.currentPage == 0, { scope.launch { pager.animateScrollToPage(0) } }, text = { Text(stringResource(R.string.activities_all)) })
+            Tab(pager.currentPage == 1, { scope.launch { pager.animateScrollToPage(1) } }, text = { Text(stringResource(R.string.tab_deadlines)) })
         }
-        Box(Modifier.weight(1f)) {
-            if (tab == 0) AllActivities(vm, agenda, onOpenAgenda, onOpenDeadlines = { tab = 1 }) else DeadlinesScreen(vm)
+        // Swipe left and right between everything and the deadline list.
+        HorizontalPager(pager, Modifier.weight(1f)) { page ->
+            if (page == 0) {
+                AllActivities(vm, agenda, onOpenAgenda, onOpenDeadlines = { scope.launch { pager.animateScrollToPage(1) } })
+            } else {
+                DeadlinesScreen(vm)
+            }
         }
     }
 }
