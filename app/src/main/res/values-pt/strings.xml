@@ -294,4 +294,12 @@
     <string name="settings_language">Língua</string>
     <string name="lang_system">Sistema</string>
     <string name="lang_system_sub">A língua do telemóvel</string>
+    <string name="study_hello">Olá, %s</string>
+    <string name="study_of">de %s</string>
+    <string name="study_streak">%d dias seguidos a estudar</string>
+    <string name="study_courses">Cadeiras</string>
+    <string name="study_tap_hint">toca para começar</string>
+    <string name="study_days">dias</string>
+    <string name="study_studying">A estudar</string>
+    <string name="study_break_in">faltam %d min para 15 min de pausa</string>
 </resources>

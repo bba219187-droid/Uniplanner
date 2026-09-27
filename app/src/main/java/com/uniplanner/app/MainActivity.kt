@@ -22,6 +22,23 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -30,8 +47,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -169,24 +184,19 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                Tab.entries.forEach { tab ->
-                    val selected = if (tab == Tab.More) current in moreRoutes
+            FloatingTabBar(
+                selected = { tab ->
+                    if (tab == Tab.More) current in moreRoutes
                     else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            nav.navigate(tab.route) {
-                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = null) },
-                        label = { Text(stringResource(tab.label)) },
-                    )
-                }
-            }
+                },
+                onSelect = { tab ->
+                    nav.navigate(tab.route) {
+                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
         },
     ) { padding ->
         NavHost(
@@ -205,6 +215,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     onOpenCourses = { nav.navigate("courses") },
                     onOpenAgenda = { nav.navigate("agenda") },
                     onOpenStats = { nav.navigate("stats") },
+                    onOpenProfile = { nav.navigate(Tab.More.route) { launchSingleTop = true } },
                 )
             }
             composable(Tab.Social.route) { SocialScreen(online) }
@@ -226,6 +237,36 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable("moodle") { MoodleScreen(onOpenWeb = { calendar -> nav.navigate(if (calendar) "moodle_calendar" else "moodle_web") }) }
             composable("moodle_web") { MoodleWebScreen(calendarPage = false, onClose = { nav.popBackStack() }) }
             composable("moodle_calendar") { MoodleWebScreen(calendarPage = true, onClose = { nav.popBackStack() }) }
+        }
+    }
+}
+
+/** The dark pill of tabs floating above the bottom of the screen; the open tab sits in a light circle. */
+@Composable
+private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(64.dp).clip(CircleShape).background(colors.inverseSurface).padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Tab.entries.forEach { tab ->
+                val on = selected(tab)
+                val bg by animateColorAsState(if (on) colors.inverseOnSurface else Color.Transparent, label = "tabBg")
+                val fg by animateColorAsState(
+                    if (on) colors.inverseSurface else colors.inverseOnSurface.copy(alpha = 0.6f),
+                    label = "tabFg",
+                )
+                Box(
+                    Modifier.size(48.dp).clip(CircleShape).background(bg).clickable(role = Role.Tab) { onSelect(tab) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(tab.icon, contentDescription = stringResource(tab.label), tint = fg)
+                }
+            }
         }
     }
 }

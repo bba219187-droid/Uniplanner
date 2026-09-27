@@ -12,7 +12,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.uniplanner.app.data.Workout
 import com.uniplanner.app.domain.Planning
-import com.uniplanner.app.ui.theme.GymGradient
 import java.time.ZoneId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,22 +80,22 @@ fun GymScreen(vm: AppViewModel) {
                 )
             }
             item {
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(GymGradient).padding(20.dp)) {
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.week_title), color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.week_title), color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.85f), style = MaterialTheme.typography.titleSmall)
                             Text(
                                 stringResource(R.string.gym_week_count, thisWeek.count { it.done }, thisWeek.size),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
                                 style = MaterialTheme.typography.headlineSmall,
                             )
                             Text(
                                 formatMinutes(thisWeek.filter { it.done }.sumOf { it.minutes }),
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
-                        Icon(Icons.Filled.FitnessCenter, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Filled.FitnessCenter, contentDescription = null, tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(48.dp))
                     }
                 }
             }

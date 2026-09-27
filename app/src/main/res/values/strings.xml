@@ -295,4 +295,12 @@
     <string name="settings_language">Language</string>
     <string name="lang_system">System</string>
     <string name="lang_system_sub">Your phone\'s language</string>
+    <string name="study_hello">Hi, %s</string>
+    <string name="study_of">of %s</string>
+    <string name="study_streak">%d days in a row studying</string>
+    <string name="study_courses">Courses</string>
+    <string name="study_tap_hint">tap to start</string>
+    <string name="study_days">days</string>
+    <string name="study_studying">Studying</string>
+    <string name="study_break_in">%d min until a 15 min break</string>
 </resources>
