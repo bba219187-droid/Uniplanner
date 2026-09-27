@@ -264,4 +264,10 @@
     <string name="agenda_event_test">Teste</string>
     <string name="agenda_event_due">Entrega</string>
     <string name="agenda_study_event">Estudar %s</string>
+    <string name="tab_activities">Atividades</string>
+    <string name="activities_all">Tudo</string>
+    <string name="activities_empty">Não tens nada nos próximos 14 dias.</string>
+    <string name="activities_connect_agenda">Dá acesso à agenda do telemóvel para veres aqui também os teus eventos.</string>
+    <string name="activities_today">Hoje · %s</string>
+    <string name="activities_tomorrow">Amanhã · %s</string>
 </resources>

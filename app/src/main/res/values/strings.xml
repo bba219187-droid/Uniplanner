@@ -265,4 +265,10 @@
     <string name="agenda_event_test">Test</string>
     <string name="agenda_event_due">Due</string>
     <string name="agenda_study_event">Study %s</string>
+    <string name="tab_activities">Activities</string>
+    <string name="activities_all">All</string>
+    <string name="activities_empty">Nothing coming up in the next 14 days.</string>
+    <string name="activities_connect_agenda">Allow access to the phone agenda to see your events here too.</string>
+    <string name="activities_today">Today · %s</string>
+    <string name="activities_tomorrow">Tomorrow · %s</string>
 </resources>

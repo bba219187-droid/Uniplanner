@@ -54,7 +54,7 @@ import com.uniplanner.app.phone.AgendaSync
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
-import com.uniplanner.app.ui.screens.DeadlinesScreen
+import com.uniplanner.app.ui.screens.ActivitiesScreen
 import com.uniplanner.app.ui.screens.GradesScreen
 import com.uniplanner.app.ui.screens.GymScreen
 import com.uniplanner.app.ui.screens.MoreScreen
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
     Week("week", R.string.tab_week, Icons.Filled.CalendarMonth),
-    Deadlines("deadlines", R.string.tab_deadlines, Icons.AutoMirrored.Filled.EventNote),
+    Activities("activities", R.string.tab_activities, Icons.AutoMirrored.Filled.EventNote),
     Study("study", R.string.tab_study, Icons.Filled.Timer),
     Social("social", R.string.tab_social, Icons.Filled.Group),
     More("more", R.string.tab_more, Icons.Filled.Menu),
@@ -152,7 +152,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     ) { padding ->
         NavHost(nav, startDestination = Tab.Week.route, modifier = Modifier.padding(padding)) {
             composable(Tab.Week.route) { WeekScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
-            composable(Tab.Deadlines.route) { DeadlinesScreen(vm) }
+            composable(Tab.Activities.route) { ActivitiesScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
             composable(Tab.Study.route) { StudyScreen(vm) }
             composable(Tab.Social.route) { SocialScreen(online) }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
