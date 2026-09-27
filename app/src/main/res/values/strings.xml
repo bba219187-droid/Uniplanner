@@ -336,4 +336,37 @@
     <string name="chat_send">Send</string>
     <string name="chat_remove_friend_title">Remove %s from your friends?</string>
     <string name="chat_yesterday">yesterday</string>
+    <string name="gym_delete_workout">Delete workout</string>
+    <string name="gym_delete_workout_title">Delete the workout “%s”?</string>
+    <string name="gym_delete_exercise">Delete exercise</string>
+    <string name="gym_delete_exercise_title">Delete %s and its sets from this workout?</string>
+    <string name="gym_ready">Ready to train?</string>
+    <string name="gym_last_today">Last workout: %s, today</string>
+    <plurals name="gym_last_days">
+        <item quantity="one">Last workout: %1$s, %2$d day ago</item>
+        <item quantity="other">Last workout: %1$s, %2$d days ago</item>
+    </plurals>
+    <string name="gym_start_now">Start now</string>
+    <string name="gym_plan">Plan</string>
+    <string name="gym_which">Which workout?</string>
+    <string name="gym_other">Other…</string>
+    <string name="gym_when">When?</string>
+    <string name="gym_when_now">Now</string>
+    <string name="gym_when_today">Today %s</string>
+    <string name="gym_when_tomorrow">Tomorrow %s</string>
+    <string name="gym_when_pick">Pick a day…</string>
+    <string name="gym_duration">How long (minutes)?</string>
+    <string name="gym_repeat">Repeat the exercises of the last %s</string>
+    <string name="gym_go">Start workout</string>
+    <string name="gym_save_plan">Plan workout</string>
+    <string-array name="gym_kinds">
+        <item>Push</item>
+        <item>Pull</item>
+        <item>Legs</item>
+        <item>Upper body</item>
+        <item>Lower body</item>
+        <item>Full body</item>
+        <item>Cardio</item>
+        <item>Running</item>
+    </string-array>
 </resources>

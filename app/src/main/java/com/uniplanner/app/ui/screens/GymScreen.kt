@@ -1,6 +1,35 @@
 package com.uniplanner.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.text.font.FontWeight
+import com.uniplanner.app.ui.theme.Ink
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -66,94 +95,299 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     val sets by vm.exerciseSets.collectAsStateWithLifecycle()
     val weight by vm.bodyWeight.collectAsStateWithLifecycle()
-    var adding by remember { mutableStateOf(false) }
+    var planning by remember { mutableStateOf<Boolean?>(null) }
+    var deleting by remember { mutableStateOf<Workout?>(null) }
 
+    val zone = ZoneId.systemDefault()
     val now = System.currentTimeMillis()
-    val weekStart = Planning.weekStart(now, ZoneId.systemDefault())
+    val weekStart = Planning.weekStart(now, zone)
     val weekEnd = weekStart + TimeUnit.DAYS.toMillis(7)
     val thisWeek = workouts.filter { it.startsAt in weekStart until weekEnd }
     val doneThisWeek = thisWeek.filter { it.done }
-    val upcoming = workouts.filter { it.startsAt >= weekStart && !it.done }.sortedBy { it.startsAt }
-    val history = workouts.filter { it.done || it.startsAt < weekStart }.sortedByDescending { it.startsAt }
+    val upcoming = workouts.filter { !it.done && it.startsAt >= now - TimeUnit.HOURS.toMillis(12) }.sortedBy { it.startsAt }
+    val history = (workouts - upcoming.toSet()).sortedByDescending { it.startsAt }
     val setsByWorkout = sets.groupBy { it.workoutId }
+    val lastDone = workouts.filter { it.done }.maxByOrNull { it.startsAt }
 
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.fillMaxSize().padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item { ScreenHeader(stringResource(R.string.tab_gym)) }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GymStat(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${thisWeek.size}", Modifier.weight(1f))
-                    GymStat(stringResource(R.string.gym_stat_time), formatMinutes(doneThisWeek.sumOf { it.minutes }), Modifier.weight(1f))
-                    GymStat(
-                        stringResource(R.string.gym_stat_kcal),
-                        "${doneThisWeek.sumOf { Health.workoutKcal(it.title, it.minutes, weight) }}",
-                        Modifier.weight(1f),
-                    )
-                }
-            }
-            if (sets.isNotEmpty()) item { ProgressCard(workouts, sets) }
-            if (workouts.isEmpty()) {
-                item { Text(stringResource(R.string.gym_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)) }
-            }
-            if (upcoming.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_next)) }
-            items(upcoming, key = { "u${it.id}" }) { w -> WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout) }
-            if (history.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_history)) }
-            items(history, key = { "h${it.id}" }) { w -> WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout) }
-            item { Spacer(Modifier.height(80.dp)) }
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item { ScreenHeader(stringResource(R.string.tab_gym)) }
+        item {
+            StartCard(
+                lastDone = lastDone,
+                onStartNow = { planning = true },
+                onPlan = { planning = false },
+            )
         }
-        ExtendedFloatingActionButton(
-            onClick = { adding = true },
-            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-            text = { Text(stringResource(R.string.gym_add)) },
-            containerColor = MaterialTheme.colorScheme.inverseSurface,
-            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        )
+        item { WeekStrip(workouts, weekStart, zone) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GymStat(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${thisWeek.size}", Modifier.weight(1f))
+                GymStat(stringResource(R.string.gym_stat_time), formatMinutes(doneThisWeek.sumOf { it.minutes }), Modifier.weight(1f))
+                GymStat(
+                    stringResource(R.string.gym_stat_kcal),
+                    "${doneThisWeek.sumOf { Health.workoutKcal(it.title, it.minutes, weight) }}",
+                    Modifier.weight(1f),
+                )
+            }
+        }
+        if (sets.isNotEmpty()) item { ProgressCard(workouts, sets) }
+        if (upcoming.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_next)) }
+        items(upcoming, key = { "u${it.id}" }) { w ->
+            WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout, onDelete = { deleting = w })
+        }
+        if (history.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_history)) }
+        items(history, key = { "h${it.id}" }) { w ->
+            WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout, onDelete = { deleting = w })
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 
-    if (adding) {
-        val context = LocalContext.current
-        var title by remember { mutableStateOf("") }
-        var minutes by remember { mutableStateOf("60") }
-        var startsAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
-        AlertDialog(
-            onDismissRequest = { adding = false },
-            title = { Text(stringResource(R.string.gym_add)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        title,
-                        { title = it },
-                        label = { Text(stringResource(R.string.gym_title_hint)) },
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        minutes,
-                        { minutes = it.filter(Char::isDigit).take(3) },
-                        label = { Text(stringResource(R.string.study_minutes)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                    OutlinedButton(onClick = { pickDateTime(context, startsAt) { startsAt = it } }) {
-                        Text(formatDateTime(startsAt))
+    planning?.let { startNow ->
+        NewWorkoutSheet(
+            startNow = startNow,
+            workouts = workouts,
+            sets = sets,
+            onDismiss = { planning = null },
+            onCreate = { title, startsAt, minutes, copyFrom ->
+                planning = null
+                vm.createWorkout(title, startsAt, minutes, copyFrom) { id -> if (startNow) onOpenWorkout(id) }
+            },
+        )
+    }
+    deleting?.let { w ->
+        ConfirmDelete(
+            title = stringResource(R.string.gym_delete_workout_title, w.title),
+            onConfirm = { vm.deleteWorkout(w); deleting = null },
+            onDismiss = { deleting = null },
+        )
+    }
+}
+
+@Composable
+fun ConfirmDelete(title: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** The big dark card at the top: start a workout now, or plan one for later. */
+@Composable
+private fun StartCard(lastDone: Workout?, onStartNow: () -> Unit, onPlan: () -> Unit) {
+    val fg = MaterialTheme.colorScheme.inverseOnSurface
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column {
+            Text(stringResource(R.string.gym_ready), style = MaterialTheme.typography.headlineSmall, color = fg)
+            if (lastDone != null) {
+                val days = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - lastDone.startsAt).toInt()
+                Text(
+                    if (days <= 0) stringResource(R.string.gym_last_today, lastDone.title)
+                    else pluralStringResource(R.plurals.gym_last_days, days, lastDone.title, days),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = fg.copy(alpha = 0.7f),
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onStartNow,
+                modifier = Modifier.weight(1f).height(52.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.inversePrimary, contentColor = Ink),
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.gym_start_now), style = MaterialTheme.typography.titleSmall)
+            }
+            OutlinedButton(
+                onClick = onPlan,
+                modifier = Modifier.weight(1f).height(52.dp),
+                border = BorderStroke(1.dp, fg.copy(alpha = 0.4f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = fg),
+            ) {
+                Icon(Icons.Filled.CalendarMonth, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.gym_plan), style = MaterialTheme.typography.titleSmall)
+            }
+        }
+    }
+}
+
+/** This week, Monday to Sunday: a filled circle on days with a finished workout, a ring on planned ones. */
+@Composable
+private fun WeekStrip(workouts: List<Workout>, weekStart: Long, zone: ZoneId) {
+    val start = Instant.ofEpochMilli(weekStart).atZone(zone).toLocalDate()
+    val today = LocalDate.now(zone)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        (0..6).forEach { i ->
+            val day = start.plusDays(i.toLong())
+            val onDay = workouts.filter { Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == day }
+            val done = onDay.any { it.done }
+            val planned = onDay.isNotEmpty() && !done
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    day.dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (day == today) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal,
+                )
+                Box(
+                    Modifier.size(36.dp).clip(CircleShape)
+                        .background(if (done) MaterialTheme.colorScheme.secondary else Color.Transparent)
+                        .border(
+                            if (planned || day == today) 1.5.dp else 1.dp,
+                            when {
+                                done -> Color.Transparent
+                                planned -> MaterialTheme.colorScheme.secondary
+                                day == today -> MaterialTheme.colorScheme.onSurface
+                                else -> MaterialTheme.colorScheme.outlineVariant
+                            },
+                            CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (done) {
+                        Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(18.dp))
+                    } else {
+                        Text("${day.dayOfMonth}", style = MaterialTheme.typography.labelLarge)
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = title.isNotBlank(),
-                    onClick = {
-                        vm.addWorkout(title, startsAt, minutes.toIntOrNull() ?: 60)
-                        adding = false
-                    },
-                ) { Text(stringResource(R.string.save)) }
-            },
-            dismissButton = { TextButton(onClick = { adding = false }) { Text(stringResource(R.string.cancel)) } },
-        )
+            }
+        }
     }
+}
+
+/**
+ * Choosing a workout in a few taps: the kind (recent ones first), when, how long, and whether to
+ * repeat the exercises of the last workout of the same kind.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NewWorkoutSheet(
+    startNow: Boolean,
+    workouts: List<Workout>,
+    sets: List<ExerciseSet>,
+    onDismiss: () -> Unit,
+    onCreate: (title: String, startsAt: Long, minutes: Int, copyFrom: Long?) -> Unit,
+) {
+    val context = LocalContext.current
+    val recent = workouts.sortedByDescending { it.startsAt }.map { it.title.trim() }.distinct().take(4)
+    val kinds = (recent + stringArrayResource(R.array.gym_kinds)).distinctBy { it.lowercase() }
+    var title by remember { mutableStateOf(recent.firstOrNull().orEmpty()) }
+    var custom by remember { mutableStateOf(false) }
+    var minutes by remember { mutableIntStateOf(60) }
+    val zone = ZoneId.systemDefault()
+    val nextHour = LocalDateTime.now(zone).plusHours(1).withMinute(0).withSecond(0).withNano(0)
+    val tomorrow = LocalDate.now(zone).plusDays(1).atTime(18, 0)
+    fun LocalDateTime.millis() = atZone(zone).toInstant().toEpochMilli()
+    var whenChoice by remember { mutableIntStateOf(if (startNow) 0 else 1) }
+    var customTime by remember { mutableLongStateOf(tomorrow.millis()) }
+    val startsAt = when (whenChoice) {
+        0 -> System.currentTimeMillis()
+        1 -> nextHour.millis()
+        2 -> tomorrow.millis()
+        else -> customTime
+    }
+    val source = workouts.filter { it.title.trim().equals(title.trim(), ignoreCase = true) }
+        .filter { w -> sets.any { it.workoutId == w.id } }
+        .maxByOrNull { it.startsAt }
+    val sourceExercises = source?.let { s -> sets.filter { it.workoutId == s.id }.map { it.exercise.trim() }.distinct() }.orEmpty()
+    var repeat by remember { mutableStateOf(true) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                stringResource(if (whenChoice == 0) R.string.gym_start_now else R.string.gym_plan),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            SheetLabel(stringResource(R.string.gym_which))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                kinds.forEach { k ->
+                    FilterChip(
+                        selected = !custom && title.equals(k, ignoreCase = true),
+                        onClick = { title = k; custom = false },
+                        label = { Text(k) },
+                    )
+                }
+                FilterChip(selected = custom, onClick = { custom = true; title = "" }, label = { Text(stringResource(R.string.gym_other)) })
+            }
+            if (custom) {
+                OutlinedTextField(
+                    title, { title = it },
+                    label = { Text(stringResource(R.string.gym_title_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            SheetLabel(stringResource(R.string.gym_when))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val timeFmt = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+                FilterChip(whenChoice == 0, { whenChoice = 0 }, { Text(stringResource(R.string.gym_when_now)) })
+                FilterChip(whenChoice == 1, { whenChoice = 1 }, { Text(stringResource(R.string.gym_when_today, nextHour.format(timeFmt))) })
+                FilterChip(whenChoice == 2, { whenChoice = 2 }, { Text(stringResource(R.string.gym_when_tomorrow, tomorrow.format(timeFmt))) })
+                FilterChip(
+                    whenChoice == 3,
+                    { pickDateTime(context, customTime) { customTime = it; whenChoice = 3 } },
+                    { Text(if (whenChoice == 3) formatDateTime(customTime) else stringResource(R.string.gym_when_pick)) },
+                )
+            }
+            SheetLabel(stringResource(R.string.gym_duration))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(30, 45, 60, 75, 90).forEach { m ->
+                    FilterChip(minutes == m, { minutes = m }, { Text("$m") }, modifier = Modifier.weight(1f))
+                }
+            }
+            if (source != null) {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                        .clickable { repeat = !repeat }.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.gym_repeat, source.title), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            sourceExercises.joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                        )
+                    }
+                    Switch(checked = repeat, onCheckedChange = { repeat = it })
+                }
+            }
+            Button(
+                onClick = { onCreate(title, startsAt, minutes, source?.id?.takeIf { repeat }) },
+                enabled = title.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                ),
+            ) {
+                Text(
+                    stringResource(if (whenChoice == 0) R.string.gym_go else R.string.gym_save_plan),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -228,12 +462,21 @@ private fun ProgressCard(workouts: List<Workout>, sets: List<ExerciseSet>) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun WorkoutCard(w: Workout, sets: List<ExerciseSet>, weight: Double, vm: AppViewModel, onOpen: (Long) -> Unit) {
+private fun WorkoutCard(
+    w: Workout,
+    sets: List<ExerciseSet>,
+    weight: Double,
+    vm: AppViewModel,
+    onOpen: (Long) -> Unit,
+    onDelete: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
-            .clickable { onOpen(w.id) }.padding(start = 6.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            .combinedClickable(onClick = { onOpen(w.id) }, onLongClick = onDelete)
+            .padding(start = 6.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = w.done, onCheckedChange = { vm.setWorkoutDone(w, it) })
@@ -252,10 +495,8 @@ private fun WorkoutCard(w: Workout, sets: List<ExerciseSet>, weight: Double, vm:
                 )
             }
         }
-        Box(
-            Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            Text(stringResource(R.string.gym_open), style = MaterialTheme.typography.labelMedium)
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Filled.DeleteOutline, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

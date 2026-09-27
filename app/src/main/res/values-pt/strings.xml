@@ -335,4 +335,38 @@
     <string name="chat_send">Enviar</string>
     <string name="chat_remove_friend_title">Remover %s dos teus amigos?</string>
     <string name="chat_yesterday">ontem</string>
+    <string name="gym_delete_workout">Apagar treino</string>
+    <string name="gym_delete_workout_title">Apagar o treino “%s”?</string>
+    <string name="gym_delete_exercise">Apagar exercício</string>
+    <string name="gym_delete_exercise_title">Apagar %s e as suas séries deste treino?</string>
+    <string name="gym_ready">Bora treinar?</string>
+    <string name="gym_last_today">Último treino: %s, hoje</string>
+    <plurals name="gym_last_days">
+        <item quantity="one">Último treino: %1$s, há %2$d dia</item>
+        <item quantity="many">Último treino: %1$s, há %2$d dias</item>
+        <item quantity="other">Último treino: %1$s, há %2$d dias</item>
+    </plurals>
+    <string name="gym_start_now">Treinar agora</string>
+    <string name="gym_plan">Marcar</string>
+    <string name="gym_which">Que treino?</string>
+    <string name="gym_other">Outro…</string>
+    <string name="gym_when">Quando?</string>
+    <string name="gym_when_now">Agora</string>
+    <string name="gym_when_today">Hoje %s</string>
+    <string name="gym_when_tomorrow">Amanhã %s</string>
+    <string name="gym_when_pick">Escolher dia…</string>
+    <string name="gym_duration">Quanto tempo (minutos)?</string>
+    <string name="gym_repeat">Repetir os exercícios do último %s</string>
+    <string name="gym_go">Começar treino</string>
+    <string name="gym_save_plan">Marcar treino</string>
+    <string-array name="gym_kinds">
+        <item>Push</item>
+        <item>Pull</item>
+        <item>Pernas</item>
+        <item>Superior</item>
+        <item>Inferior</item>
+        <item>Full body</item>
+        <item>Cardio</item>
+        <item>Corrida</item>
+    </string-array>
 </resources>

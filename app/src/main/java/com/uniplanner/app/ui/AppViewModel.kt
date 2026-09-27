@@ -124,4 +124,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteSet(set: ExerciseSet) = viewModelScope.launch { db.exerciseSets().delete(set) }
 
     fun updateWorkout(workout: Workout) = viewModelScope.launch { db.workouts().update(workout) }
+
+    /**
+     * Creates a workout and, when [copyFrom] is given, the same exercises and sets as that earlier
+     * workout, not yet ticked. [onCreated] gets the new id, to open it straight away.
+     */
+    fun createWorkout(title: String, startsAt: Long, minutes: Int, copyFrom: Long?, onCreated: (Long) -> Unit = {}) =
+        viewModelScope.launch {
+            val id = db.workouts().insert(Workout(title = title.trim(), startsAt = startsAt, minutes = minutes))
+            if (copyFrom != null) {
+                db.exerciseSets().insertAll(
+                    db.exerciseSets().forWorkout(copyFrom).map { it.copy(id = 0, workoutId = id, done = false) },
+                )
+            }
+            onCreated(id)
+        }
+
+    fun deleteExercise(workoutId: Long, exercise: String) = viewModelScope.launch {
+        db.exerciseSets().deleteExercise(workoutId, exercise)
+    }
 }

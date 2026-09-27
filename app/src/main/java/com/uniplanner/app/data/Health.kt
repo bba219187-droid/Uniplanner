@@ -80,6 +80,12 @@ interface ExerciseSetDao {
     @Query("SELECT * FROM exercise_sets")
     suspend fun getAll(): List<ExerciseSet>
 
+    @Query("SELECT * FROM exercise_sets WHERE workoutId = :workoutId ORDER BY position")
+    suspend fun forWorkout(workoutId: Long): List<ExerciseSet>
+
+    @Query("DELETE FROM exercise_sets WHERE workoutId = :workoutId AND exercise = :exercise")
+    suspend fun deleteExercise(workoutId: Long, exercise: String)
+
     @Query("SELECT COALESCE(MAX(position), -1) FROM exercise_sets WHERE workoutId = :workoutId")
     suspend fun lastPosition(workoutId: Long): Int
 

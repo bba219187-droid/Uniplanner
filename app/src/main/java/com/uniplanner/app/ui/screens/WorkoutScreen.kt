@@ -18,7 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +67,8 @@ fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
     val knownNames = allSets.map { it.exercise.trim() }.distinct()
 
     var addingExercise by remember { mutableStateOf(false) }
+    var deletingWorkout by remember { mutableStateOf(false) }
+    var deletingExercise by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<ExerciseSet?>(null) }
 
     LazyColumn(
@@ -69,7 +76,16 @@ fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Column(Modifier.padding(top = 16.dp)) {
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { deletingWorkout = true }) {
+                    Icon(Icons.Filled.DeleteOutline, stringResource(R.string.gym_delete_workout))
+                }
+            }
+        }
+        item {
+            Column {
                 Text(
                     "${formatDateTime(workout.startsAt)} · ${formatMinutes(workout.minutes)}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -93,14 +109,19 @@ fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp)).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    if (before != null) {
-                        Text(
-                            stringResource(R.string.gym_before, formatKg(before)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(name, style = MaterialTheme.typography.titleMedium)
+                        if (before != null) {
+                            Text(
+                                stringResource(R.string.gym_before, formatKg(before)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    IconButton(onClick = { deletingExercise = name }) {
+                        Icon(Icons.Filled.DeleteOutline, stringResource(R.string.gym_delete_exercise), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,6 +184,28 @@ fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
+    }
+
+    if (deletingWorkout) {
+        ConfirmDelete(
+            title = stringResource(R.string.gym_delete_workout_title, workout.title),
+            onConfirm = {
+                deletingWorkout = false
+                vm.deleteWorkout(workout)
+                onBack()
+            },
+            onDismiss = { deletingWorkout = false },
+        )
+    }
+    deletingExercise?.let { name ->
+        ConfirmDelete(
+            title = stringResource(R.string.gym_delete_exercise_title, name),
+            onConfirm = {
+                vm.deleteExercise(workoutId, name)
+                deletingExercise = null
+            },
+            onDismiss = { deletingExercise = null },
+        )
     }
 
     if (addingExercise) {
