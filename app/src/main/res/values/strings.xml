@@ -369,4 +369,55 @@
         <item>Cardio</item>
         <item>Running</item>
     </string-array>
+    <string name="tab_health">Health</string>
+    <string name="channel_meals">Meal reminders</string>
+    <string name="meal_time">Time for %s</string>
+    <string name="meal_eaten_action">I ate it</string>
+    <string name="health_profile_title">Your profile</string>
+    <string name="health_profile_why">Height, age and sex give a better BMI and calorie count.</string>
+    <string name="health_today">Today</string>
+    <string name="health_deficit">kcal deficit</string>
+    <string name="health_surplus">kcal over</string>
+    <string name="health_eaten">Eaten</string>
+    <string name="health_burned">Burned</string>
+    <string name="health_burned_detail">Resting %1$d · workouts %2$d · steps %3$d kcal</string>
+    <string name="health_bmi">BMI</string>
+    <string name="health_bmi_missing">Add your weight and height</string>
+    <string name="bmi_under">Underweight</string>
+    <string name="bmi_normal">Healthy weight</string>
+    <string name="bmi_over">Overweight</string>
+    <string name="bmi_obese">Obesity</string>
+    <string name="health_weight">Weight</string>
+    <string name="health_weight_add">Add weight</string>
+    <string name="health_weight_hint">Add your weight now and then to see the trend</string>
+    <string name="health_steps">Steps today</string>
+    <string name="health_steps_no_sensor">This phone has no step sensor.</string>
+    <string name="health_steps_why">Allow physical activity so the app can count your steps.</string>
+    <string name="health_steps_allow">Count my steps</string>
+    <string name="health_meals">Meal plan</string>
+    <string name="health_reminders">Reminders</string>
+    <string name="health_import">Photo or PDF</string>
+    <string name="health_paste">Paste text</string>
+    <string name="health_meals_empty">No plan yet. Import your nutritionist\'s plan from a photo or PDF, paste it, or add meals one by one.</string>
+    <string name="health_add_meal">Add meal</string>
+    <string name="health_edit_meal">Edit meal</string>
+    <string name="health_delete_meal">Delete %s?</string>
+    <string name="health_meal_time">Time (08:30)</string>
+    <string name="health_meal_name">Meal</string>
+    <string name="health_meal_food">What to eat</string>
+    <string name="health_other_food">Other food today</string>
+    <string name="health_add_food">Add food</string>
+    <string name="health_food_name">What you ate</string>
+    <string name="health_estimate_note">Calories are estimates. Tap a meal when you eat it, hold it to change it.</string>
+    <string name="health_height">Height (cm)</string>
+    <string name="health_birth_year">Year of birth</string>
+    <string name="health_sex_male">Male</string>
+    <string name="health_sex_female">Female</string>
+    <string name="health_paste_hint">One meal per line, starting with the time: 08:00 Breakfast: oats 350 kcal</string>
+    <string name="health_read">Read</string>
+    <string name="health_import_title">Your meal plan</string>
+    <string name="health_import_reading">Reading the plan…</string>
+    <string name="health_import_nothing">No meals found. Each meal needs a time, like 13:00 Lunch.</string>
+    <string name="health_import_replaces">This replaces your current plan.</string>
+    <string name="health_import_edit_later">You can change each meal later by holding it.</string>
 </resources>

@@ -369,4 +369,55 @@
         <item>Cardio</item>
         <item>Corrida</item>
     </string-array>
+    <string name="tab_health">Saúde</string>
+    <string name="channel_meals">Lembretes das refeições</string>
+    <string name="meal_time">Hora do %s</string>
+    <string name="meal_eaten_action">Já comi</string>
+    <string name="health_profile_title">O teu perfil</string>
+    <string name="health_profile_why">Altura, idade e sexo dão um IMC e contas de calorias mais certos.</string>
+    <string name="health_today">Hoje</string>
+    <string name="health_deficit">kcal de défice</string>
+    <string name="health_surplus">kcal a mais</string>
+    <string name="health_eaten">Comeste</string>
+    <string name="health_burned">Gastaste</string>
+    <string name="health_burned_detail">Repouso %1$d · treinos %2$d · passos %3$d kcal</string>
+    <string name="health_bmi">IMC</string>
+    <string name="health_bmi_missing">Junta o teu peso e altura</string>
+    <string name="bmi_under">Abaixo do peso</string>
+    <string name="bmi_normal">Peso normal</string>
+    <string name="bmi_over">Excesso de peso</string>
+    <string name="bmi_obese">Obesidade</string>
+    <string name="health_weight">Peso</string>
+    <string name="health_weight_add">Registar peso</string>
+    <string name="health_weight_hint">Regista o peso de vez em quando para veres a evolução</string>
+    <string name="health_steps">Passos hoje</string>
+    <string name="health_steps_no_sensor">Este telemóvel não tem sensor de passos.</string>
+    <string name="health_steps_why">Permite a atividade física para a app contar os teus passos.</string>
+    <string name="health_steps_allow">Contar os meus passos</string>
+    <string name="health_meals">Plano alimentar</string>
+    <string name="health_reminders">Lembretes</string>
+    <string name="health_import">Foto ou PDF</string>
+    <string name="health_paste">Colar texto</string>
+    <string name="health_meals_empty">Ainda sem plano. Importa o plano da nutricionista por foto ou PDF, cola o texto, ou junta refeições uma a uma.</string>
+    <string name="health_add_meal">Juntar refeição</string>
+    <string name="health_edit_meal">Editar refeição</string>
+    <string name="health_delete_meal">Apagar %s?</string>
+    <string name="health_meal_time">Hora (08:30)</string>
+    <string name="health_meal_name">Refeição</string>
+    <string name="health_meal_food">O que comer</string>
+    <string name="health_other_food">Outras coisas que comeste hoje</string>
+    <string name="health_add_food">Juntar comida</string>
+    <string name="health_food_name">O que comeste</string>
+    <string name="health_estimate_note">As calorias são estimativas. Toca numa refeição quando a comeres, mantém premido para a mudar.</string>
+    <string name="health_height">Altura (cm)</string>
+    <string name="health_birth_year">Ano de nascimento</string>
+    <string name="health_sex_male">Masculino</string>
+    <string name="health_sex_female">Feminino</string>
+    <string name="health_paste_hint">Uma refeição por linha, a começar pela hora: 08:00 Pequeno-almoço: aveia 350 kcal</string>
+    <string name="health_read">Ler</string>
+    <string name="health_import_title">O teu plano alimentar</string>
+    <string name="health_import_reading">A ler o plano…</string>
+    <string name="health_import_nothing">Não encontrei refeições. Cada refeição precisa de uma hora, como 13:00 Almoço.</string>
+    <string name="health_import_replaces">Isto substitui o teu plano atual.</string>
+    <string name="health_import_edit_later">Podes mudar cada refeição depois, mantendo-a premida.</string>
 </resources>

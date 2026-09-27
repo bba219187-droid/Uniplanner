@@ -101,3 +101,23 @@ object Health {
         return meals.sortedBy { it.minuteOfDay }
     }
 }
+
+/** The step sensor's reading the last time it was read, and on which day. */
+data class StepReading(val day: String, val counter: Long)
+
+/**
+ * The phone's step sensor counts every step since it was switched on. Reading it now and then,
+ * the steps since the last reading go to the day of that reading, so steps walked late at night
+ * stay on that night even when the next reading is the morning after.
+ */
+object StepTracker {
+    /** The new reading to keep and the steps to add, by day. */
+    fun update(last: StepReading?, today: String, counter: Long): Pair<StepReading, Map<String, Int>> {
+        val now = StepReading(today, counter)
+        if (last == null) return now to emptyMap()
+        // After a restart the sensor counts from zero again.
+        val steps = if (counter >= last.counter) counter - last.counter else counter
+        if (steps <= 0) return now to emptyMap()
+        return now to mapOf(last.day to steps.toInt())
+    }
+}

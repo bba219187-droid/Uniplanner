@@ -48,4 +48,17 @@ class HealthTest {
         assertEquals(600, plan[2].kcal)
         assertEquals("Jantar", plan[3].name)
     }
+
+    @Test
+    fun stepsGoToTheDayOfTheLastReading() {
+        val (first, none) = StepTracker.update(null, "2026-09-27", 1000)
+        assertEquals(emptyMap<String, Int>(), none)
+        val (second, add) = StepTracker.update(first, "2026-09-27", 1500)
+        assertEquals(mapOf("2026-09-27" to 500), add)
+        val (third, night) = StepTracker.update(second, "2026-09-28", 1700)
+        assertEquals(mapOf("2026-09-27" to 200), night)
+        // The phone restarted: the sensor starts again from zero.
+        val (_, afterRestart) = StepTracker.update(third, "2026-09-28", 300)
+        assertEquals(mapOf("2026-09-28" to 300), afterRestart)
+    }
 }
