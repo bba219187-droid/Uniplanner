@@ -194,10 +194,16 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                 },
                 onSelect = { tab ->
-                    nav.navigate(tab.route) {
-                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                    // The first tab sits at the bottom of the back stack, so going to it means going back
+                    // to it. Restoring its saved state instead would bring back the screen opened on top.
+                    if (tab == Tab.Study) {
+                        if (!nav.popBackStack(Tab.Study.route, inclusive = false)) nav.navigate(Tab.Study.route)
+                    } else {
+                        nav.navigate(tab.route) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
             )

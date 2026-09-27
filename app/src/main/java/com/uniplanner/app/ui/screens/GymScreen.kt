@@ -85,9 +85,9 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
             item { ScreenHeader(stringResource(R.string.tab_gym)) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatTile(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${thisWeek.size}", Modifier.weight(1f))
-                    StatTile(stringResource(R.string.gym_stat_time), formatMinutes(doneThisWeek.sumOf { it.minutes }), Modifier.weight(1f))
-                    StatTile(
+                    GymStat(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${thisWeek.size}", Modifier.weight(1f))
+                    GymStat(stringResource(R.string.gym_stat_time), formatMinutes(doneThisWeek.sumOf { it.minutes }), Modifier.weight(1f))
+                    GymStat(
                         stringResource(R.string.gym_stat_kcal),
                         "${doneThisWeek.sumOf { Health.workoutKcal(it.title, it.minutes, weight) }}",
                         Modifier.weight(1f),
@@ -157,7 +157,7 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
 }
 
 @Composable
-fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
+private fun GymStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)).padding(12.dp),
@@ -218,7 +218,7 @@ private fun ProgressCard(workouts: List<Workout>, sets: List<ExerciseSet>) {
                     )
                 }
             }
-            LineChart(best, MaterialTheme.colorScheme.inversePrimary, Modifier.fillMaxWidth().height(64.dp))
+            TrendLine(best, MaterialTheme.colorScheme.inversePrimary, Modifier.fillMaxWidth().height(64.dp))
             Text(
                 stringResource(R.string.gym_last_workouts, best.size),
                 color = fg.copy(alpha = 0.7f),

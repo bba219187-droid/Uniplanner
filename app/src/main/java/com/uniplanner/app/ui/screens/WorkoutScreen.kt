@@ -1,7 +1,6 @@
 package com.uniplanner.app.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -50,7 +49,7 @@ import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.theme.Mono
 
 /** One workout: its exercises, each with its sets. Tap a set to tick it, hold it to change it. */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()

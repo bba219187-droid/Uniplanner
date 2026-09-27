@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 
 /** A simple line through [values], oldest first, with a dot on the latest one. */
 @Composable
-fun LineChart(values: List<Double>, color: Color, modifier: Modifier = Modifier) {
+fun TrendLine(values: List<Double>, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         if (values.isEmpty()) return@Canvas
         val pad = 6.dp.toPx()
