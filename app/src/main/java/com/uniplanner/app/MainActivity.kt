@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -48,6 +49,8 @@ import com.uniplanner.app.moodle.MoodleWebScreen
 import com.uniplanner.app.online.BackupChoicePrompt
 import com.uniplanner.app.online.BackupScreen
 import com.uniplanner.app.online.OnlineViewModel
+import com.uniplanner.app.phone.AgendaScreen
+import com.uniplanner.app.phone.AgendaSync
 import com.uniplanner.app.online.SocialScreen
 import com.uniplanner.app.ui.AppViewModel
 import com.uniplanner.app.ui.screens.CoursesScreen
@@ -61,6 +64,8 @@ import com.uniplanner.app.ui.screens.WeekScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val askNotifications =
@@ -78,6 +83,12 @@ class MainActivity : ComponentActivity() {
                 UniPlannerRoot()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Picks up tests and deadlines the student moved in the phone's agenda.
+        lifecycleScope.launch(Dispatchers.IO) { runCatching { AgendaSync.pullChanges(applicationContext) } }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -100,7 +111,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup")
+private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda")
 
 @Composable
 private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
@@ -140,13 +151,14 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
         },
     ) { padding ->
         NavHost(nav, startDestination = Tab.Week.route, modifier = Modifier.padding(padding)) {
-            composable(Tab.Week.route) { WeekScreen(vm) }
+            composable(Tab.Week.route) { WeekScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
             composable(Tab.Deadlines.route) { DeadlinesScreen(vm) }
             composable(Tab.Study.route) { StudyScreen(vm) }
             composable(Tab.Social.route) { SocialScreen(online) }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
             composable("gym") { GymScreen(vm) }
+            composable("agenda") { AgendaScreen() }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
             composable("backup") {

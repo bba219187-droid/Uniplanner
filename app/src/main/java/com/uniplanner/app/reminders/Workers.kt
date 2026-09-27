@@ -16,6 +16,7 @@ import com.uniplanner.app.data.DeadlineType
 import com.uniplanner.app.domain.PlanCourse
 import com.uniplanner.app.domain.PlanDeadline
 import com.uniplanner.app.domain.Planning
+import com.uniplanner.app.phone.AgendaSync
 import java.text.DateFormat
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -117,7 +118,8 @@ object ReminderScheduler {
     private const val WEEKLY_WORK = "weekly-plan"
     private fun deadlineTag(id: Long) = "deadline-$id"
 
-    fun scheduleDeadline(context: Context, deadline: Deadline) {
+    fun scheduleDeadline(context: Context, deadline: Deadline, updateAgenda: Boolean = true) {
+        if (updateAgenda) AgendaSync.onDeadlineChanged(context, deadline)
         val wm = WorkManager.getInstance(context)
         wm.cancelAllWorkByTag(deadlineTag(deadline.id))
         if (deadline.done) return
@@ -133,6 +135,7 @@ object ReminderScheduler {
     }
 
     fun cancelDeadline(context: Context, id: Long) {
+        AgendaSync.onDeadlineRemoved(context, id)
         WorkManager.getInstance(context).cancelAllWorkByTag(deadlineTag(id))
     }
 

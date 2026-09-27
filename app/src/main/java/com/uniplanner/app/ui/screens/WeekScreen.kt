@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,7 +27,7 @@ import com.uniplanner.app.reminders.formatMinutes
 import com.uniplanner.app.ui.AppViewModel
 
 @Composable
-fun WeekScreen(vm: AppViewModel) {
+fun WeekScreen(vm: AppViewModel, onOpenAgenda: () -> Unit) {
     val courses by vm.courses.collectAsStateWithLifecycle()
     val deadlines by vm.deadlines.collectAsStateWithLifecycle()
     val workouts by vm.workouts.collectAsStateWithLifecycle()
@@ -67,6 +68,9 @@ fun WeekScreen(vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            OutlinedButton(onClick = onOpenAgenda, modifier = Modifier.padding(top = 8.dp)) {
+                Text(stringResource(R.string.week_open_agenda))
+            }
         }
 
         item { SectionTitle(stringResource(R.string.week_deadlines)) }
