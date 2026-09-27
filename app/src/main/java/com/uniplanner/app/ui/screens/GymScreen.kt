@@ -1,5 +1,19 @@
 package com.uniplanner.app.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.uniplanner.app.data.Workout
+import com.uniplanner.app.domain.Planning
+import com.uniplanner.app.ui.theme.GymGradient
+import java.time.ZoneId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,37 +61,60 @@ fun GymScreen(vm: AppViewModel) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
 
+    val now = System.currentTimeMillis()
+    val weekStart = Planning.weekStart(now, ZoneId.systemDefault())
+    val weekEnd = weekStart + TimeUnit.DAYS.toMillis(7)
+    val thisWeek = workouts.filter { it.startsAt in weekStart until weekEnd }
+    val upcoming = workouts.filter { it.startsAt >= weekStart && !it.done }.sortedBy { it.startsAt }
+    val history = workouts.filter { it.done || it.startsAt < weekStart }.sortedByDescending { it.startsAt }
+
     Box(Modifier.fillMaxSize()) {
-        if (workouts.isEmpty()) {
-            EmptyState(stringResource(R.string.gym_empty))
-        } else {
-            LazyColumn(
-                Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(workouts, key = { it.id }) { w ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = w.done, onCheckedChange = { vm.setWorkoutDone(w, it) })
-                            Column(Modifier.weight(1f)) {
-                                Text(w.title, style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${formatDateTime(w.startsAt)} · ${formatMinutes(w.minutes)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            IconButton(onClick = { vm.deleteWorkout(w) }) {
-                                Icon(Icons.Filled.Delete, stringResource(R.string.delete))
-                            }
+        LazyColumn(
+            Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Text(
+                    stringResource(R.string.tab_gym),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+            item {
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(GymGradient).padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.week_title), color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                stringResource(R.string.gym_week_count, thisWeek.count { it.done }, thisWeek.size),
+                                color = Color.White,
+                                style = MaterialTheme.typography.headlineSmall,
+                            )
+                            Text(
+                                formatMinutes(thisWeek.filter { it.done }.sumOf { it.minutes }),
+                                color = Color.White.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                         }
+                        Icon(Icons.Filled.FitnessCenter, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                     }
                 }
             }
+            if (workouts.isEmpty()) {
+                item { Text(stringResource(R.string.gym_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)) }
+            }
+            if (upcoming.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_next)) }
+            items(upcoming, key = { "u${it.id}" }) { w -> WorkoutCard(w, vm) }
+            if (history.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_history)) }
+            items(history, key = { "h${it.id}" }) { w -> WorkoutCard(w, vm) }
+            item { Spacer(Modifier.height(80.dp)) }
         }
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = { adding = true },
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text(stringResource(R.string.gym_add)) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        ) { Icon(Icons.Filled.Add, stringResource(R.string.gym_add)) }
+        )
     }
 
     if (adding) {
@@ -119,5 +156,28 @@ fun GymScreen(vm: AppViewModel) {
             },
             dismissButton = { TextButton(onClick = { adding = false }) { Text(stringResource(R.string.cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun WorkoutCard(w: Workout, vm: AppViewModel) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = w.done, onCheckedChange = { vm.setWorkoutDone(w, it) })
+            Column(Modifier.weight(1f)) {
+                Text(w.title, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "${formatDateTime(w.startsAt)} · ${formatMinutes(w.minutes)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = { vm.deleteWorkout(w) }) {
+                Icon(Icons.Filled.Delete, stringResource(R.string.delete))
+            }
+        }
     }
 }

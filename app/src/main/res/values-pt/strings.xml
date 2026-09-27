@@ -271,4 +271,11 @@
     <string name="activities_today">Hoje · %s</string>
     <string name="activities_tomorrow">Amanhã · %s</string>
     <string name="splash_copyright">© 2026 TecSolve. Todos os direitos reservados.</string>
+    <string name="study_welcome">Bem-vindo à UniPlanner!</string>
+    <string name="study_add_courses">Adicionar as minhas cadeiras</string>
+    <string name="study_title">Tempo de estudo</string>
+    <string name="study_when">Quando estudar</string>
+    <string name="gym_week_count">%1$d de %2$d treinos</string>
+    <string name="gym_next">Próximos</string>
+    <string name="gym_history">Feitos e passados</string>
 </resources>

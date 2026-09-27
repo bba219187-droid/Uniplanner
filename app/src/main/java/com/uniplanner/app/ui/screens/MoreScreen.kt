@@ -9,7 +9,6 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.HorizontalDivider
@@ -31,7 +30,6 @@ private val items = listOf(
     MoreItem("agenda", R.string.more_agenda, R.string.more_agenda_sub, Icons.Filled.EventAvailable),
     MoreItem("grades", R.string.more_grades, R.string.more_grades_sub, Icons.Filled.Grade),
     MoreItem("stats", R.string.more_stats, R.string.more_stats_sub, Icons.Filled.BarChart),
-    MoreItem("gym", R.string.tab_gym, R.string.more_gym_sub, Icons.Filled.FitnessCenter),
     MoreItem("backup", R.string.more_backup, R.string.more_backup_sub, Icons.Filled.CloudDone),
 )
 

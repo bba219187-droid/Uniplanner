@@ -22,7 +22,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Timer
@@ -72,7 +72,6 @@ import com.uniplanner.app.ui.screens.MoreScreen
 import com.uniplanner.app.ui.screens.SplashScreen
 import com.uniplanner.app.ui.screens.StatsScreen
 import com.uniplanner.app.ui.screens.StudyScreen
-import com.uniplanner.app.ui.screens.WeekScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
@@ -122,15 +121,15 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
-    Week("week", R.string.tab_week, Icons.Filled.CalendarMonth),
-    Activities("activities", R.string.tab_activities, Icons.AutoMirrored.Filled.EventNote),
     Study("study", R.string.tab_study, Icons.Filled.Timer),
+    Activities("activities", R.string.tab_activities, Icons.AutoMirrored.Filled.EventNote),
+    Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter),
     Social("social", R.string.tab_social, Icons.Filled.Group),
     More("more", R.string.tab_more, Icons.Filled.Menu),
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "gym", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda")
+private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda")
 
 @Composable
 private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewModel = viewModel()) {
@@ -171,20 +170,26 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     ) { padding ->
         NavHost(
             nav,
-            startDestination = Tab.Week.route,
+            startDestination = Tab.Study.route,
             modifier = Modifier.padding(padding),
             enterTransition = { slideIn(direction(initialState.destination.route, targetState.destination.route)) },
             exitTransition = { slideOut(direction(initialState.destination.route, targetState.destination.route)) },
             popEnterTransition = { slideIn(-1) },
             popExitTransition = { slideOut(-1) },
         ) {
-            composable(Tab.Week.route) { WeekScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
             composable(Tab.Activities.route) { ActivitiesScreen(vm, onOpenAgenda = { nav.navigate("agenda") }) }
-            composable(Tab.Study.route) { StudyScreen(vm) }
+            composable(Tab.Study.route) {
+                StudyScreen(
+                    vm,
+                    onOpenCourses = { nav.navigate("courses") },
+                    onOpenAgenda = { nav.navigate("agenda") },
+                    onOpenStats = { nav.navigate("stats") },
+                )
+            }
             composable(Tab.Social.route) { SocialScreen(online) }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
-            composable("gym") { GymScreen(vm) }
+            composable(Tab.Gym.route) { GymScreen(vm) }
             composable("agenda") { AgendaScreen() }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
