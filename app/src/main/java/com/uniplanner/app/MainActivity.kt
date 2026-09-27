@@ -70,6 +70,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.uniplanner.app.ui.screens.WorkoutScreen
 import com.uniplanner.app.moodle.MoodleScreen
 import com.uniplanner.app.moodle.MoodleSso
 import com.uniplanner.app.moodle.MoodleSsoCallback
@@ -187,6 +190,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             FloatingTabBar(
                 selected = { tab ->
                     if (tab == Tab.More) current in moreRoutes
+                    else if (tab == Tab.Gym && current?.startsWith("workout") == true) true
                     else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                 },
                 onSelect = { tab ->
@@ -221,7 +225,10 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable(Tab.Social.route) { SocialScreen(online) }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable("courses") { CoursesScreen(vm) }
-            composable(Tab.Gym.route) { GymScreen(vm) }
+            composable(Tab.Gym.route) { GymScreen(vm, onOpenWorkout = { nav.navigate("workout/$it") }) }
+            composable("workout/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
+                WorkoutScreen(vm, entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() })
+            }
             composable("agenda") { AgendaScreen() }
             composable("settings") { SettingsScreen() }
             composable("grades") { GradesScreen(vm) }

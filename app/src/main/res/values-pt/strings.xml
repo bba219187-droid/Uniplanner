@@ -302,4 +302,23 @@
     <string name="study_days">dias</string>
     <string name="study_studying">A estudar</string>
     <string name="study_break_in">faltam %d min para 15 min de pausa</string>
+    <string name="gym_stat_workouts">Treinos</string>
+    <string name="gym_stat_time">Tempo</string>
+    <string name="gym_stat_kcal">kcal (est.)</string>
+    <string name="gym_progress_empty">Põe a carga nas séries para veres a tua evolução.</string>
+    <string name="gym_record">Carga máxima</string>
+    <string name="gym_last_workouts">últimos %d treinos</string>
+    <string name="gym_sets_summary">%1$d exercícios · %2$d séries</string>
+    <string name="gym_open">Abrir</string>
+    <string name="gym_kcal_estimate">Cerca de %d kcal gastas (estimativa)</string>
+    <string name="gym_no_sets">Ainda sem exercícios. Adiciona o primeiro aqui em baixo.</string>
+    <string name="gym_before">antes: %s kg</string>
+    <string name="gym_set">série</string>
+    <string name="gym_sets_hint">Toca numa série quando a acabares. Mantém o dedo para mudar as reps ou a carga.</string>
+    <string name="gym_add_exercise">Adicionar exercício</string>
+    <string name="gym_mark_done">Terminar treino</string>
+    <string name="gym_mark_not_done">Marcar como não feito</string>
+    <string name="gym_exercise_name">Exercício (ex.: Supino reto)</string>
+    <string name="gym_sets">Séries</string>
+    <string name="gym_reps">Reps</string>
 </resources>

@@ -303,4 +303,23 @@
     <string name="study_days">days</string>
     <string name="study_studying">Studying</string>
     <string name="study_break_in">%d min until a 15 min break</string>
+    <string name="gym_stat_workouts">Workouts</string>
+    <string name="gym_stat_time">Time</string>
+    <string name="gym_stat_kcal">kcal (est.)</string>
+    <string name="gym_progress_empty">Add weights to your sets to see how you progress.</string>
+    <string name="gym_record">Best weight</string>
+    <string name="gym_last_workouts">last %d workouts</string>
+    <string name="gym_sets_summary">%1$d exercises · %2$d sets</string>
+    <string name="gym_open">Open</string>
+    <string name="gym_kcal_estimate">About %d kcal burned (estimate)</string>
+    <string name="gym_no_sets">No exercises yet. Add the first one below.</string>
+    <string name="gym_before">before: %s kg</string>
+    <string name="gym_set">set</string>
+    <string name="gym_sets_hint">Tap a set when you finish it. Hold it to change the reps or weight.</string>
+    <string name="gym_add_exercise">Add exercise</string>
+    <string name="gym_mark_done">Finish workout</string>
+    <string name="gym_mark_not_done">Mark as not done</string>
+    <string name="gym_exercise_name">Exercise (e.g. Bench press)</string>
+    <string name="gym_sets">Sets</string>
+    <string name="gym_reps">Reps</string>
 </resources>

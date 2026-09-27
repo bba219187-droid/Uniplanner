@@ -65,7 +65,14 @@ object CloudBackup {
                 db.deadlines().observeAll(),
                 db.studySessions().observeAll(),
                 db.workouts().observeAll(),
-            ) { a, b, c, d -> listOf(a, b, c, d) }
+                combine(
+                    db.exerciseSets().observeAll(),
+                    db.health().observeWeights(),
+                    db.health().observePlan(),
+                    db.health().observeFood(0),
+                    db.health().observeSteps(),
+                ) { e, w, p, f, s -> listOf(e, w, p, f, s) },
+            ) { a, b, c, d, e -> listOf(a, b, c, d, e) }
                 .distinctUntilChanged()
                 .drop(1)
                 .debounce(15_000)

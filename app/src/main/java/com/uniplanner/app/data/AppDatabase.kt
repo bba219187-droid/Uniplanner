@@ -18,8 +18,11 @@ class Converters {
 }
 
 @Database(
-    entities = [Course::class, Deadline::class, StudySession::class, Workout::class],
-    version = 4,
+    entities = [
+        Course::class, Deadline::class, StudySession::class, Workout::class,
+        ExerciseSet::class, WeightEntry::class, PlanMeal::class, FoodLog::class, StepDay::class,
+    ],
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -28,6 +31,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deadlines(): DeadlineDao
     abstract fun studySessions(): StudySessionDao
     abstract fun workouts(): WorkoutDao
+    abstract fun exerciseSets(): ExerciseSetDao
+    abstract fun health(): HealthDao
 
     companion object {
         /** Version 2 remembers which Moodle course and assignment an item came from. */
@@ -52,6 +57,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Version 5 adds the sets done in each workout and the health pages: weight, meal plan, food and steps. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `exercise_sets` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`workoutId` INTEGER NOT NULL, `exercise` TEXT NOT NULL, `position` INTEGER NOT NULL, " +
+                        "`reps` INTEGER NOT NULL, `weightKg` REAL NOT NULL, `done` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`workoutId`) REFERENCES `workouts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_exercise_sets_workoutId` ON `exercise_sets` (`workoutId`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `weights` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`at` INTEGER NOT NULL, `kg` REAL NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `meal_plan` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`minuteOfDay` INTEGER NOT NULL, `name` TEXT NOT NULL, `food` TEXT NOT NULL, `kcal` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `food_log` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`at` INTEGER NOT NULL, `name` TEXT NOT NULL, `kcal` INTEGER NOT NULL, `mealId` INTEGER)",
+                )
+                db.execSQL("CREATE TABLE IF NOT EXISTS `steps` (`day` TEXT NOT NULL, `count` INTEGER NOT NULL, PRIMARY KEY(`day`))")
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -61,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "uniplanner.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
             }
     }
 }

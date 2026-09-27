@@ -10,8 +10,15 @@ data class Snapshot(
     val deadlines: List<Deadline>,
     val studySessions: List<StudySession>,
     val workouts: List<Workout>,
+    val exerciseSets: List<ExerciseSet> = emptyList(),
+    val weights: List<WeightEntry> = emptyList(),
+    val mealPlan: List<PlanMeal> = emptyList(),
+    val food: List<FoodLog> = emptyList(),
+    val steps: List<StepDay> = emptyList(),
 ) {
-    val isEmpty: Boolean get() = courses.isEmpty() && deadlines.isEmpty() && studySessions.isEmpty() && workouts.isEmpty()
+    val isEmpty: Boolean
+        get() = courses.isEmpty() && deadlines.isEmpty() && studySessions.isEmpty() && workouts.isEmpty() &&
+            exerciseSets.isEmpty() && weights.isEmpty() && mealPlan.isEmpty() && food.isEmpty() && steps.isEmpty()
 }
 
 object BackupCodec {
@@ -35,6 +42,18 @@ object BackupCodec {
             JSONObject().put("id", w.id).put("title", w.title).put("startsAt", w.startsAt).put("minutes", w.minutes)
                 .put("done", w.done)
         }))
+        .put("exerciseSets", JSONArray(s.exerciseSets.map { x ->
+            JSONObject().put("id", x.id).put("workoutId", x.workoutId).put("exercise", x.exercise).put("position", x.position)
+                .put("reps", x.reps).put("weightKg", x.weightKg).put("done", x.done)
+        }))
+        .put("weights", JSONArray(s.weights.map { w -> JSONObject().put("id", w.id).put("at", w.at).put("kg", w.kg) }))
+        .put("mealPlan", JSONArray(s.mealPlan.map { m ->
+            JSONObject().put("id", m.id).put("minuteOfDay", m.minuteOfDay).put("name", m.name).put("food", m.food).put("kcal", m.kcal)
+        }))
+        .put("food", JSONArray(s.food.map { f ->
+            JSONObject().put("id", f.id).put("at", f.at).put("name", f.name).put("kcal", f.kcal).putOpt("mealId", f.mealId)
+        }))
+        .put("steps", JSONArray(s.steps.map { d -> JSONObject().put("day", d.day).put("count", d.count) }))
         .toString()
 
     fun decode(text: String): Snapshot {
@@ -72,6 +91,20 @@ object BackupCodec {
             workouts = root.optJSONArray("workouts").objects().map { o ->
                 Workout(o.getLong("id"), o.getString("title"), o.getLong("startsAt"), o.optInt("minutes", 60), o.optBoolean("done"))
             },
+            exerciseSets = root.optJSONArray("exerciseSets").objects().map { o ->
+                ExerciseSet(
+                    o.getLong("id"), o.getLong("workoutId"), o.getString("exercise"), o.optInt("position"),
+                    o.optInt("reps"), o.optDouble("weightKg", 0.0), o.optBoolean("done"),
+                )
+            },
+            weights = root.optJSONArray("weights").objects().map { o -> WeightEntry(o.getLong("id"), o.getLong("at"), o.getDouble("kg")) },
+            mealPlan = root.optJSONArray("mealPlan").objects().map { o ->
+                PlanMeal(o.getLong("id"), o.getInt("minuteOfDay"), o.getString("name"), o.optString("food"), o.optInt("kcal"))
+            },
+            food = root.optJSONArray("food").objects().map { o ->
+                FoodLog(o.getLong("id"), o.getLong("at"), o.getString("name"), o.optInt("kcal"), o.longOrNull("mealId"))
+            },
+            steps = root.optJSONArray("steps").objects().map { o -> StepDay(o.getString("day"), o.getInt("count")) },
         )
     }
 
@@ -87,6 +120,11 @@ suspend fun AppDatabase.snapshot(): Snapshot = Snapshot(
     deadlines().getAll(),
     studySessions().getAll(),
     workouts().getAll(),
+    exerciseSets().getAll(),
+    health().weights(),
+    health().plan(),
+    health().food(),
+    health().steps(),
 )
 
 /** Replaces everything on this phone with the snapshot, keeping ids so links between items hold. */
@@ -100,4 +138,15 @@ suspend fun AppDatabase.replaceWith(s: Snapshot) = withTransaction {
     deadlines().insertAll(s.deadlines.filter { it.courseId in courseIds })
     studySessions().insertAll(s.studySessions.filter { it.courseId in courseIds })
     workouts().insertAll(s.workouts)
+    exerciseSets().deleteAll()
+    val workoutIds = s.workouts.map { it.id }.toSet()
+    exerciseSets().insertAll(s.exerciseSets.filter { it.workoutId in workoutIds })
+    health().clearWeights()
+    health().insertWeights(s.weights)
+    health().clearPlan()
+    health().insertMeals(s.mealPlan)
+    health().clearFood()
+    health().insertFoods(s.food)
+    health().clearSteps()
+    health().putAllSteps(s.steps)
 }

@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.uniplanner.app.data.AppDatabase
 import com.uniplanner.app.data.Course
 import com.uniplanner.app.data.Deadline
+import com.uniplanner.app.data.ExerciseSet
+import com.uniplanner.app.domain.Health
+import kotlinx.coroutines.flow.map
 import com.uniplanner.app.data.StudySession
 import com.uniplanner.app.data.Workout
 import com.uniplanner.app.domain.PlanCourse
@@ -33,6 +36,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     val workouts: StateFlow<List<Workout>> =
         db.workouts().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val exerciseSets: StateFlow<List<ExerciseSet>> =
+        db.exerciseSets().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The latest recorded body weight, for calorie estimates. */
+    val bodyWeight: StateFlow<Double> =
+        db.health().observeWeights().map { it.lastOrNull()?.kg ?: Health.DEFAULT_WEIGHT_KG }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Health.DEFAULT_WEIGHT_KG)
 
     val studyThisWeek: StateFlow<List<StudySession>> =
         db.studySessions().observeFrom(weekStart)
@@ -97,4 +108,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteWorkout(workout: Workout) = viewModelScope.launch {
         db.workouts().delete(workout)
     }
+
+    /** Adds [count] sets of an exercise to a workout, all with the same reps and weight to start with. */
+    fun addSets(workoutId: Long, exercise: String, reps: Int, weightKg: Double, count: Int) = viewModelScope.launch {
+        var position = db.exerciseSets().lastPosition(workoutId)
+        repeat(count.coerceIn(1, 10)) {
+            db.exerciseSets().insert(
+                ExerciseSet(workoutId = workoutId, exercise = exercise.trim(), position = ++position, reps = reps, weightKg = weightKg),
+            )
+        }
+    }
+
+    fun updateSet(set: ExerciseSet) = viewModelScope.launch { db.exerciseSets().update(set) }
+
+    fun deleteSet(set: ExerciseSet) = viewModelScope.launch { db.exerciseSets().delete(set) }
+
+    fun updateWorkout(workout: Workout) = viewModelScope.launch { db.workouts().update(workout) }
 }
