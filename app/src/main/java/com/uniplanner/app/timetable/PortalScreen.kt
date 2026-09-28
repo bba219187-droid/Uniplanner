@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.uniplanner.app.R
 
-private const val IPCA_SIGA = "https://siga.ipca.pt/netpa"
+private const val IPCA_SIGA = "https://siga.ipca.pt/netpa/page"
 
 /**
  * The school's portal (IPCA's SIGA or another), opened inside the app. The student signs in and
@@ -58,6 +58,8 @@ fun PortalScreen(onClose: () -> Unit) {
     var result by remember { mutableStateOf<String?>(null) }
     var imported by remember { mutableStateOf(false) }
     var notFound by remember { mutableStateOf(false) }
+    var pageError by remember { mutableStateOf<String?>(null) }
+    var here by remember { mutableStateOf("") }
 
     if (address == null) {
         AlertDialog(
@@ -91,7 +93,26 @@ fun PortalScreen(onClose: () -> Unit) {
             settings.userAgentString = settings.userAgentString.replace("; wv", "")
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                    here = url
+                    pageError = null
+                }
+
+                override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+                    if (request.isForMainFrame) pageError = "${error.description} (${error.errorCode})"
+                }
+
+                override fun onReceivedHttpError(view: WebView, request: android.webkit.WebResourceRequest, response: android.webkit.WebResourceResponse) {
+                    if (request.isForMainFrame && response.statusCode >= 400) pageError = "HTTP ${response.statusCode}"
+                }
+
+                override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                    // Never accepted: a bad certificate could be someone reading the login.
+                    handler.cancel()
+                    pageError = context.getString(R.string.portal_ssl_error)
+                }
+            }
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView, newProgress: Int) {
                     progress = newProgress
@@ -113,7 +134,17 @@ fun PortalScreen(onClose: () -> Unit) {
             IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.back)) }
             Text(stringResource(R.string.portal_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
         }
+        Text(here, style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp))
         if (progress in 1..99) LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
+        pageError?.let { err ->
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.portal_load_error, err), color = MaterialTheme.colorScheme.error)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { web.reload() }) { Text(stringResource(R.string.portal_retry)) }
+                    TextButton(onClick = { pageError = null; web.loadUrl(IPCA_SIGA) }) { Text("SIGA IPCA") }
+                }
+            }
+        }
         AndroidView(factory = { web }, modifier = Modifier.weight(1f).fillMaxWidth())
         Button(
             enabled = !reading,

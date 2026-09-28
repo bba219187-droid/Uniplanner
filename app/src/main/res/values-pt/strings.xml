@@ -590,4 +590,7 @@
     </plurals>
     <string name="portal_not_found_send">Não encontrei o horário nesta página. Abre a página do horário (no SIGA: Horário) e tenta outra vez. Se já está aberta, envia a página para eu corrigir.</string>
     <string name="portal_send_page">Enviar a página</string>
+    <string name="portal_load_error">A página não abriu: %s</string>
+    <string name="portal_retry">Tentar outra vez</string>
+    <string name="portal_ssl_error">Não foi possível confirmar o certificado de segurança do site, por isso a página não abriu.</string>
 </resources>

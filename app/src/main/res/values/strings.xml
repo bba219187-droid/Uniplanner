@@ -588,4 +588,7 @@
     </plurals>
     <string name="portal_not_found_send">No timetable found on this page. Open the timetable page (in SIGA: Horário) and try again. If it is already open, send the page so it can be fixed.</string>
     <string name="portal_send_page">Send the page</string>
+    <string name="portal_load_error">The page did not open: %s</string>
+    <string name="portal_retry">Try again</string>
+    <string name="portal_ssl_error">The site\'s security certificate could not be checked, so the page was not opened.</string>
 </resources>
