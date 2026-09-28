@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
+import com.uniplanner.app.ui.theme.Mono
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -139,106 +145,110 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         }
     }
 
+    val stepGoal = personal?.stepGoal ?: HealthPrefs.STEP_GOAL
+    val hasSensor = remember { Steps.hasSensor(context) }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item { ScreenHeader(stringResource(R.string.tab_health)) }
         if (profile?.complete != true) {
             item {
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .clickable { editingProfile = true }.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.health_profile_title), style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            stringResource(R.string.health_profile_why),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
-                        )
+                CleanCard(Modifier.clickable { editingProfile = true }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.health_profile_title), style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.health_profile_why), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                     }
-                    Icon(Icons.Filled.Add, contentDescription = null)
                 }
             }
         }
         item { BalanceCard(balance, personal?.healthGoal) }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BmiTile(kg, profile?.heightCm, Modifier.weight(1f).clickable { editingProfile = true })
-                WeightTile(weights, Modifier.weight(1f).clickable { addingWeight = true })
+            CleanCard {
+                Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
+                    Stat(stringResource(R.string.health_bmi), bmiText(kg, profile?.heightCm), bmiNote(kg, profile?.heightCm), Modifier.weight(1f).clickable { editingProfile = true })
+                    VerticalDivider(Modifier.padding(horizontal = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Stat(
+                        stringResource(R.string.health_weight),
+                        kg?.let { formatKg(it) } ?: "—",
+                        if (kg != null) "kg" else stringResource(R.string.health_weight_hint),
+                        Modifier.weight(1f).clickable { addingWeight = true },
+                    )
+                    VerticalDivider(Modifier.padding(horizontal = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Column(Modifier.weight(1f)) {
+                        Stat(stringResource(R.string.health_steps), if (hasSensor && stepsAllowed) "%,d".format(steps) else "—", "/ %,d".format(stepGoal), Modifier)
+                        if (hasSensor && !stepsAllowed) {
+                            Text(
+                                stringResource(R.string.health_steps_allow),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(top = 4.dp).clickable { Steps.permission?.let { askSteps.launch(it) } },
+                            )
+                        } else if (hasSensor) {
+                            Spacer(Modifier.height(8.dp))
+                            ThinBar((steps.toFloat() / stepGoal).coerceIn(0f, 1f))
+                        }
+                    }
+                }
+                if (weights.size >= 2) {
+                    Spacer(Modifier.height(12.dp))
+                    TrendLine(weights.takeLast(12).map { it.kg }, MaterialTheme.colorScheme.secondary, Modifier.fillMaxWidth().height(28.dp))
+                }
             }
-        }
-        item {
-            StepsCard(
-                steps = steps,
-                stepGoal = personal?.stepGoal ?: HealthPrefs.STEP_GOAL,
-                hasSensor = remember { Steps.hasSensor(context) },
-                allowed = stepsAllowed,
-                onAllow = { Steps.permission?.let { askSteps.launch(it) } },
-            )
         }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionTitle(stringResource(R.string.health_meals), Modifier.weight(1f))
-                Text(stringResource(R.string.health_reminders), style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.width(6.dp))
-                Switch(checked = reminders ?: true, onCheckedChange = { vm.setReminders(it) })
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { pickPlan.launch(arrayOf("image/*", "application/pdf")) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.health_import), maxLines = 1)
+                IconButton(onClick = { pickPlan.launch(arrayOf("image/*", "application/pdf")) }) {
+                    Icon(Icons.Filled.PhotoCamera, stringResource(R.string.health_import), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                OutlinedButton(onClick = { pasting = true }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.health_paste), maxLines = 1)
+                IconButton(onClick = { pasting = true }) {
+                    Icon(Icons.Filled.ContentPaste, stringResource(R.string.health_paste), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                val on = reminders ?: true
+                IconButton(onClick = { vm.setReminders(!on) }) {
+                    Icon(
+                        if (on) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
+                        stringResource(R.string.health_reminders),
+                        tint = if (on) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
-        if (plan.isEmpty()) {
-            item {
-                Text(
-                    stringResource(R.string.health_meals_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        items(plan, key = { "m${it.id}" }) { meal ->
-            MealRow(
-                meal = meal,
-                eaten = meal.id in eatenIds,
-                next = meal.id == nextMeal?.id,
-                modifier = Modifier.combinedClickable(
-                    onClick = { vm.toggleEaten(meal) },
-                    onLongClick = { editingMeal = meal },
-                ),
-            )
-        }
         item {
-            TextButton(onClick = { editingMeal = PlanMeal(minuteOfDay = 12 * 60 + 30, name = "") }) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.health_add_meal))
+            CleanCard(padding = 0.dp) {
+                if (plan.isEmpty()) {
+                    Text(
+                        stringResource(R.string.health_meals_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+                plan.forEach { meal ->
+                    MealRow(
+                        meal = meal,
+                        eaten = meal.id in eatenIds,
+                        next = meal.id == nextMeal?.id,
+                        modifier = Modifier.combinedClickable(onClick = { vm.toggleEaten(meal) }, onLongClick = { editingMeal = meal }),
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+                AddRow(stringResource(R.string.health_add_meal)) { editingMeal = PlanMeal(minuteOfDay = 12 * 60 + 30, name = "") }
             }
         }
         item { SectionTitle(stringResource(R.string.health_other_food)) }
-        items(extraFood, key = { "f${it.id}" }) { f -> FoodRow(f, onDelete = { vm.deleteFood(f) }) }
         item {
-            TextButton(onClick = { addingFood = true }) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.health_add_food))
+            CleanCard(padding = 0.dp) {
+                extraFood.forEach { f ->
+                    FoodRow(f, onDelete = { vm.deleteFood(f) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+                AddRow(stringResource(R.string.health_add_food)) { addingFood = true }
             }
         }
         item {
@@ -289,40 +299,80 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
     }
 }
 
-/** The dark card: eaten against burned today, and what is left. */
+/** A plain paper card, the base of every block on this screen. */
+@Composable
+private fun CleanCard(modifier: Modifier = Modifier, padding: androidx.compose.ui.unit.Dp = 16.dp, content: @Composable () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp)).then(modifier).padding(padding),
+    ) { content() }
+}
+
+@Composable
+private fun ThinBar(progress: Float, color: Color = MaterialTheme.colorScheme.secondary) {
+    Box(Modifier.fillMaxWidth().height(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant)) {
+        Box(Modifier.fillMaxWidth(progress).height(4.dp).clip(CircleShape).background(color))
+    }
+}
+
+@Composable
+private fun Stat(label: String, value: String, note: String, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = Mono), maxLines = 1)
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+    }
+}
+
+private fun bmiText(kg: Double?, heightCm: Double?): String =
+    if (kg == null || heightCm == null) "—" else String.format(java.util.Locale.getDefault(), "%.1f", Health.bmi(kg, heightCm))
+
+@Composable
+private fun bmiNote(kg: Double?, heightCm: Double?): String =
+    if (kg == null || heightCm == null) stringResource(R.string.health_bmi_missing)
+    else stringResource(
+        when (Health.category(Health.bmi(kg, heightCm))) {
+            BmiCategory.UNDER -> R.string.bmi_under
+            BmiCategory.NORMAL -> R.string.bmi_normal
+            BmiCategory.OVER -> R.string.bmi_over
+            BmiCategory.OBESE -> R.string.bmi_obese
+        },
+    )
+
+/** Today at a glance: what is left of the day's balance, and eaten against burned. */
 @Composable
 private fun BalanceCard(b: DayBalance, goal: HealthGoal?) {
-    val fg = MaterialTheme.colorScheme.inverseOnSurface
-    val muted = fg.copy(alpha = 0.65f)
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    CleanCard(padding = 20.dp) {
         Text(stringResource(R.string.health_today), style = MaterialTheme.typography.labelLarge, color = muted)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 "${abs(b.deficit)}",
-                style = MaterialTheme.typography.displayMedium,
-                color = if (b.deficit >= 0) MaterialTheme.colorScheme.inversePrimary else fg,
+                style = MaterialTheme.typography.displayMedium.copy(fontFamily = Mono),
+                color = if (b.deficit >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 stringResource(if (b.deficit >= 0) R.string.health_deficit else R.string.health_surplus),
                 style = MaterialTheme.typography.titleMedium,
-                color = fg,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            BalanceFigure(stringResource(R.string.health_eaten), b.eaten, fg, muted, Modifier.weight(1f))
-            BalanceFigure(stringResource(R.string.health_burned), b.burned, fg, muted, Modifier.weight(1f))
+        Spacer(Modifier.height(12.dp))
+        ThinBar(if (b.burned > 0) (b.eaten.toFloat() / b.burned).coerceIn(0f, 1f) else 0f)
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.health_eaten), style = MaterialTheme.typography.labelMedium, color = muted)
+            Spacer(Modifier.width(6.dp))
+            Text("${b.eaten}", style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono), modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.health_burned), style = MaterialTheme.typography.labelMedium, color = muted)
+            Spacer(Modifier.width(6.dp))
+            Text("${b.burned} kcal", style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono))
         }
-        Text(
-            stringResource(R.string.health_burned_detail, b.resting, b.workouts, b.steps),
-            style = MaterialTheme.typography.bodySmall,
-            color = muted,
-        )
+        Spacer(Modifier.height(6.dp))
+        Text(stringResource(R.string.health_burned_detail, b.resting, b.workouts, b.steps), style = MaterialTheme.typography.bodySmall, color = muted)
         if (goal != null) {
+            Spacer(Modifier.height(4.dp))
             Text(
                 stringResource(
                     when (goal) {
@@ -331,152 +381,62 @@ private fun BalanceCard(b: DayBalance, goal: HealthGoal?) {
                         HealthGoal.GAIN -> R.string.health_goal_gain
                     },
                 ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = fg,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BalanceFigure(label: String, kcal: Int, fg: Color, muted: Color, modifier: Modifier) {
-    Column(
-        modifier.clip(RoundedCornerShape(18.dp)).border(1.dp, muted.copy(alpha = 0.3f), RoundedCornerShape(18.dp)).padding(12.dp),
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = muted)
-        Text("$kcal kcal", style = MaterialTheme.typography.titleLarge, color = fg)
-    }
-}
-
-@Composable
-private fun Tile(modifier: Modifier, color: Color, content: @Composable () -> Unit) {
-    Column(
-        modifier.heightIn(min = 120.dp).clip(RoundedCornerShape(22.dp)).background(color)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) { content() }
-}
-
-@Composable
-private fun BmiTile(kg: Double?, heightCm: Double?, modifier: Modifier) {
-    Tile(modifier, MaterialTheme.colorScheme.secondaryContainer) {
-        Text(stringResource(R.string.health_bmi), style = MaterialTheme.typography.labelMedium)
-        if (kg == null || heightCm == null) {
-            Text("—", style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(R.string.health_bmi_missing), style = MaterialTheme.typography.bodySmall)
-        } else {
-            val bmi = Health.bmi(kg, heightCm)
-            Text(String.format(java.util.Locale.getDefault(), "%.1f", bmi), style = MaterialTheme.typography.headlineMedium)
-            Text(
-                stringResource(
-                    when (Health.category(bmi)) {
-                        BmiCategory.UNDER -> R.string.bmi_under
-                        BmiCategory.NORMAL -> R.string.bmi_normal
-                        BmiCategory.OVER -> R.string.bmi_over
-                        BmiCategory.OBESE -> R.string.bmi_obese
-                    },
-                ),
                 style = MaterialTheme.typography.bodySmall,
+                color = muted,
             )
         }
     }
 }
 
 @Composable
-private fun WeightTile(weights: List<WeightEntry>, modifier: Modifier) {
-    Tile(modifier, MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.health_weight), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.health_weight_add), modifier = Modifier.size(18.dp))
-        }
-        val last = weights.lastOrNull()
-        Text(last?.let { "${formatKg(it.kg)} kg" } ?: "—", style = MaterialTheme.typography.headlineMedium)
-        if (weights.size >= 2) {
-            TrendLine(weights.takeLast(12).map { it.kg }, MaterialTheme.colorScheme.secondary, Modifier.fillMaxWidth().height(32.dp))
-        } else {
-            Text(stringResource(R.string.health_weight_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun StepsCard(steps: Int, stepGoal: Int, hasSensor: Boolean, allowed: Boolean, onAllow: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun AddRow(label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.DirectionsWalk, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.health_steps), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text("%,d / %,d".format(steps, stepGoal), style = MaterialTheme.typography.labelLarge)
-        }
-        when {
-            !hasSensor -> Text(stringResource(R.string.health_steps_no_sensor), style = MaterialTheme.typography.bodySmall)
-            !allowed -> {
-                Text(stringResource(R.string.health_steps_why), style = MaterialTheme.typography.bodySmall)
-                Button(
-                    onClick = onAllow,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.inverseSurface,
-                        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                    ),
-                ) { Text(stringResource(R.string.health_steps_allow)) }
-            }
-            else -> LinearProgressIndicator(
-                progress = { (steps.toFloat() / stepGoal).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.outlineVariant,
-                drawStopIndicator = {},
-            )
-        }
+        Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
     }
 }
 
 @Composable
 private fun MealRow(meal: PlanMeal, eaten: Boolean, next: Boolean, modifier: Modifier) {
-    val bg = if (next) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(bg)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-            .then(modifier).padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(clock(meal.minuteOfDay), style = MaterialTheme.typography.titleMedium, modifier = Modifier.width(56.dp))
+        Box(Modifier.size(6.dp).clip(CircleShape).background(if (next) MaterialTheme.colorScheme.secondary else Color.Transparent))
+        Spacer(Modifier.width(8.dp))
+        Text(clock(meal.minuteOfDay), style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono), color = if (next) MaterialTheme.colorScheme.onSurface else muted, modifier = Modifier.width(52.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 meal.name,
                 style = MaterialTheme.typography.titleSmall,
                 textDecoration = if (eaten) TextDecoration.LineThrough else null,
-                color = if (eaten) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                color = if (eaten) muted else MaterialTheme.colorScheme.onSurface,
             )
             val detail = listOf(meal.food, if (meal.kcal > 0) "${meal.kcal} kcal" else "").filter { it.isNotBlank() }.joinToString(" · ")
-            if (detail.isNotEmpty()) {
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-            }
+            if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = muted, maxLines = 2)
         }
         Box(
-            Modifier.size(28.dp).clip(CircleShape)
-                .background(if (eaten) MaterialTheme.colorScheme.secondary else Color.Transparent)
-                .border(1.5.dp, if (eaten) Color.Transparent else MaterialTheme.colorScheme.outline, CircleShape),
+            Modifier.size(24.dp).clip(CircleShape)
+                .background(if (eaten) MaterialTheme.colorScheme.onSurface else Color.Transparent)
+                .border(1.5.dp, if (eaten) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            if (eaten) Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(16.dp))
+            if (eaten) Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(14.dp))
         }
     }
 }
 
 @Composable
 private fun FoodRow(f: FoodLog, onDelete: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(start = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(f.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Text("${f.kcal} kcal", style = MaterialTheme.typography.labelLarge)
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.delete)) }
+        Text("${f.kcal} kcal", style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
