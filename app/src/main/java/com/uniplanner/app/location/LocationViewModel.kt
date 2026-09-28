@@ -54,7 +54,7 @@ class LocationViewModel(app: Application) : AndroidViewModel(app) {
     /** Every student who shares their city, grouped by city. Only admins can read it. */
     val cities: StateFlow<List<CityCount>?> =
         isAdmin.flatMapLatest { admin ->
-            if (!admin) flowOf(null) else callbackFlow {
+            if (!admin) flowOf<List<CityCount>?>(null) else callbackFlow<List<CityCount>?> {
                 val reg = Firebase.firestore.collection("stats").addSnapshotListener { snap, _ ->
                     val rows = snap?.documents.orEmpty().map { (it.getString("city").orEmpty()) to (it.getString("country").orEmpty()) }
                     trySend(
