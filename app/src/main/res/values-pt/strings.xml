@@ -249,7 +249,6 @@
     <string name="agenda_add_event">Novo evento</string>
     <string name="agenda_all_day">Todo o dia</string>
     <string name="agenda_from_app">da UniPlanner</string>
-    <string name="agenda_booked">Já tens %d sessões de estudo na agenda.</string>
     <string name="agenda_start_by">Começa a estudar: %s</string>
     <string name="agenda_short">A tua agenda só tem espaço para %1$d de %2$d sessões. Liberta algum tempo ou começa hoje.</string>
     <string name="agenda_book_all">Pôr todas na agenda</string>
@@ -296,7 +295,6 @@
     <string name="lang_system_sub">A língua do telemóvel</string>
     <string name="study_hello">Olá, %s</string>
     <string name="study_of">de %s</string>
-    <string name="study_streak">%d dias seguidos a estudar</string>
     <string name="study_courses">Cadeiras</string>
     <string name="study_tap_hint">toca para começar</string>
     <string name="study_days">dias</string>
@@ -307,7 +305,6 @@
     <string name="gym_stat_kcal">kcal (est.)</string>
     <string name="gym_progress_empty">Põe a carga nas séries para veres a tua evolução.</string>
     <string name="gym_record">Carga máxima</string>
-    <string name="gym_last_workouts">últimos %d treinos</string>
     <string name="gym_sets_summary">%1$d exercícios · %2$d séries</string>
     <string name="gym_open">Abrir</string>
     <string name="gym_kcal_estimate">Cerca de %d kcal gastas (estimativa)</string>
@@ -486,4 +483,16 @@
     </string-array>
     <string name="ob_city_only">🏙️ Só a minha cidade</string>
     <string name="location_open_settings">Abrir definições</string>
+    <plurals name="agenda_booked">
+        <item quantity="one">Já tens %d sessão de estudo na agenda.</item>
+        <item quantity="other">Já tens %d sessões de estudo na agenda.</item>
+    </plurals>
+    <plurals name="study_streak">
+        <item quantity="one">%d dia seguido a estudar</item>
+        <item quantity="other">%d dias seguidos a estudar</item>
+    </plurals>
+    <plurals name="gym_last_workouts">
+        <item quantity="one">último treino</item>
+        <item quantity="other">últimos %d treinos</item>
+    </plurals>
 </resources>

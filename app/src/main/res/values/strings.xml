@@ -250,7 +250,6 @@
     <string name="agenda_add_event">New event</string>
     <string name="agenda_all_day">All day</string>
     <string name="agenda_from_app">from UniPlanner</string>
-    <string name="agenda_booked">%d study sessions already in the agenda.</string>
     <string name="agenda_start_by">Start studying: %s</string>
     <string name="agenda_short">Your agenda only has room for %1$d of %2$d sessions. Free some time or start today.</string>
     <string name="agenda_book_all">Put all in the agenda</string>
@@ -297,7 +296,6 @@
     <string name="lang_system_sub">Your phone\'s language</string>
     <string name="study_hello">Hi, %s</string>
     <string name="study_of">of %s</string>
-    <string name="study_streak">%d days in a row studying</string>
     <string name="study_courses">Courses</string>
     <string name="study_tap_hint">tap to start</string>
     <string name="study_days">days</string>
@@ -308,7 +306,6 @@
     <string name="gym_stat_kcal">kcal (est.)</string>
     <string name="gym_progress_empty">Add weights to your sets to see how you progress.</string>
     <string name="gym_record">Best weight</string>
-    <string name="gym_last_workouts">last %d workouts</string>
     <string name="gym_sets_summary">%1$d exercises · %2$d sets</string>
     <string name="gym_open">Open</string>
     <string name="gym_kcal_estimate">About %d kcal burned (estimate)</string>
@@ -486,4 +483,16 @@
     </string-array>
     <string name="ob_city_only">🏙️ Only my city</string>
     <string name="location_open_settings">Open settings</string>
+    <plurals name="agenda_booked">
+        <item quantity="one">%d study session already in the agenda.</item>
+        <item quantity="other">%d study sessions already in the agenda.</item>
+    </plurals>
+    <plurals name="study_streak">
+        <item quantity="one">%d day in a row studying</item>
+        <item quantity="other">%d days in a row studying</item>
+    </plurals>
+    <plurals name="gym_last_workouts">
+        <item quantity="one">last workout</item>
+        <item quantity="other">last %d workouts</item>
+    </plurals>
 </resources>

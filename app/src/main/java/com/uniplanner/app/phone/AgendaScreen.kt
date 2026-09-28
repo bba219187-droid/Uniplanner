@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -135,7 +136,7 @@ fun AgendaScreen(vm: AgendaViewModel = viewModel()) {
                 item { Text(stringResource(R.string.agenda_no_suggestions), style = MaterialTheme.typography.bodyMedium) }
             }
             items(state.suggestions, key = { "s${it.target.id}" }) { s ->
-                SuggestionCard(s, canBook = state.target != null, onChooseTarget = { dialog = AgendaDialog.TARGET }) { slots ->
+                SuggestionCard(s, canBook = state.target != null, busy = state.loading, onChooseTarget = { dialog = AgendaDialog.TARGET }) { slots ->
                     vm.book(s, slots)
                 }
             }
@@ -238,7 +239,7 @@ private fun EventRow(e: PhoneEvent, mirrored: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SuggestionCard(s: StudySuggestion, canBook: Boolean, onChooseTarget: () -> Unit, onBook: (List<com.uniplanner.app.domain.Slot>) -> Unit) {
+private fun SuggestionCard(s: StudySuggestion, canBook: Boolean, busy: Boolean, onChooseTarget: () -> Unit, onBook: (List<com.uniplanner.app.domain.Slot>) -> Unit) {
     val t = s.target
     Card(
         Modifier.fillMaxWidth(),
@@ -251,7 +252,7 @@ private fun SuggestionCard(s: StudySuggestion, canBook: Boolean, onChooseTarget:
                 listOf(t.courseName, formatDateTime(t.dueAt)).filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
             )
-            if (s.booked > 0) Text(stringResource(R.string.agenda_booked, s.booked), style = MaterialTheme.typography.bodyMedium)
+            if (s.booked > 0) Text(pluralStringResource(R.plurals.agenda_booked, s.booked, s.booked), style = MaterialTheme.typography.bodyMedium)
             s.startBy?.let {
                 Text(stringResource(R.string.agenda_start_by, dayAndTime(it)), style = MaterialTheme.typography.bodyMedium)
             }
@@ -268,11 +269,13 @@ private fun SuggestionCard(s: StudySuggestion, canBook: Boolean, onChooseTarget:
                         FilterChip(
                             selected = false,
                             onClick = { if (canBook) onBook(listOf(slot)) else onChooseTarget() },
+                            // Not while a booking is being written, so a second tap does not book twice.
+                            enabled = !busy,
                             label = { Text(dayAndTime(slot.start)) },
                         )
                     }
                 }
-                OutlinedButton(onClick = { if (canBook) onBook(s.sessions) else onChooseTarget() }) {
+                OutlinedButton(onClick = { if (canBook) onBook(s.sessions) else onChooseTarget() }, enabled = !busy) {
                     Text(stringResource(if (canBook) R.string.agenda_book_all else R.string.agenda_choose_target))
                 }
             }
@@ -369,7 +372,8 @@ private fun EventDialog(
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, PhoneCalendar.eventUri(event.eventId))) }
                 }) { Text(stringResource(R.string.agenda_open_in_calendar)) }
 
-                if (!linked && courses.isNotEmpty()) {
+                // A repeating event has one id for the whole series, so it cannot stand for one test.
+                if (!linked && courses.isNotEmpty() && !event.recurring) {
                     HorizontalDivider()
                     if (!asDeadline) {
                         TextButton(onClick = { asDeadline = true }) { Text(stringResource(R.string.agenda_to_deadline)) }

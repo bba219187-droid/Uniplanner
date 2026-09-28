@@ -457,7 +457,7 @@ private fun ProgressCard(workouts: List<Workout>, sets: List<ExerciseSet>) {
             }
             TrendLine(best, MaterialTheme.colorScheme.inversePrimary, Modifier.fillMaxWidth().height(64.dp))
             Text(
-                stringResource(R.string.gym_last_workouts, best.size),
+                pluralStringResource(R.plurals.gym_last_workouts, best.size, best.size),
                 color = fg.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall,
             )

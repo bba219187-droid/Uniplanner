@@ -137,7 +137,11 @@ class AgendaViewModel(app: Application) : AndroidViewModel(app) {
     private fun write(block: suspend () -> Unit) = viewModelScope.launch {
         _state.update { it.copy(loading = true, failed = false) }
         val ok = withContext(Dispatchers.IO) { runCatching { block() }.isSuccess }
-        _state.value = withContext(Dispatchers.IO) { load() }.copy(failed = !ok)
+        // A moved test or deadline event moves the deadline in the app right away.
+        _state.value = withContext(Dispatchers.IO) {
+            runCatching { AgendaSync.pullChanges(context) }
+            load()
+        }.copy(failed = !ok)
     }
 
     companion object {

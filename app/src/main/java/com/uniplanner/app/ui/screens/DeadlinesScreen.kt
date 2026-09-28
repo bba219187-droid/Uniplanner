@@ -115,7 +115,12 @@ private fun DeadlineCard(
     onDone: (Boolean) -> Unit,
     onDelete: () -> Unit,
 ) {
-    val daysLeft = TimeUnit.MILLISECONDS.toDays(deadline.dueAt - System.currentTimeMillis())
+    // Calendar days, so something due tomorrow morning reads "1 day" and a passed one shows no chip.
+    val upcoming = deadline.dueAt >= System.currentTimeMillis()
+    val daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
+        java.time.LocalDate.now(),
+        java.time.Instant.ofEpochMilli(deadline.dueAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
+    )
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = deadline.done, onCheckedChange = onDone)
@@ -133,7 +138,7 @@ private fun DeadlineCard(
                     listOfNotNull(course?.name, formatDateTime(deadline.dueAt)).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                if (!deadline.done && daysLeft >= 0) {
+                if (!deadline.done && upcoming) {
                     val urgent = daysLeft <= 3
                     val tone = if (urgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     Text(

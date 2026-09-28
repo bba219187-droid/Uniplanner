@@ -52,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -117,9 +119,15 @@ fun StudyScreen(
         return
     }
 
-    var runningId by rememberSaveable { mutableLongStateOf(0L) }
+    // Kept on the phone too, so a running timer survives closing the app, a restart or an update.
+    val context = LocalContext.current
+    val timerPrefs = remember { context.getSharedPreferences("study_timer", android.content.Context.MODE_PRIVATE) }
+    var runningId by rememberSaveable { mutableLongStateOf(timerPrefs.getLong("course", 0L)) }
     // 0 means the timer is not running.
-    var startedAt by rememberSaveable { mutableLongStateOf(0L) }
+    var startedAt by rememberSaveable { mutableLongStateOf(timerPrefs.getLong("startedAt", 0L)) }
+    LaunchedEffect(runningId, startedAt) {
+        timerPrefs.edit().putLong("course", runningId).putLong("startedAt", startedAt).apply()
+    }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var manualFor by remember { mutableStateOf<Course?>(null) }
 
@@ -232,7 +240,10 @@ fun StudyScreen(
 
         if (next != null) {
             item(span = { GridItemSpan(2) }) {
-                val days = ((next.dueAt - System.currentTimeMillis()) / 86_400_000L).toInt()
+                val days = java.time.temporal.ChronoUnit.DAYS.between(
+                    today,
+                    java.time.Instant.ofEpochMilli(next.dueAt).atZone(zone).toLocalDate(),
+                ).toInt()
                 val course = courses.firstOrNull { it.id == next.courseId }
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
@@ -361,7 +372,7 @@ private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
             if (rest > 0) Box(Modifier.weight(rest.toFloat() / total).fillMaxHeight().background(fg.copy(alpha = 0.15f)))
         }
         if (streak > 0) {
-            Text(stringResource(R.string.study_streak, streak), style = MaterialTheme.typography.bodySmall, color = muted)
+            Text(pluralStringResource(R.plurals.study_streak, streak, streak), style = MaterialTheme.typography.bodySmall, color = muted)
         }
     }
 }

@@ -94,6 +94,13 @@ object AgendaSync {
         val title = listOfNotNull("$kind: ${deadline.title}", course?.let { "($it)" }).joinToString(" ")
         val (begin, end) = eventTimes(deadline)
         val existing = eventIdFor(context, deadline.id)
+        if (existing != null && ownsEvent(context, deadline.id)) {
+            // The student's own event keeps its title and length; it only moves when the date changes.
+            val times = PhoneCalendar.eventTimes(context, existing) ?: return
+            val shift = deadline.dueAt - if (deadline.type == DeadlineType.TEST) times.first else times.second
+            if (shift != 0L) PhoneCalendar.move(context, existing, times.first + shift, times.second + shift)
+            return
+        }
         if (existing != null && PhoneCalendar.update(context, existing, title, begin, end)) return
         if (!mirrorsDeadlines(context)) return
         val calendar = targetCalendar(context) ?: return

@@ -105,12 +105,28 @@ object PhoneCalendar {
         }.orEmpty()
     }
 
-    /** Start and end of one event, or null when it was deleted in the agenda. */
+    /**
+     * Start and end of one event, or null when it was deleted in the agenda or repeats (a repeating
+     * event keeps the first date of the series, not the one that was linked).
+     */
     fun eventTimes(context: Context, eventId: Long): Pair<Long, Long>? {
         if (!hasPermission(context)) return null
         val uri = ContentUris.withAppendedId(Events.CONTENT_URI, eventId)
-        return context.contentResolver.query(uri, arrayOf(Events.DTSTART, Events.DTEND, Events.DELETED), null, null, null)
-            ?.use { c -> if (c.moveToFirst() && c.getInt(2) == 0) c.getLong(0) to c.getLong(1) else null }
+        return context.contentResolver.query(uri, arrayOf(Events.DTSTART, Events.DTEND, Events.DELETED, Events.RRULE), null, null, null)
+            ?.use { c ->
+                val usable = c.moveToFirst() && c.getInt(2) == 0 && c.getString(3).isNullOrEmpty() && !c.isNull(1)
+                if (usable) c.getLong(0) to c.getLong(1) else null
+            }
+    }
+
+    /** Moves an event without touching its title. */
+    fun move(context: Context, eventId: Long, begin: Long, end: Long): Boolean {
+        if (!hasPermission(context)) return false
+        val values = ContentValues().apply {
+            put(Events.DTSTART, begin)
+            put(Events.DTEND, end)
+        }
+        return context.contentResolver.update(ContentUris.withAppendedId(Events.CONTENT_URI, eventId), values, null, null) > 0
     }
 
     fun insert(context: Context, calendarId: Long, title: String, begin: Long, end: Long, description: String = MARKER): Long? {

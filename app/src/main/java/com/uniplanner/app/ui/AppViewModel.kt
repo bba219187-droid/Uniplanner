@@ -17,17 +17,29 @@ import com.uniplanner.app.domain.WeekPlan
 import com.uniplanner.app.reminders.ReminderScheduler
 import com.uniplanner.app.reminders.toPlan
 import com.uniplanner.app.settings.PersonalSettings
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val db = AppDatabase.get(app)
     private val zone = ZoneId.systemDefault()
-    private val weekStart = Planning.weekStart(System.currentTimeMillis(), zone)
+    /** Monday of the current week, moving on by itself when a new week starts while the app is open. */
+    private val weekStart = flow {
+        while (true) {
+            emit(Planning.weekStart(System.currentTimeMillis(), zone))
+            delay(60_000)
+        }
+    }.distinctUntilChanged()
 
     val courses: StateFlow<List<Course>> =
         db.courses().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -47,14 +59,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Health.DEFAULT_WEIGHT_KG)
 
     val studyThisWeek: StateFlow<List<StudySession>> =
-        db.studySessions().observeFrom(weekStart)
+        weekStart.flatMapLatest { db.studySessions().observeFrom(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val allStudy: StateFlow<List<StudySession>> =
         db.studySessions().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val weekPlan: StateFlow<WeekPlan?> =
-        combine(courses, deadlines, PersonalSettings.flow(app)) { cs, ds, personal ->
+        combine(courses, deadlines, PersonalSettings.flow(app), weekStart) { cs, ds, personal, _ ->
             val now = System.currentTimeMillis()
             Planning.buildWeekPlan(
                 now = now,
@@ -70,7 +82,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteCourse(course: Course) = viewModelScope.launch {
-        deadlines.value.filter { it.courseId == course.id }
+        // From the database: the screen showing the list may not be open, so the flow can be empty.
+        db.deadlines().getAll().filter { it.courseId == course.id }
             .forEach { ReminderScheduler.cancelDeadline(getApplication(), it.id) }
         db.courses().delete(course)
     }
