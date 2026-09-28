@@ -1,6 +1,10 @@
 package com.uniplanner.app.settings
 
 import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.uniplanner.app.health.Steps
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -141,21 +145,39 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         }
     }
 
-    var chosenLocation by remember { mutableStateOf<LocationChoices?>(null) }
-    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        chosenLocation?.let { c -> scope.launch { LocationShare.setChoices(ctx, c) } }
+    var chosenLocation by remember { mutableStateOf(LocationChoices(stats = false, friends = false)) }
+    // Every permission is asked in one go at the end, after the student has answered.
+    val askAll = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        Steps.schedule(ctx)
+        scope.launch {
+            LocationShare.setChoices(ctx, chosenLocation)
+            runCatching { Steps.refresh(ctx) }
+        }
+        onFinished()
     }
-    /** Saves the choice at once and asks the phone for permission when something is shared. */
     fun chooseLocation(c: LocationChoices) {
         chosenLocation = c
-        scope.launch { LocationShare.setChoices(ctx, c) }
-        if ((c.friends || c.stats) && !LocationShare.hasPermission(ctx)) {
-            askLocation.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-        }
     }
     fun finish() {
         PersonalSettings.save(ctx, draft.copy(done = true))
-        onFinished()
+        val wanted = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+            if (Area.HEALTH in draft.areas || Area.GYM in draft.areas) Steps.permission?.let { add(it) }
+            if (chosenLocation.friends || chosenLocation.stats) {
+                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (Area.STUDY in draft.areas) {
+                add(Manifest.permission.READ_CALENDAR)
+                add(Manifest.permission.WRITE_CALENDAR)
+            }
+        }.filter { ContextCompat.checkSelfPermission(ctx, it) != PackageManager.PERMISSION_GRANTED }
+        if (wanted.isEmpty()) {
+            scope.launch { LocationShare.setChoices(ctx, chosenLocation) }
+            onFinished()
+        } else {
+            askAll.launch(wanted.toTypedArray())
+        }
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding().imePadding()) {
