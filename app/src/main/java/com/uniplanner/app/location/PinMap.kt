@@ -30,7 +30,15 @@ data class MapPin(val id: String, val lat: Double, val lng: Double, val title: S
  */
 @SuppressLint("ClickableViewAccessibility")
 @Composable
-fun PinMap(pins: List<MapPin>, dark: Boolean, pinColor: Color, modifier: Modifier = Modifier, dots: Boolean = false) {
+fun PinMap(
+    pins: List<MapPin>,
+    dark: Boolean,
+    pinColor: Color,
+    modifier: Modifier = Modifier,
+    dots: Boolean = false,
+    /** False for a small preview that does not move; the screen puts its own tap on top. */
+    interactive: Boolean = true,
+) {
     val context = LocalContext.current
     val map = remember {
         Configuration.getInstance().apply {
@@ -40,7 +48,7 @@ fun PinMap(pins: List<MapPin>, dark: Boolean, pinColor: Color, modifier: Modifie
         }
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
+            setMultiTouchControls(interactive)
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             setMinZoomLevel(3.0)
             setMaxZoomLevel(19.0)
@@ -50,8 +58,8 @@ fun PinMap(pins: List<MapPin>, dark: Boolean, pinColor: Color, modifier: Modifie
             overlays.add(CopyrightOverlay(context))
             // Inside a scrolling page, dragging the map moves the map, not the page.
             setOnTouchListener { v, _ ->
-                v.parent?.requestDisallowInterceptTouchEvent(true)
-                false
+                if (interactive) v.parent?.requestDisallowInterceptTouchEvent(true)
+                !interactive
             }
             tag = ""
         }

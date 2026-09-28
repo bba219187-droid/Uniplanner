@@ -2,6 +2,9 @@ package com.uniplanner.app.online
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
+import com.uniplanner.app.R
+import java.io.File
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -9,6 +12,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +38,10 @@ data class Conversation(
 )
 
 /** What to tell the student after an online action. */
-enum class OnlineNotice { FRIEND_REQUEST_SENT, CODE_NOT_FOUND, JOINED_GROUP, RESET_EMAIL_SENT, PROFILE_SAVED }
+enum class OnlineNotice {
+    FRIEND_REQUEST_SENT, CODE_NOT_FOUND, JOINED_GROUP, RESET_EMAIL_SENT, PROFILE_SAVED,
+    FILE_TOO_BIG, NO_LOCATION, NO_APP_TO_OPEN, NOT_DOWNLOADED,
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnlineViewModel(app: Application) : AndroidViewModel(app) {
@@ -91,9 +98,111 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         readAt.value = readAt.value + (key to seen)
     }
 
-    fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = repo?.messages(kind, id) ?: emptyFlow()
+    // Messages deleted only on this phone.
+    private val hiddenPrefs = app.getSharedPreferences("chat_hidden", Context.MODE_PRIVATE)
+    private val hidden = MutableStateFlow(hiddenPrefs.getStringSet("ids", null).orEmpty().toSet())
+
+    fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> =
+        (repo?.messages(kind, id) ?: emptyFlow()).combine(hidden) { list, gone -> list.filter { it.id !in gone } }
 
     fun sendMessage(kind: ChatKind, id: String, text: String) = withProfile { r, me -> r.sendMessage(me, kind, id, text) }
+
+    private val _sending = MutableStateFlow(0)
+    /** Photos or files being prepared to send. */
+    val sending: StateFlow<Int> = _sending.asStateFlow()
+
+    private fun text(res: Int, vararg args: Any): String = getApplication<Application>().getString(res, *args)
+
+    /** Photos from the gallery or the camera, one message each. */
+    fun sendPhotos(kind: ChatKind, id: String, uris: List<Uri>, fromCamera: Boolean = false) = sendEach(kind, id, uris) { uri ->
+        Attachments.photo(getApplication(), uri)
+    }.also { if (fromCamera) it.invokeOnCompletion { Attachments.clearCamera(getApplication()) } }
+
+    fun sendFile(kind: ChatKind, id: String, uri: Uri) = sendEach(kind, id, listOf(uri)) { Attachments.file(getApplication(), it) }
+
+    private fun sendEach(kind: ChatKind, id: String, uris: List<Uri>, read: suspend (Uri) -> Outgoing?) = viewModelScope.launch {
+        val r = repo ?: return@launch
+        _sending.value += 1
+        try {
+            val me = profile.value ?: r.loadProfile(r.uid ?: return@launch)
+            for (uri in uris) {
+                val out = try {
+                    read(uri)
+                } catch (_: TooBigException) {
+                    _notice.value = OnlineNotice.FILE_TOO_BIG
+                    null
+                } ?: continue
+                val blobId = r.newBlobId(kind, id)
+                Attachments.remember(getApplication(), blobId, out.bytes)
+                val preview = if (out.type == MessageType.IMAGE) text(R.string.chat_preview_photo) else text(R.string.chat_preview_file, out.fileName)
+                r.sendAttachment(me, kind, id, blobId, out, preview)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _error.value = e.localizedMessage ?: e.javaClass.simpleName
+        } finally {
+            _sending.value -= 1
+        }
+    }
+
+    /** Sends where the phone is now. The screen asks for the permission first. */
+    fun sendLocation(kind: ChatKind, id: String) = viewModelScope.launch {
+        val r = repo ?: return@launch
+        _sending.value += 1
+        try {
+            val here = LocationShare.here(getApplication())
+            if (here == null) {
+                _notice.value = OnlineNotice.NO_LOCATION
+                return@launch
+            }
+            val (loc, name) = here
+            val me = profile.value ?: r.loadProfile(r.uid ?: return@launch)
+            r.sendPlace(me, kind, id, SharedPlace(loc.latitude, loc.longitude, name), text(R.string.chat_preview_location))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _error.value = e.localizedMessage ?: e.javaClass.simpleName
+        } finally {
+            _sending.value -= 1
+        }
+    }
+
+    /** The photo or file on this phone, downloading it the first time. */
+    suspend fun attachmentFile(kind: ChatKind, id: String, a: Attachment): File? {
+        val r = repo ?: return null
+        return runCatching { Attachments.local(getApplication(), a.blobId) { r.download(kind, id, a) } }.getOrNull()
+    }
+
+    /** Opens the photo or file in another app, or shares it. Waits while it downloads. */
+    suspend fun openAttachment(kind: ChatKind, id: String, a: Attachment, share: Boolean = false) {
+        val file = attachmentFile(kind, id, a)
+        when {
+            file == null -> _notice.value = OnlineNotice.NOT_DOWNLOADED
+            share -> Attachments.share(getApplication(), file, a)
+            !Attachments.open(getApplication(), file, a) -> _notice.value = OnlineNotice.NO_APP_TO_OPEN
+        }
+    }
+
+    fun noAppToOpen() {
+        _notice.value = OnlineNotice.NO_APP_TO_OPEN
+    }
+
+    /** Hides a message on this phone only. */
+    fun deleteForMe(m: ChatMessage) {
+        val next = hidden.value + m.id
+        hiddenPrefs.edit().putStringSet("ids", next).apply()
+        hidden.value = next
+        m.attachment?.let { Attachments.forget(getApplication(), it.blobId) }
+    }
+
+    /** Deletes one of my messages for everyone in the conversation. */
+    fun deleteForEveryone(kind: ChatKind, id: String, m: ChatMessage) = withProfile { r, me ->
+        val last = conversations.value.firstOrNull { it.kind == kind && it.id == id }?.last
+        val wasNewest = last != null && last.byUid == me.uid && last.at == m.createdAt
+        r.deleteForEveryone(me, kind, id, m, wasNewest, text(R.string.chat_preview_deleted))
+        m.attachment?.let { Attachments.forget(getApplication(), it.blobId) }
+    }
 
     private fun <T> listFlow(id: String?, source: (String) -> Flow<List<T>>): Flow<List<T>> =
         if (id == null) flowOf(emptyList()) else source(id)

@@ -73,6 +73,10 @@ fun OnlineMessages(vm: OnlineViewModel) {
                 OnlineNotice.JOINED_GROUP -> R.string.group_joined
                 OnlineNotice.RESET_EMAIL_SENT -> R.string.reset_email_sent
                 OnlineNotice.PROFILE_SAVED -> R.string.profile_saved
+                OnlineNotice.FILE_TOO_BIG -> R.string.chat_file_too_big
+                OnlineNotice.NO_LOCATION -> R.string.chat_no_location
+                OnlineNotice.NO_APP_TO_OPEN -> R.string.chat_no_app
+                OnlineNotice.NOT_DOWNLOADED -> R.string.chat_not_downloaded
             },
         )
     }

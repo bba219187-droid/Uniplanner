@@ -503,4 +503,28 @@
         <item quantity="many">%d no mapa</item>
         <item quantity="other">%d no mapa</item>
     </plurals>
+    <string name="chat_attach">Anexar</string>
+    <string name="chat_gallery">Galeria</string>
+    <string name="chat_camera">Câmara</string>
+    <string name="chat_file">Ficheiro</string>
+    <string name="chat_location">Localização</string>
+    <string name="chat_preview_photo">📷 Foto</string>
+    <string name="chat_preview_file">📎 %s</string>
+    <string name="chat_preview_location">📍 Localização</string>
+    <string name="chat_preview_deleted">🚫 Mensagem apagada</string>
+    <string name="chat_deleted">🚫 Esta mensagem foi apagada</string>
+    <string name="chat_deleted_mine">🚫 Apagaste esta mensagem</string>
+    <string name="chat_message_title">Mensagem</string>
+    <string name="chat_copy">Copiar</string>
+    <string name="chat_share">Partilhar ou guardar</string>
+    <string name="chat_delete_for_me">Apagar para mim</string>
+    <string name="chat_delete_for_all">Apagar para todos</string>
+    <string name="chat_sending">A enviar…</string>
+    <string name="chat_send_location_title">Enviar a tua localização?</string>
+    <string name="chat_send_location_text">%s vai ver onde estás agora, num mapa.</string>
+    <string name="chat_open_in_maps">Abrir noutra app</string>
+    <string name="chat_file_too_big">Este ficheiro é demasiado grande. Os ficheiros podem ter até 5 MB.</string>
+    <string name="chat_no_location">Não foi possível obter a tua localização. Vê se a localização está ligada e permitida para a UniPlanner.</string>
+    <string name="chat_no_app">Nenhuma app deste telemóvel consegue abrir isto.</string>
+    <string name="chat_not_downloaded">Não foi possível descarregar. Vê a ligação à internet.</string>
 </resources>

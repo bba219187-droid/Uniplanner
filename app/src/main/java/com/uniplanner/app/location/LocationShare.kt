@@ -184,6 +184,14 @@ object LocationShare {
         p.edit().putLong("sentAt", now).apply()
     }
 
+    /** Where the phone is now and the name of the place, to send in a chat. Null without permission or a fix. */
+    suspend fun here(ctx: Context): Pair<Location, String>? = withContext(Dispatchers.IO) {
+        if (!hasPermission(ctx)) return@withContext null
+        val loc = runCatching { current(ctx) }.getOrNull() ?: return@withContext null
+        val (city, country) = place(ctx, loc)
+        loc to listOf(city, country).filter { it.isNotBlank() }.joinToString(", ")
+    }
+
     @SuppressLint("MissingPermission")
     private suspend fun current(ctx: Context): Location? {
         val manager = ctx.getSystemService(LocationManager::class.java) ?: return null

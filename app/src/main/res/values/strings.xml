@@ -502,4 +502,28 @@
         <item quantity="one">%d on the map</item>
         <item quantity="other">%d on the map</item>
     </plurals>
+    <string name="chat_attach">Attach</string>
+    <string name="chat_gallery">Gallery</string>
+    <string name="chat_camera">Camera</string>
+    <string name="chat_file">File</string>
+    <string name="chat_location">Location</string>
+    <string name="chat_preview_photo">📷 Photo</string>
+    <string name="chat_preview_file">📎 %s</string>
+    <string name="chat_preview_location">📍 Location</string>
+    <string name="chat_preview_deleted">🚫 Message deleted</string>
+    <string name="chat_deleted">🚫 This message was deleted</string>
+    <string name="chat_deleted_mine">🚫 You deleted this message</string>
+    <string name="chat_message_title">Message</string>
+    <string name="chat_copy">Copy</string>
+    <string name="chat_share">Share or save</string>
+    <string name="chat_delete_for_me">Delete for me</string>
+    <string name="chat_delete_for_all">Delete for everyone</string>
+    <string name="chat_sending">Sending…</string>
+    <string name="chat_send_location_title">Send your location?</string>
+    <string name="chat_send_location_text">%s will see where you are right now, on a map.</string>
+    <string name="chat_open_in_maps">Open in another app</string>
+    <string name="chat_file_too_big">This file is too big. Files can have up to 5 MB.</string>
+    <string name="chat_no_location">Couldn\'t get your location. Check that location is on and allowed for UniPlanner.</string>
+    <string name="chat_no_app">No app on this phone can open this.</string>
+    <string name="chat_not_downloaded">Couldn\'t download it. Check your internet connection.</string>
 </resources>

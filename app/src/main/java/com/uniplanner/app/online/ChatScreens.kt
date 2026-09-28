@@ -1,6 +1,16 @@
 package com.uniplanner.app.online
 
+import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,12 +38,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +55,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -53,6 +66,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,8 +90,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uniplanner.app.R
+import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.ui.screens.EmptyState
 import com.uniplanner.app.ui.screens.ScreenHeader
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -346,6 +363,48 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     var text by remember { mutableStateOf("") }
     var menu by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
+    var attaching by remember { mutableStateOf(false) }
+    var confirmLocation by remember { mutableStateOf(false) }
+    var actionsFor by remember { mutableStateOf<ChatMessage?>(null) }
+    var viewingPhoto by remember { mutableStateOf<Attachment?>(null) }
+    var viewingPlace by remember { mutableStateOf<SharedPlace?>(null) }
+    // Kept across rotation, since the camera app may turn the screen.
+    var cameraUri by rememberSaveable { mutableStateOf<String?>(null) }
+    val sending by vm.sending.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
+    val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
+        if (uris.isNotEmpty()) vm.sendPhotos(kind, id, uris)
+    }
+    val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val shot = cameraUri
+        cameraUri = null
+        if (ok && shot != null) vm.sendPhotos(kind, id, listOf(Uri.parse(shot)), fromCamera = true)
+    }
+    val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.sendFile(kind, id, uri)
+    }
+    // Asked only when the student chooses to send a place; without it the app says what is missing.
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        vm.sendLocation(kind, id)
+    }
+    fun attach(choice: AttachChoice) {
+        attaching = false
+        try {
+            when (choice) {
+                AttachChoice.GALLERY -> pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                AttachChoice.CAMERA -> {
+                    val uri = Attachments.cameraUri(context)
+                    cameraUri = uri.toString()
+                    takePhoto.launch(uri)
+                }
+                AttachChoice.FILE -> pickFile.launch(arrayOf("*/*"))
+                AttachChoice.LOCATION -> confirmLocation = true
+            }
+        } catch (_: ActivityNotFoundException) {
+            vm.noAppToOpen()
+        }
+    }
 
     LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id, messages.firstOrNull { !it.pending }?.createdAt) }
     OnlineMessages(vm)
@@ -412,7 +471,32 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
                             )
                         }
                     }
-                    Bubble(m, mine, showName = kind == ChatKind.GROUP && !mine && !sameAuthorAsOlder, tail = !sameAuthorAsOlder)
+                    Bubble(
+                        m, mine,
+                        showName = kind == ChatKind.GROUP && !mine && !sameAuthorAsOlder,
+                        tail = !sameAuthorAsOlder,
+                        onOpen = {
+                            when {
+                                m.type == MessageType.IMAGE && m.attachment != null -> viewingPhoto = m.attachment
+                                m.place != null -> viewingPlace = m.place
+                            }
+                        },
+                        onLongPress = { actionsFor = m },
+                    ) {
+                        when {
+                            m.type == MessageType.DELETED -> DeletedContent(mine, it)
+                            m.type == MessageType.IMAGE && m.attachment != null ->
+                                PhotoContent(vm, kind, id, m.attachment, onOpen = { viewingPhoto = m.attachment }, onLongPress = { actionsFor = m })
+                            m.type == MessageType.FILE && m.attachment != null ->
+                                FileContent(vm, kind, id, m.attachment, it, onLongPress = { actionsFor = m })
+                            m.place != null -> PlaceContent(m.place, it, onOpen = { viewingPlace = m.place }, onLongPress = { actionsFor = m })
+                            else -> Text(
+                                linkified(m.text, if (mine) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.tertiary),
+                                color = it,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                    }
                 }
             }
             if (messages.isEmpty()) {
@@ -427,26 +511,42 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
             }
         }
 
+        if (sending > 0) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.chat_sending), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp), color = MaterialTheme.colorScheme.secondary)
+            }
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom) {
-            Box(
+            Row(
                 Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                contentAlignment = Alignment.CenterStart,
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (text.isEmpty()) {
-                    Text(stringResource(R.string.chat_placeholder), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
+                Box(Modifier.weight(1f).padding(vertical = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    if (text.isEmpty()) {
+                        Text(stringResource(R.string.chat_placeholder), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    BasicTextField(
+                        text,
+                        { text = it },
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
+                        maxLines = 5,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
-                BasicTextField(
-                    text,
-                    { text = it },
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
-                    maxLines = 5,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                IconButton(onClick = { attaching = true }, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Filled.AttachFile, stringResource(R.string.chat_attach), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (text.isEmpty()) {
+                    IconButton(onClick = { attach(AttachChoice.CAMERA) }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Filled.PhotoCamera, stringResource(R.string.chat_camera), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             Spacer(Modifier.size(8.dp))
             FilledIconButton(
@@ -463,6 +563,45 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
             ) { Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.chat_send)) }
         }
     }
+
+    if (attaching) AttachSheet(onDismiss = { attaching = false }, onChoose = ::attach)
+    if (confirmLocation) {
+        AlertDialog(
+            onDismissRequest = { confirmLocation = false },
+            title = { Text(stringResource(R.string.chat_send_location_title)) },
+            text = { Text(stringResource(R.string.chat_send_location_text, conversation?.title.orEmpty())) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLocation = false
+                    if (LocationShare.hasPermission(context)) {
+                        vm.sendLocation(kind, id)
+                    } else {
+                        askLocation.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
+                    }
+                }) { Text(stringResource(R.string.chat_send)) }
+            },
+            dismissButton = { TextButton(onClick = { confirmLocation = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    actionsFor?.let { m ->
+        val mine = m.authorId == uid
+        val copyText = m.text.takeIf { it.isNotBlank() && (m.type == MessageType.TEXT || m.type == MessageType.LOCATION) }
+        MessageActions(
+            m, mine,
+            onCopy = copyText?.let { t ->
+                {
+                    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(null, t))
+                    Unit
+                }
+            },
+            onShare = m.attachment?.let { a -> { scope.launch { vm.openAttachment(kind, id, a, share = true) }; Unit } },
+            onDeleteForMe = { vm.deleteForMe(m) },
+            onDeleteForEveryone = if (mine) ({ vm.deleteForEveryone(kind, id, m); Unit }) else null,
+            onDismiss = { actionsFor = null },
+        )
+    }
+    viewingPhoto?.let { PhotoViewer(vm, kind, id, it) { viewingPhoto = null } }
+    viewingPlace?.let { PlaceViewer(it) { viewingPlace = null } }
 
     if (confirmLeave) {
         val title = conversation?.title.orEmpty()
@@ -481,10 +620,21 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Bubble(m: ChatMessage, mine: Boolean, showName: Boolean, tail: Boolean) {
+private fun Bubble(
+    m: ChatMessage,
+    mine: Boolean,
+    showName: Boolean,
+    tail: Boolean,
+    onOpen: () -> Unit,
+    onLongPress: () -> Unit,
+    content: @Composable (Color) -> Unit,
+) {
     val bg = if (mine) MaterialTheme.colorScheme.inverseSurface else MaterialTheme.colorScheme.surfaceContainerHigh
     val fg = if (mine) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
+    // Photos, files and places sit closer to the edge of the bubble than text.
+    val media = m.attachment != null || m.place != null
     val shape = RoundedCornerShape(
         topStart = 18.dp, topEnd = 18.dp,
         bottomStart = if (!mine && tail) 4.dp else 18.dp,
@@ -494,14 +644,15 @@ private fun Bubble(m: ChatMessage, mine: Boolean, showName: Boolean, tail: Boole
         Column(
             Modifier.widthIn(max = 300.dp).clip(shape).background(bg)
                 .then(if (mine) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape))
-                .padding(start = 12.dp, end = 10.dp, top = 7.dp, bottom = 6.dp),
+                .combinedClickable(onClick = onOpen, onLongClick = onLongPress)
+                .padding(start = if (media) 6.dp else 12.dp, end = if (media) 6.dp else 10.dp, top = if (media) 6.dp else 7.dp, bottom = 6.dp),
         ) {
             if (showName) {
                 val nameColor = Color(avatarColors[Math.floorMod(m.authorName.hashCode(), avatarColors.size)])
                 Text(m.authorName, color = nameColor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
-            Text(linkified(m.text, if (mine) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.tertiary), color = fg, style = MaterialTheme.typography.bodyLarge)
-            Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+            content(fg)
+            Row(Modifier.align(Alignment.End).padding(top = 2.dp, end = if (media) 4.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(m.createdAt)),
                     fontSize = 11.sp,
