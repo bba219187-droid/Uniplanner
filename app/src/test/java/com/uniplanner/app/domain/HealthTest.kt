@@ -50,13 +50,14 @@ class HealthTest {
     }
 
     @Test
-    fun stepsGoToTheDayOfTheLastReading() {
+    fun stepsGoToTheDayTheyAreRead() {
         val (first, none) = StepTracker.update(null, "2026-09-27", 1000)
         assertEquals(emptyMap<String, Int>(), none)
         val (second, add) = StepTracker.update(first, "2026-09-27", 1500)
         assertEquals(mapOf("2026-09-27" to 500), add)
-        val (third, night) = StepTracker.update(second, "2026-09-28", 1700)
-        assertEquals(mapOf("2026-09-27" to 200), night)
+        // Opened again the next evening: the day's walking counts for today, not for last night.
+        val (third, nextDay) = StepTracker.update(second, "2026-09-28", 7500)
+        assertEquals(mapOf("2026-09-28" to 6000), nextDay)
         // The phone restarted: the sensor starts again from zero.
         val (_, afterRestart) = StepTracker.update(third, "2026-09-28", 300)
         assertEquals(mapOf("2026-09-28" to 300), afterRestart)

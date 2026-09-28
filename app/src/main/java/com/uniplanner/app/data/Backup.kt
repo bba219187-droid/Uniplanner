@@ -16,9 +16,14 @@ data class Snapshot(
     val food: List<FoodLog> = emptyList(),
     val steps: List<StepDay> = emptyList(),
 ) {
+    /**
+     * Nothing the student planned yet. Steps and weights are left out: a new phone gets them on its
+     * own (the step sensor, the welcome questions), and that should not stop the account copy from
+     * being restored.
+     */
     val isEmpty: Boolean
         get() = courses.isEmpty() && deadlines.isEmpty() && studySessions.isEmpty() && workouts.isEmpty() &&
-            exerciseSets.isEmpty() && weights.isEmpty() && mealPlan.isEmpty() && food.isEmpty() && steps.isEmpty()
+            exerciseSets.isEmpty() && mealPlan.isEmpty() && food.isEmpty()
 }
 
 object BackupCodec {

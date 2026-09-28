@@ -6,6 +6,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.uniplanner.app.data.AppDatabase
+import com.uniplanner.app.health.MealReminders
 import com.uniplanner.app.data.BackupCodec
 import com.uniplanner.app.data.replaceWith
 import com.uniplanner.app.data.snapshot
@@ -131,6 +132,7 @@ object CloudBackup {
         db.replaceWith(snapshot)
         val now = System.currentTimeMillis()
         snapshot.deadlines.filter { !it.done && it.dueAt > now }.forEach { ReminderScheduler.scheduleDeadline(app, it) }
+        MealReminders.rescheduleAll(app)
         link(uid)
         prefs.edit().putLong("savedAt", remote.getLong("savedAt") ?: now).apply()
         _lastSaved.value = remote.getLong("savedAt")

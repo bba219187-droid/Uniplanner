@@ -1,6 +1,10 @@
 package com.uniplanner.app.settings
 
 import android.Manifest
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -73,10 +77,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class Question { AREAS, STUDY_HOURS, STUDY_TIME, GYM_KINDS, GYM_FREQ, HEALTH_GOAL, HEALTH_BODY, HEALTH_STEPS, FRIENDS, DONE }
+enum class Question { AREAS, STUDY_HOURS, STUDY_TIME, GYM_KINDS, GYM_FREQ, HEALTH_GOAL, HEALTH_BODY, HEALTH_STEPS, FRIENDS, DONE }
 
 /** A line in the conversation: the app asking, or the student's answer. */
-private data class Bubble(val id: Int, val mine: Boolean, val text: String)
+data class Bubble(val id: Int, val mine: Boolean, val text: String)
 
 private fun questionsFor(areas: Set<Area>): List<Question> = buildList {
     add(Question.AREAS)
@@ -89,17 +93,63 @@ private fun questionsFor(areas: Set<Area>): List<Question> = buildList {
 }
 
 /**
+ * What the welcome chat has asked and answered so far. It lives in a ViewModel so turning the
+ * phone, or the permission dialogs at the end, do not start the questions again.
+ */
+class OnboardingModel(app: Application) : AndroidViewModel(app) {
+    private val ctx = app.applicationContext
+    var draft by mutableStateOf(PersonalSettings.get(ctx))
+    var question by mutableStateOf(Question.AREAS)
+        private set
+    val bubbles = mutableStateListOf<Bubble>()
+    private var nextId = 0
+    var location by mutableStateOf(LocationShare.choicesFlow(ctx).value ?: LocationChoices(stats = false, friends = false))
+
+    fun say(mine: Boolean, text: String) {
+        bubbles += Bubble(nextId++, mine, text)
+    }
+
+    fun start(hello: String, first: String) {
+        if (bubbles.isNotEmpty()) return
+        say(false, hello)
+        viewModelScope.launch {
+            delay(500)
+            say(false, first)
+        }
+    }
+
+    fun answer(text: String, update: (Personal) -> Personal, textOf: (Question) -> String) {
+        draft = update(draft)
+        say(true, text)
+        val steps = questionsFor(draft.areas)
+        val next = steps.getOrElse(steps.indexOf(question) + 1) { Question.DONE }
+        question = next
+        viewModelScope.launch {
+            delay(450)
+            say(false, textOf(next))
+        }
+    }
+
+    /** Saves the answers once the permission dialogs are over, and gets ready for a next time. */
+    fun complete() {
+        LocationShare.setChoicesLater(ctx, location)
+        Steps.schedule(ctx)
+        PersonalSettings.save(ctx, draft.copy(done = true))
+        bubbles.clear()
+        question = Question.AREAS
+    }
+}
+
+/**
  * The welcome chat: a few questions, one at a time, that set the study goal, the best hours to
  * study, favourite workouts, health goals and what to share with friends.
  */
 @Composable
-fun OnboardingScreen(onFinished: () -> Unit) {
+fun OnboardingScreen(onFinished: () -> Unit, model: OnboardingModel = viewModel(key = "onboarding")) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var draft by remember { mutableStateOf(PersonalSettings.get(ctx)) }
-    var question by remember { mutableStateOf(Question.AREAS) }
-    val bubbles = remember { mutableStateListOf<Bubble>() }
-    var nextId by remember { mutableStateOf(0) }
+    val draft = model.draft
+    val question = model.question
+    val bubbles = model.bubbles
     val list = rememberLazyListState()
 
     val firstName = FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
@@ -117,53 +167,28 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         Question.DONE to stringResource(R.string.ob_done),
     )
 
-    fun say(mine: Boolean, text: String) {
-        bubbles += Bubble(nextId++, mine, text)
-    }
-
-    LaunchedEffect(Unit) {
-        if (bubbles.isEmpty()) {
-            say(false, hello)
-            delay(500)
-            say(false, texts.getValue(Question.AREAS))
-        }
-    }
+    LaunchedEffect(Unit) { model.start(hello, texts.getValue(Question.AREAS)) }
     LaunchedEffect(bubbles.size) {
         if (bubbles.isNotEmpty()) list.animateScrollToItem(bubbles.lastIndex)
     }
 
     val order = questionsFor(draft.areas)
-    fun answer(text: String, update: (Personal) -> Personal = { it }) {
-        draft = update(draft)
-        say(true, text)
-        val steps = questionsFor(draft.areas)
-        val next = steps.getOrElse(steps.indexOf(question) + 1) { Question.DONE }
-        question = next
-        scope.launch {
-            delay(450)
-            say(false, texts.getValue(next))
-        }
-    }
+    fun answer(text: String, update: (Personal) -> Personal) = model.answer(text, update) { texts.getValue(it) }
 
-    var chosenLocation by remember { mutableStateOf(LocationChoices(stats = false, friends = false)) }
-    // Every permission is asked in one go at the end, after the student has answered.
-    val askAll = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        Steps.schedule(ctx)
-        scope.launch {
-            LocationShare.setChoices(ctx, chosenLocation)
-            runCatching { Steps.refresh(ctx) }
-        }
+    fun done() {
+        model.complete()
         onFinished()
     }
+    // Every permission is asked in one go at the end, after the student has answered.
+    val askAll = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { done() }
     fun chooseLocation(c: LocationChoices) {
-        chosenLocation = c
+        model.location = c
     }
     fun finish() {
-        PersonalSettings.save(ctx, draft.copy(done = true))
         val wanted = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
             if (Area.HEALTH in draft.areas || Area.GYM in draft.areas) Steps.permission?.let { add(it) }
-            if (chosenLocation.friends || chosenLocation.stats) {
+            if (model.location.friends || model.location.stats) {
                 add(Manifest.permission.ACCESS_COARSE_LOCATION)
                 add(Manifest.permission.ACCESS_FINE_LOCATION)
             }
@@ -172,12 +197,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                 add(Manifest.permission.WRITE_CALENDAR)
             }
         }.filter { ContextCompat.checkSelfPermission(ctx, it) != PackageManager.PERMISSION_GRANTED }
-        if (wanted.isEmpty()) {
-            scope.launch { LocationShare.setChoices(ctx, chosenLocation) }
-            onFinished()
-        } else {
-            askAll.launch(wanted.toTypedArray())
-        }
+        if (wanted.isEmpty()) done() else askAll.launch(wanted.toTypedArray())
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding().imePadding()) {

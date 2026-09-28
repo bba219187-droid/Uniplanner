@@ -106,9 +106,10 @@ object Health {
 data class StepReading(val day: String, val counter: Long)
 
 /**
- * The phone's step sensor counts every step since it was switched on. Reading it now and then,
- * the steps since the last reading go to the day of that reading, so steps walked late at night
- * stay on that night even when the next reading is the morning after.
+ * The phone's step sensor counts every step since it was switched on. Android only lets the app
+ * read it while the app is open, so readings can be a day or more apart. Steps since the last
+ * reading go to that day when it is still the same day, and to today otherwise: most of them
+ * were walked closer to now than to the evening the app was last opened.
  */
 object StepTracker {
     /** The new reading to keep and the steps to add, by day. */
@@ -118,6 +119,6 @@ object StepTracker {
         // After a restart the sensor counts from zero again.
         val steps = if (counter >= last.counter) counter - last.counter else counter
         if (steps <= 0) return now to emptyMap()
-        return now to mapOf(last.day to steps.toInt())
+        return now to mapOf(today to steps.toInt())
     }
 }

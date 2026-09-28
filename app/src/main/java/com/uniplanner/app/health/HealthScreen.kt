@@ -49,6 +49,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,7 @@ import com.uniplanner.app.ui.screens.ScreenHeader
 import com.uniplanner.app.ui.screens.SectionTitle
 import com.uniplanner.app.ui.screens.TrendLine
 import com.uniplanner.app.ui.screens.formatKg
+import kotlinx.coroutines.delay
 import java.time.LocalTime
 import kotlin.math.abs
 
@@ -125,7 +127,17 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
     val eatenIds = food.mapNotNull { it.mealId }.toSet()
     val nowMinute = LocalTime.now().let { it.hour * 60 + it.minute }
     val nextMeal = plan.firstOrNull { it.id !in eatenIds && it.minuteOfDay >= nowMinute - 30 }
-    val extraFood = food.filter { it.mealId == null }
+    // Logs of meals that were since deleted or replaced still count, so they show with the other food.
+    val planIds = plan.map { it.id }.toSet()
+    val extraFood = food.filter { it.mealId == null || it.mealId !in planIds }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            vm.refreshDay()
+            stepsAllowed = Steps.hasPermission(context)
+            delay(60_000)
+        }
+    }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 18.dp),

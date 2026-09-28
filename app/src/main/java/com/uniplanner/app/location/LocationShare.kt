@@ -13,7 +13,10 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.uniplanner.app.online.Online
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -51,9 +54,22 @@ object LocationShare {
 
     /** Saves the choice and sends or removes the shared data right away. */
     suspend fun setChoices(ctx: Context, value: LocationChoices) {
+        save(ctx, value)
+        refresh(ctx, force = true)
+    }
+
+    /** Saves the choice now and shares in the background, for callers that are about to go away. */
+    fun setChoicesLater(ctx: Context, value: LocationChoices) {
+        save(ctx, value)
+        val app = ctx.applicationContext
+        background.launch { runCatching { refresh(app, force = true) } }
+    }
+
+    private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private fun save(ctx: Context, value: LocationChoices) {
         prefs(ctx).edit().putBoolean("stats", value.stats).putBoolean("friends", value.friends).putLong("sentAt", 0).apply()
         choices.value = value
-        refresh(ctx, force = true)
     }
 
     /** Sends the current place when sharing is on, at most every quarter of an hour; removes it when off. */

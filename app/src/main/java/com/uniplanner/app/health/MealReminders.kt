@@ -40,7 +40,7 @@ object MealReminders {
         return if (today.isAfter(now)) today else today.plusDays(1)
     }
 
-    fun schedule(ctx: Context, meal: PlanMeal) {
+    fun schedule(ctx: Context, meal: PlanMeal, policy: ExistingWorkPolicy = ExistingWorkPolicy.REPLACE) {
         if (!HealthPrefs.mealRemindersOn(ctx)) return
         val at = nextTime(meal.minuteOfDay).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val request = OneTimeWorkRequestBuilder<MealReminderWorker>()
@@ -48,7 +48,7 @@ object MealReminders {
             .setInputData(workDataOf(KEY_MEAL to meal.id))
             .addTag(TAG)
             .build()
-        WorkManager.getInstance(ctx).enqueueUniqueWork("$TAG-${meal.id}", ExistingWorkPolicy.REPLACE, request)
+        WorkManager.getInstance(ctx).enqueueUniqueWork("$TAG-${meal.id}", policy, request)
     }
 
     /** Cancels every meal reminder and sets them again from the plan, when reminders are on. */
@@ -56,6 +56,15 @@ object MealReminders {
         WorkManager.getInstance(ctx).cancelAllWorkByTag(TAG)
         if (!HealthPrefs.mealRemindersOn(ctx)) return
         AppDatabase.get(ctx).health().plan().forEach { schedule(ctx, it) }
+    }
+
+    /**
+     * At app start: adds reminders that are missing and leaves the others alone. Cancelling here
+     * would also cancel the reminder whose firing is what started the app.
+     */
+    suspend fun ensureScheduled(ctx: Context) {
+        if (!HealthPrefs.mealRemindersOn(ctx)) return
+        AppDatabase.get(ctx).health().plan().forEach { schedule(ctx, it, ExistingWorkPolicy.KEEP) }
     }
 
     fun notificationId(mealId: Long) = 50_000 + (mealId % 10_000).toInt()

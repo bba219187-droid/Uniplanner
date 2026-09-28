@@ -13,7 +13,11 @@ import com.uniplanner.app.data.Workout
 import com.uniplanner.app.domain.DayBalance
 import com.uniplanner.app.domain.Health
 import com.uniplanner.app.domain.MealDraft
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,13 +35,14 @@ sealed interface PlanImportState {
     data object NothingFound : PlanImportState
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HealthViewModel(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
     private val db = AppDatabase.get(app)
     private val dao = db.health()
     private val zone = ZoneId.systemDefault()
-    private val today = LocalDate.now(zone)
-    private val startOfDay = today.atStartOfDay(zone).toInstant().toEpochMilli()
+    /** Moves on at midnight while the screen is open; see [refreshDay]. */
+    private val today = MutableStateFlow(LocalDate.now(zone))
 
     val profile: StateFlow<BodyProfile?> = HealthPrefs.profileFlow(ctx)
     val reminders: StateFlow<Boolean?> = HealthPrefs.remindersFlow(ctx)
@@ -49,18 +54,19 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
         dao.observePlan().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val foodToday: StateFlow<List<FoodLog>> =
-        dao.observeFood(startOfDay).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        today.flatMapLatest { day -> dao.observeFood(day.atStartOfDay(zone).toInstant().toEpochMilli()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val steps: StateFlow<List<StepDay>> =
         dao.observeSteps().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val stepsToday: StateFlow<Int> =
-        steps.map { list -> list.firstOrNull { it.day == today.toString() }?.count ?: 0 }
+        combine(steps, today) { list, day -> list.firstOrNull { it.day == day.toString() }?.count ?: 0 }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val workoutsToday: StateFlow<List<Workout>> =
-        db.workouts().observeAll().map { list ->
-            list.filter { it.done && Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == today }
+        combine(db.workouts().observeAll(), today) { list, day ->
+            list.filter { it.done && Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == day }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Today's calories. Without a full profile it assumes 170 cm and 20 years. */
@@ -68,7 +74,7 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
         combine(weights, profile, foodToday, workoutsToday, stepsToday) { ws, p, food, workouts, stepCount ->
             val kg = ws.lastOrNull()?.kg ?: Health.DEFAULT_WEIGHT_KG
             val height = p?.heightCm ?: 170.0
-            val age = p?.birthYear?.let { today.year - it } ?: 20
+            val age = p?.birthYear?.let { today.value.year - it } ?: 20
             DayBalance(
                 eaten = food.sumOf { it.kcal },
                 resting = Health.restingKcal(kg, height, age, p?.sex ?: com.uniplanner.app.domain.Sex.MALE),
@@ -78,6 +84,12 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DayBalance(0, 0, 0, 0))
 
     private val _import = MutableStateFlow<PlanImportState?>(null)
+    private var importJob: Job? = null
+
+    /** Called while the screen is open, so "today" follows the clock past midnight. */
+    fun refreshDay() {
+        today.value = LocalDate.now(zone)
+    }
     val import: StateFlow<PlanImportState?> = _import
 
     fun saveProfile(p: BodyProfile) = HealthPrefs.saveProfile(ctx, p)
@@ -132,9 +144,20 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
         runCatching { Steps.refresh(ctx) }
     }
 
-    fun importFrom(uri: Uri) = viewModelScope.launch {
+    fun importFrom(uri: Uri) {
+        importJob?.cancel()
+        importJob = viewModelScope.launch { readPlan(uri) }
+    }
+
+    private suspend fun readPlan(uri: Uri) {
         _import.value = PlanImportState.Reading
-        val meals = runCatching { Health.parseMealPlan(PlanImport.readText(ctx, uri)) }.getOrDefault(emptyList())
+        val meals = try {
+            Health.parseMealPlan(PlanImport.readText(ctx, uri))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyList()
+        }
         _import.value = if (meals.isEmpty()) PlanImportState.NothingFound else PlanImportState.Found(meals)
     }
 
@@ -144,6 +167,7 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun closeImport() {
+        importJob?.cancel()
         _import.value = null
     }
 }
