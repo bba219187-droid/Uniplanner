@@ -44,6 +44,24 @@ object PlanImport {
         }
     }
 
+    /** Each page as a picture with its lines of text and where they are, for timetables drawn as a grid. */
+    suspend fun readPages(ctx: Context, uri: Uri): List<Pair<Bitmap, List<com.uniplanner.app.domain.TextBox>>> = withContext(Dispatchers.IO) {
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        try {
+            val type = ctx.contentResolver.getType(uri).orEmpty()
+            val bitmaps = if (type == "application/pdf") pdfPages(ctx, uri)
+            else listOfNotNull(ctx.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) })
+            bitmaps.map { bitmap ->
+                val result = recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()
+                bitmap to result.textBlocks.flatMap { it.lines }.mapNotNull { line ->
+                    line.boundingBox?.let { com.uniplanner.app.domain.TextBox(line.text, it.left, it.top, it.right, it.bottom) }
+                }
+            }
+        } finally {
+            recognizer.close()
+        }
+    }
+
     private fun pdfPages(ctx: Context, uri: Uri): List<Bitmap> {
         val fd = ctx.contentResolver.openFileDescriptor(uri, "r") ?: return emptyList()
         return fd.use { descriptor ->

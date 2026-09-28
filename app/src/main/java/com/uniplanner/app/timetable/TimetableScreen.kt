@@ -96,7 +96,8 @@ fun TimetableScreen(onOpenPortal: () -> Unit) {
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
             busy = true
-            val found = runCatching { Timetable.fromText(PlanImport.readText(context, uri)) }.getOrDefault(emptyList())
+            val found = runCatching { GridImport.read(context, uri) }.getOrDefault(emptyList())
+                .ifEmpty { runCatching { Timetable.fromText(PlanImport.readText(context, uri)) }.getOrDefault(emptyList()) }
             busy = false
             if (found.isEmpty()) message = nothingFound else preview = found
         }
