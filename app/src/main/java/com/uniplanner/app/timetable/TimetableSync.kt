@@ -67,19 +67,38 @@ object TimetableSync {
             var win = doc.defaultView || window;
             var sx = win.scrollX || 0, sy = win.scrollY || 0;
             var times = [], days = [], cells = [];
-            var els = doc.querySelectorAll('td,th');
+            var els = doc.querySelectorAll('td,th,div,span,li,a,p');
             for (var i = 0; i < els.length; i++) {
               var el = els[i], text = norm(el.innerText), r = el.getBoundingClientRect();
               if (!text || r.width === 0) continue;
-              var m = text.match(/^(\d{1,2})\s*[h:]\s*(\d{2})$/);
+              var m = text.match(/^(\d{1,2})\s*[hH:.]\s*(\d{2})(\s*[-–]\s*\d{1,2}\s*[hH:.]\s*\d{2})?$/);
               var box = { top: r.top + sy, bottom: r.bottom + sy, left: r.left + sx, right: r.right + sx };
               if (m) { box.min = (+m[1]) * 60 + (+m[2]); times.push(box); continue; }
               var d = text.length < 20 ? dayOf(text) : 0;
               if (d) { box.day = d; days.push(box); continue; }
               var lines = (el.innerText || '').split('\n').map(norm).filter(function(s) { return s.length; });
-              if (lines.length >= 2 && el.querySelectorAll('td').length === 0) { box.lines = lines; cells.push(box); }
+              // The innermost element holding the block, not the rows or table around it.
+              var inner = false, kids = el.children;
+              for (var q = 0; q < kids.length; q++) { if ((kids[q].innerText || '').split('\n').filter(function(s) { return norm(s).length; }).length >= 2) { inner = true; break; } }
+              if (lines.length >= 2 && lines.length <= 8 && !inner && r.width < 600) {
+                // The table cell around it tells how many rows the class spans.
+                var cell = el.closest('td') || el, cr = cell.getBoundingClientRect();
+                cells.push({ top: cr.top + sy, bottom: cr.bottom + sy, left: cr.left + sx, right: cr.right + sx, lines: lines });
+              }
             }
+            // One label per time, the tightest box around it.
+            var byMin = {};
+            times.forEach(function(t) { var o = byMin[t.min]; if (!o || (t.bottom - t.top) < (o.bottom - o.top)) byMin[t.min] = t; });
+            times = Object.keys(byMin).map(function(k) { return byMin[k]; });
+            var dayBy = {};
+            days.forEach(function(h) { var o = dayBy[h.day]; if (!o || (h.right - h.left) < (o.right - o.left)) dayBy[h.day] = h; });
+            days = Object.keys(dayBy).map(function(k) { return dayBy[k]; });
             if (times.length < 2 || !cells.length) return;
+            var top = Math.min.apply(null, times.map(function(t) { return t.top; })) - 5;
+            var left = Math.max.apply(null, times.map(function(t) { return t.right; })) - 5;
+            cells = cells.filter(function(c) { return c.top >= top && c.left >= left; });
+            // Blocks inside blocks (a span in a cell) count once.
+            cells = cells.filter(function(c) { return !cells.some(function(o) { return o !== c && o.lines.join('|') === c.lines.join('|') && (o.bottom - o.top) * (o.right - o.left) > (c.bottom - c.top) * (c.right - c.left); }); });
             times.sort(function(a, b) { return a.top - b.top; });
             var step = 30;
             for (var k = 1; k < times.length; k++) { var dm = times[k].min - times[k-1].min; if (dm > 0) { step = dm; break; } }

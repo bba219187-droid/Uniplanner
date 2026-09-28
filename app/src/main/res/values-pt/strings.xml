@@ -588,4 +588,6 @@
         <item quantity="many">%d aulas importadas. Vais ter um aviso antes de cada uma.</item>
         <item quantity="other">%d aulas importadas. Vais ter um aviso antes de cada uma.</item>
     </plurals>
+    <string name="portal_not_found_send">Não encontrei o horário nesta página. Abre a página do horário (no SIGA: Horário) e tenta outra vez. Se já está aberta, envia a página para eu corrigir.</string>
+    <string name="portal_send_page">Enviar a página</string>
 </resources>

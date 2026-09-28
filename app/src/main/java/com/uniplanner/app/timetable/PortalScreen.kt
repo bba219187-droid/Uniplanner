@@ -57,6 +57,7 @@ fun PortalScreen(onClose: () -> Unit) {
     var reading by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var imported by remember { mutableStateOf(false) }
+    var notFound by remember { mutableStateOf(false) }
 
     if (address == null) {
         AlertDialog(
@@ -122,7 +123,7 @@ fun PortalScreen(onClose: () -> Unit) {
                     reading = false
                     val found = TimetableSync.parsePageResult(json)
                     if (found.isEmpty()) {
-                        result = context.getString(R.string.portal_not_found)
+                        notFound = true
                     } else {
                         TimetableStore.imported(context, found, TimetableSource.PORTAL, web.url ?: address!!)
                         CookieManager.getInstance().flush()
@@ -135,6 +136,19 @@ fun PortalScreen(onClose: () -> Unit) {
             modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(12.dp),
         ) { Text(stringResource(R.string.portal_read)) }
     }
+    if (notFound) {
+        AlertDialog(
+            onDismissRequest = { notFound = false },
+            text = { Text(stringResource(R.string.portal_not_found_send)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    notFound = false
+                    web.evaluateJavascript(PAGE_HTML_JS) { json -> sharePage(context, json) }
+                }) { Text(stringResource(R.string.portal_send_page)) }
+            },
+            dismissButton = { TextButton(onClick = { notFound = false }) { Text(stringResource(R.string.ok)) } },
+        )
+    }
     result?.let {
         AlertDialog(
             onDismissRequest = { result = null; if (imported) onClose() },
@@ -142,4 +156,29 @@ fun PortalScreen(onClose: () -> Unit) {
             confirmButton = { TextButton(onClick = { result = null; if (imported) onClose() }) { Text(stringResource(R.string.ok)) } },
         )
     }
+}
+
+/** The page and any frames in it, so the student can send it when the timetable is not found. */
+private const val PAGE_HTML_JS = """
+(function() {
+  var out = [];
+  function add(d) {
+    out.push('<!-- ' + d.location.href + ' -->\n' + d.documentElement.outerHTML);
+    var f = d.querySelectorAll('iframe,frame');
+    for (var i = 0; i < f.length; i++) { try { if (f[i].contentDocument) add(f[i].contentDocument); } catch (e) {} }
+  }
+  add(document);
+  return out.join('\n\n');
+})();
+"""
+
+private fun sharePage(context: android.content.Context, json: String?) {
+    val html = runCatching { org.json.JSONArray("[${json ?: return}]").getString(0) }.getOrNull() ?: return
+    val dir = java.io.File(context.cacheDir, "chat/debug").apply { mkdirs() }
+    val file = java.io.File(dir, "horario.html").apply { writeText(html) }
+    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/html")
+        .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    runCatching { context.startActivity(android.content.Intent.createChooser(send, null)) }
 }

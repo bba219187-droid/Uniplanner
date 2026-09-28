@@ -586,4 +586,6 @@
         <item quantity="one">%d class imported. You will get a reminder before each one.</item>
         <item quantity="other">%d classes imported. You will get a reminder before each one.</item>
     </plurals>
+    <string name="portal_not_found_send">No timetable found on this page. Open the timetable page (in SIGA: Horário) and try again. If it is already open, send the page so it can be fixed.</string>
+    <string name="portal_send_page">Send the page</string>
 </resources>
