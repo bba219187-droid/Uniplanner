@@ -141,7 +141,7 @@ fun ProfileDialog(initial: Personal, onDismiss: () -> Unit, onSave: (Personal) -
                 }
                 OutlinedTextField(
                     p.name, { p = p.copy(name = it.take(40)) },
-                    label = { Text(stringResource(R.string.profile_name)) }, singleLine = true,
+                    label = { Text(stringResource(R.string.profile_field_name)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
                 OutlinedTextField(

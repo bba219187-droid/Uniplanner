@@ -598,9 +598,9 @@
     <string name="profile_hint">Toca para pôr o curso e a escola</string>
     <string name="profile_year_n">%1$dº ano</string>
     <string name="profile_letter">Letra</string>
-    <string name="profile_name">Nome</string>
-    <string name="profile_university">Universidade ou escola</string>
-    <string name="profile_course">Curso</string>
+    <string name="profile_field_name">Nome</string>
+
+
     <string name="profile_year">Ano</string>
     <string name="profile_photo_add">Pôr foto</string>
     <string name="profile_photo_change">Mudar foto</string>

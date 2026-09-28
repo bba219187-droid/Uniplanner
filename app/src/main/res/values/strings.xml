@@ -596,9 +596,9 @@
     <string name="profile_hint">Tap to add your course and school</string>
     <string name="profile_year_n">Year %1$d</string>
     <string name="profile_letter">Letter</string>
-    <string name="profile_name">Name</string>
-    <string name="profile_university">University or school</string>
-    <string name="profile_course">Course</string>
+    <string name="profile_field_name">Name</string>
+
+
     <string name="profile_year">Year</string>
     <string name="profile_photo_add">Add photo</string>
     <string name="profile_photo_change">Change photo</string>
