@@ -102,6 +102,9 @@ import com.uniplanner.app.ui.screens.StatsScreen
 import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.health.HealthScreen
+import com.uniplanner.app.settings.Area
+import com.uniplanner.app.settings.OnboardingScreen
+import com.uniplanner.app.settings.PersonalSettings
 import com.uniplanner.app.health.Steps
 import com.uniplanner.app.location.AdminScreen
 import com.uniplanner.app.location.LocationScreen
@@ -145,7 +148,12 @@ class MainActivity : ComponentActivity() {
                     transitionSpec = { fadeIn(tween(450)) togetherWith fadeOut(tween(450)) },
                     label = "splash",
                 ) { showSplash ->
-                    if (showSplash) SplashScreen(onFinished = { splash = false }) else UniPlannerRoot()
+                    val personal by PersonalSettings.flow(applicationContext).collectAsState()
+                    when {
+                        showSplash -> SplashScreen(onFinished = { splash = false })
+                        personal?.done == false -> OnboardingScreen(onFinished = {})
+                        else -> UniPlannerRoot()
+                    }
                 }
             }
         }
@@ -170,12 +178,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
+private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector, val area: Area? = null) {
     Study("study", R.string.tab_study, Icons.Filled.Timer),
     Activities("activities", R.string.tab_activities, Icons.AutoMirrored.Filled.EventNote),
-    Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter),
-    Social("social", R.string.tab_social, Icons.Filled.Group),
-    Health("health", R.string.tab_health, Icons.Filled.FavoriteBorder),
+    Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter, Area.GYM),
+    Social("social", R.string.tab_social, Icons.Filled.Group, Area.FRIENDS),
+    Health("health", R.string.tab_health, Icons.Filled.FavoriteBorder, Area.HEALTH),
     More("more", R.string.tab_more, Icons.Filled.Settings),
 }
 
@@ -292,7 +300,8 @@ private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) 
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Tab.entries.forEach { tab ->
+            val areas = PersonalSettings.flow(LocalContext.current).collectAsState().value?.areas ?: Area.entries.toSet()
+            Tab.entries.filter { it.area == null || it.area in areas }.forEach { tab ->
                 val on = selected(tab)
                 val bg by animateColorAsState(if (on) colors.inverseOnSurface else Color.Transparent, label = "tabBg")
                 val fg by animateColorAsState(

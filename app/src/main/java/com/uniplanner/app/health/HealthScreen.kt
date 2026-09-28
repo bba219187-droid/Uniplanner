@@ -73,6 +73,8 @@ import com.uniplanner.app.domain.DayBalance
 import com.uniplanner.app.domain.Health
 import com.uniplanner.app.domain.MealDraft
 import com.uniplanner.app.domain.Sex
+import com.uniplanner.app.settings.HealthGoal
+import com.uniplanner.app.settings.PersonalSettings
 import com.uniplanner.app.ui.screens.ConfirmDelete
 import com.uniplanner.app.ui.screens.ScreenHeader
 import com.uniplanner.app.ui.screens.SectionTitle
@@ -101,6 +103,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
     val steps by vm.stepsToday.collectAsStateWithLifecycle()
     val balance by vm.balance.collectAsStateWithLifecycle()
     val import by vm.import.collectAsStateWithLifecycle()
+    val personal by PersonalSettings.flow(context).collectAsStateWithLifecycle()
 
     var editingProfile by remember { mutableStateOf(false) }
     var addingWeight by remember { mutableStateOf(false) }
@@ -149,7 +152,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
                 }
             }
         }
-        item { BalanceCard(balance) }
+        item { BalanceCard(balance, personal?.healthGoal) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 BmiTile(kg, profile?.heightCm, Modifier.weight(1f).clickable { editingProfile = true })
@@ -159,6 +162,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         item {
             StepsCard(
                 steps = steps,
+                stepGoal = personal?.stepGoal ?: HealthPrefs.STEP_GOAL,
                 hasSensor = remember { Steps.hasSensor(context) },
                 allowed = stepsAllowed,
                 onAllow = { Steps.permission?.let { askSteps.launch(it) } },
@@ -275,7 +279,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
 
 /** The dark card: eaten against burned today, and what is left. */
 @Composable
-private fun BalanceCard(b: DayBalance) {
+private fun BalanceCard(b: DayBalance, goal: HealthGoal?) {
     val fg = MaterialTheme.colorScheme.inverseOnSurface
     val muted = fg.copy(alpha = 0.65f)
     Column(
@@ -306,6 +310,19 @@ private fun BalanceCard(b: DayBalance) {
             style = MaterialTheme.typography.bodySmall,
             color = muted,
         )
+        if (goal != null) {
+            Text(
+                stringResource(
+                    when (goal) {
+                        HealthGoal.LOSE -> R.string.health_goal_lose
+                        HealthGoal.KEEP -> R.string.health_goal_keep
+                        HealthGoal.GAIN -> R.string.health_goal_gain
+                    },
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = fg,
+            )
+        }
     }
 }
 
@@ -371,7 +388,7 @@ private fun WeightTile(weights: List<WeightEntry>, modifier: Modifier) {
 }
 
 @Composable
-private fun StepsCard(steps: Int, hasSensor: Boolean, allowed: Boolean, onAllow: () -> Unit) {
+private fun StepsCard(steps: Int, stepGoal: Int, hasSensor: Boolean, allowed: Boolean, onAllow: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp)).padding(16.dp),
@@ -381,7 +398,7 @@ private fun StepsCard(steps: Int, hasSensor: Boolean, allowed: Boolean, onAllow:
             Icon(Icons.Filled.DirectionsWalk, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.health_steps), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text("%,d / %,d".format(steps, HealthPrefs.STEP_GOAL), style = MaterialTheme.typography.labelLarge)
+            Text("%,d / %,d".format(steps, stepGoal), style = MaterialTheme.typography.labelLarge)
         }
         when {
             !hasSensor -> Text(stringResource(R.string.health_steps_no_sensor), style = MaterialTheme.typography.bodySmall)
@@ -396,7 +413,7 @@ private fun StepsCard(steps: Int, hasSensor: Boolean, allowed: Boolean, onAllow:
                 ) { Text(stringResource(R.string.health_steps_allow)) }
             }
             else -> LinearProgressIndicator(
-                progress = { (steps.toFloat() / HealthPrefs.STEP_GOAL).coerceIn(0f, 1f) },
+                progress = { (steps.toFloat() / stepGoal).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = MaterialTheme.colorScheme.secondary,
                 trackColor = MaterialTheme.colorScheme.outlineVariant,

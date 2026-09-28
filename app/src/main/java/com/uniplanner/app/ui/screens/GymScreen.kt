@@ -83,6 +83,7 @@ import com.uniplanner.app.domain.Health
 import com.uniplanner.app.domain.Planning
 import com.uniplanner.app.reminders.formatMinutes
 import com.uniplanner.app.ui.AppViewModel
+import com.uniplanner.app.settings.PersonalSettings
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
@@ -108,6 +109,7 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
     val history = (workouts - upcoming.toSet()).sortedByDescending { it.startsAt }
     val setsByWorkout = sets.groupBy { it.workoutId }
     val lastDone = workouts.filter { it.done }.maxByOrNull { it.startsAt }
+    val goal = PersonalSettings.flow(LocalContext.current).collectAsStateWithLifecycle().value?.gymPerWeek
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -124,7 +126,7 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
         item { WeekStrip(workouts, weekStart, zone) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GymStat(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${thisWeek.size}", Modifier.weight(1f))
+                GymStat(stringResource(R.string.gym_stat_workouts), "${doneThisWeek.size}/${goal ?: thisWeek.size}", Modifier.weight(1f))
                 GymStat(stringResource(R.string.gym_stat_time), formatMinutes(doneThisWeek.sumOf { it.minutes }), Modifier.weight(1f))
                 GymStat(
                     stringResource(R.string.gym_stat_kcal),
@@ -281,8 +283,9 @@ private fun NewWorkoutSheet(
 ) {
     val context = LocalContext.current
     val recent = workouts.sortedByDescending { it.startsAt }.map { it.title.trim() }.distinct().take(4)
-    val kinds = (recent + stringArrayResource(R.array.gym_kinds)).distinctBy { it.lowercase() }
-    var title by remember { mutableStateOf(recent.firstOrNull().orEmpty()) }
+    val favourites = PersonalSettings.get(context).gymKinds
+    val kinds = (recent + favourites + stringArrayResource(R.array.gym_kinds)).distinctBy { it.lowercase() }
+    var title by remember { mutableStateOf(recent.firstOrNull() ?: favourites.firstOrNull().orEmpty()) }
     var custom by remember { mutableStateOf(false) }
     var minutes by remember { mutableIntStateOf(60) }
     val zone = ZoneId.systemDefault()

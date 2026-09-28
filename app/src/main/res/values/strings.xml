@@ -438,4 +438,50 @@
     <string name="admin_unknown">Unknown place</string>
     <string name="more_location">Location</string>
     <string name="more_location_sub">Share with friends, and your choices</string>
+    <string name="ob_hello">Hi! 👋 I\'m UniPlanner. A few quick questions and I\'ll set the app up for you.</string>
+    <string name="ob_hello_name">Hi %s! 👋 I\'m UniPlanner. A few quick questions and I\'ll set the app up for you.</string>
+    <string name="ob_q_areas">What do you want to use the app for?</string>
+    <string name="ob_pick_many">Pick as many as you like</string>
+    <string name="ob_area_study">📚 Studying</string>
+    <string name="ob_area_gym">🏋️ Gym</string>
+    <string name="ob_area_health">🥗 Health and food</string>
+    <string name="ob_area_friends">👥 Friends</string>
+    <string name="ob_q_study_hours">How many hours a week do you want to study?</string>
+    <string name="ob_q_study_time">When do you study best? I\'ll suggest study time then.</string>
+    <string name="ob_time_morning">🌅 Morning</string>
+    <string name="ob_time_afternoon">☀️ Afternoon</string>
+    <string name="ob_time_evening">🌙 Evening</string>
+    <string name="ob_time_any">Any time</string>
+    <string name="ob_q_gym_kinds">What do you like training most?</string>
+    <string name="ob_q_gym_freq">How many times a week do you want to train?</string>
+    <string name="ob_times_week">%dx a week</string>
+    <string name="ob_q_health_goal">What\'s your goal?</string>
+    <string name="ob_goal_lose">Lose weight</string>
+    <string name="ob_goal_keep">Stay as I am</string>
+    <string name="ob_goal_gain">Build muscle</string>
+    <string name="ob_q_health_body">Tell me your height, weight and year of birth, so the calorie counts are right for you.</string>
+    <string name="ob_year">Born</string>
+    <string name="ob_later">Later</string>
+    <string name="ob_q_steps">How many steps a day do you want to walk?</string>
+    <string name="ob_q_friends">Do you want your friends to see what area you\'re in? You can change this whenever you like.</string>
+    <string name="ob_yes_share">Yes, share</string>
+    <string name="ob_not_now">Not now</string>
+    <string name="ob_done">All set! 🎉 I set your goals from your answers. Let\'s go?</string>
+    <string name="ob_redo_hint">You can answer again in Settings.</string>
+    <string name="ob_start">Start</string>
+    <string name="ob_continue">Continue</string>
+    <string name="ob_skip">Skip</string>
+    <string name="health_goal_lose">Goal: lose weight. Aim for about 300 to 500 kcal of deficit a day.</string>
+    <string name="health_goal_keep">Goal: stay as you are. Aim for a balance close to zero.</string>
+    <string name="health_goal_gain">Goal: build muscle. Aim to eat about 300 kcal more than you burn.</string>
+    <string name="settings_personal">Your goals</string>
+    <string name="settings_redo">Answer the welcome questions again</string>
+    <string name="settings_redo_sub">Study hours, workouts, health and friends</string>
+    <string-array name="ob_more_sports">
+        <item>Swimming</item>
+        <item>Football</item>
+        <item>Padel</item>
+        <item>Cycling</item>
+        <item>Yoga</item>
+    </string-array>
 </resources>

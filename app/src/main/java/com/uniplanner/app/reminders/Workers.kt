@@ -71,6 +71,10 @@ class WeeklyPlanWorker(context: Context, params: WorkerParameters) :
             zone = ZoneId.systemDefault(),
             courses = courses.map { PlanCourse(it.id, it.name) },
             pending = db.deadlines().getPendingFrom(now).map { it.toPlan() },
+            basePerCourse = Planning.basePerCourse(
+                com.uniplanner.app.settings.PersonalSettings.get(applicationContext).weeklyStudyHours,
+                courses.size,
+            ),
         )
         val names = courses.associate { it.id to it.name }
         val dayFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)

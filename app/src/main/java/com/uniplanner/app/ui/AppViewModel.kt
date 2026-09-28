@@ -16,6 +16,7 @@ import com.uniplanner.app.domain.Planning
 import com.uniplanner.app.domain.WeekPlan
 import com.uniplanner.app.reminders.ReminderScheduler
 import com.uniplanner.app.reminders.toPlan
+import com.uniplanner.app.settings.PersonalSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -53,13 +54,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         db.studySessions().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val weekPlan: StateFlow<WeekPlan?> =
-        combine(courses, deadlines) { cs, ds ->
+        combine(courses, deadlines, PersonalSettings.flow(app)) { cs, ds, personal ->
             val now = System.currentTimeMillis()
             Planning.buildWeekPlan(
                 now = now,
                 zone = zone,
                 courses = cs.map { PlanCourse(it.id, it.name) },
                 pending = ds.filter { !it.done && it.dueAt >= now }.map { it.toPlan() },
+                basePerCourse = Planning.basePerCourse(personal?.weeklyStudyHours, cs.size),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

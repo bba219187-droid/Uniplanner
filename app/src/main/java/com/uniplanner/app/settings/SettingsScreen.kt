@@ -95,5 +95,22 @@ fun SettingsScreen() {
                 }
             }
         }
+
+        Text(
+            stringResource(R.string.settings_personal),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, start = 4.dp),
+        )
+        Card(Modifier.fillMaxWidth().clickable { PersonalSettings.restart(ctx) }) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(stringResource(R.string.settings_redo), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    stringResource(R.string.settings_redo_sub),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

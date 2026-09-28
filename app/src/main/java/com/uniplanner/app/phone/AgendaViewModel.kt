@@ -80,7 +80,7 @@ class AgendaViewModel(app: Application) : AndroidViewModel(app) {
         val booked = targets.associate { t -> t.id to all.count { it.title == studyTitle(t) && it.begin < t.dueAt } }
         // All-day entries (holidays, birthdays) do not take time; everything else does.
         val busy = all.filter { !it.allDay }.map { Busy(it.begin, it.end) }
-        val suggestions = StudySuggestions.suggest(targets, busy, now, zone, booked = booked)
+        val suggestions = StudySuggestions.suggest(targets, busy, now, zone, hours = com.uniplanner.app.settings.PersonalSettings.get(context).studyHours, booked = booked)
             .filter { it.needed > 0 || it.booked > 0 }
 
         return AgendaUiState(

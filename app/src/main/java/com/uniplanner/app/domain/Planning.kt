@@ -32,6 +32,10 @@ object Planning {
     const val TEST_EXTRA_MINUTES = 240
     const val ASSIGNMENT_EXTRA_MINUTES = 180
 
+    /** The student's weekly hours shared by their courses, at least half an hour each; the default without a goal. */
+    fun basePerCourse(weeklyHours: Int?, courses: Int): Int =
+        if (weeklyHours == null || courses == 0) BASE_MINUTES_PER_COURSE else maxOf(30, weeklyHours * 60 / courses)
+
     /** Monday 00:00 of the week that contains [now], in [zone]. */
     fun weekStart(now: Long, zone: ZoneId): Long =
         Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
@@ -47,6 +51,7 @@ object Planning {
         zone: ZoneId,
         courses: List<PlanCourse>,
         pending: List<PlanDeadline>,
+        basePerCourse: Int = BASE_MINUTES_PER_COURSE,
     ): WeekPlan {
         val start = weekStart(now, zone)
         val end = Instant.ofEpochMilli(start).atZone(zone).plusWeeks(1).toInstant().toEpochMilli()
@@ -59,7 +64,7 @@ object Planning {
                     val full = if (d.isTest) TEST_EXTRA_MINUTES else ASSIGNMENT_EXTRA_MINUTES
                     if (d.dueAt < end) full else full / 2
                 }
-            CourseStudyGoal(course.id, course.name, BASE_MINUTES_PER_COURSE + extra)
+            CourseStudyGoal(course.id, course.name, basePerCourse + extra)
         }.sortedByDescending { it.minutes }
 
         return WeekPlan(

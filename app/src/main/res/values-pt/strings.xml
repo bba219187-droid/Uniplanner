@@ -438,4 +438,50 @@
     <string name="admin_unknown">Sítio desconhecido</string>
     <string name="more_location">Localização</string>
     <string name="more_location_sub">Partilhar com amigos e as tuas escolhas</string>
+    <string name="ob_hello">Olá! 👋 Sou a UniPlanner. Faço-te umas perguntas rápidas para pôr a app à tua medida.</string>
+    <string name="ob_hello_name">Olá %s! 👋 Sou a UniPlanner. Faço-te umas perguntas rápidas para pôr a app à tua medida.</string>
+    <string name="ob_q_areas">Para que queres usar a app?</string>
+    <string name="ob_pick_many">Escolhe quantas quiseres</string>
+    <string name="ob_area_study">📚 Estudar</string>
+    <string name="ob_area_gym">🏋️ Ginásio</string>
+    <string name="ob_area_health">🥗 Saúde e alimentação</string>
+    <string name="ob_area_friends">👥 Amigos</string>
+    <string name="ob_q_study_hours">Quantas horas queres estudar por semana?</string>
+    <string name="ob_q_study_time">Quando estudas melhor? Vou sugerir estudo a essas horas.</string>
+    <string name="ob_time_morning">🌅 Manhã</string>
+    <string name="ob_time_afternoon">☀️ Tarde</string>
+    <string name="ob_time_evening">🌙 Noite</string>
+    <string name="ob_time_any">Tanto faz</string>
+    <string name="ob_q_gym_kinds">O que gostas mais de treinar?</string>
+    <string name="ob_q_gym_freq">Quantas vezes queres treinar por semana?</string>
+    <string name="ob_times_week">%dx por semana</string>
+    <string name="ob_q_health_goal">Qual é o teu objetivo?</string>
+    <string name="ob_goal_lose">Perder peso</string>
+    <string name="ob_goal_keep">Manter</string>
+    <string name="ob_goal_gain">Ganhar massa</string>
+    <string name="ob_q_health_body">Diz-me a tua altura, peso e ano de nascimento, para as contas das calorias serem certas para ti.</string>
+    <string name="ob_year">Ano</string>
+    <string name="ob_later">Mais tarde</string>
+    <string name="ob_q_steps">Quantos passos por dia queres fazer?</string>
+    <string name="ob_q_friends">Queres que os teus amigos vejam em que zona estás? Podes mudar isto quando quiseres.</string>
+    <string name="ob_yes_share">Sim, partilhar</string>
+    <string name="ob_not_now">Agora não</string>
+    <string name="ob_done">Está tudo pronto! 🎉 Ajustei as metas às tuas respostas. Bora?</string>
+    <string name="ob_redo_hint">Podes responder outra vez nas Definições.</string>
+    <string name="ob_start">Começar</string>
+    <string name="ob_continue">Continuar</string>
+    <string name="ob_skip">Saltar</string>
+    <string name="health_goal_lose">Objetivo: perder peso. Tenta um défice de 300 a 500 kcal por dia.</string>
+    <string name="health_goal_keep">Objetivo: manter. Tenta ficar perto de zero.</string>
+    <string name="health_goal_gain">Objetivo: ganhar massa. Tenta comer cerca de 300 kcal a mais do que gastas.</string>
+    <string name="settings_personal">As tuas metas</string>
+    <string name="settings_redo">Responder outra vez às perguntas iniciais</string>
+    <string name="settings_redo_sub">Horas de estudo, treinos, saúde e amigos</string>
+    <string-array name="ob_more_sports">
+        <item>Natação</item>
+        <item>Futebol</item>
+        <item>Padel</item>
+        <item>Bicicleta</item>
+        <item>Yoga</item>
+    </string-array>
 </resources>
