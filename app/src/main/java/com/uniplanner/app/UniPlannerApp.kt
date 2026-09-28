@@ -12,6 +12,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+import com.uniplanner.app.timetable.TimetableReminders
+import com.uniplanner.app.timetable.TimetableSource
+import com.uniplanner.app.timetable.TimetableStore
+import com.uniplanner.app.timetable.TimetableSync
+
 class UniPlannerApp : Application() {
     override fun onCreate() {
         super.onCreate()
@@ -21,5 +26,7 @@ class UniPlannerApp : Application() {
         CloudBackup.start(this)
         Steps.schedule(this)
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { runCatching { MealReminders.ensureScheduled(this@UniPlannerApp) } }
+        runCatching { TimetableReminders.ensureScheduled(this) }
+        if (TimetableStore.get(this).source.let { it == TimetableSource.PORTAL || it == TimetableSource.CALENDAR }) TimetableSync.schedule(this)
     }
 }

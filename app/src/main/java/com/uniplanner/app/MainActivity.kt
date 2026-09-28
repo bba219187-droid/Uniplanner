@@ -40,6 +40,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.filled.CalendarViewWeek
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Group
@@ -111,6 +114,8 @@ import com.uniplanner.app.health.Steps
 import com.uniplanner.app.location.AdminScreen
 import com.uniplanner.app.location.LocationScreen
 import com.uniplanner.app.location.ExactLocationQuestion
+import com.uniplanner.app.timetable.PortalScreen
+import com.uniplanner.app.timetable.TimetableScreen
 import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
@@ -197,6 +202,7 @@ class MainActivity : ComponentActivity() {
 private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector, val area: Area? = null) {
     Study("study", R.string.tab_study, Icons.Filled.Timer),
     Activities("activities", R.string.tab_activities, Icons.AutoMirrored.Filled.EventNote),
+    Timetable("timetable", R.string.tab_timetable, Icons.Filled.CalendarViewWeek, Area.STUDY),
     Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter, Area.GYM),
     Social("social", R.string.tab_social, Icons.Filled.Group, Area.FRIENDS),
     Health("health", R.string.tab_health, Icons.Filled.FavoriteBorder, Area.HEALTH),
@@ -278,6 +284,8 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable(Tab.Health.route) { HealthScreen() }
+            composable(Tab.Timetable.route) { TimetableScreen(onOpenPortal = { nav.navigate("portal") }) }
+            composable("portal") { PortalScreen(onClose = { nav.popBackStack() }) }
             composable("location") { LocationScreen(onOpenAdmin = { nav.navigate("admin") }) }
             composable("admin") { AdminScreen() }
             composable("courses") { CoursesScreen(vm) }
@@ -324,11 +332,15 @@ private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) 
                     if (on) colors.inverseSurface else colors.inverseOnSurface.copy(alpha = 0.6f),
                     label = "tabFg",
                 )
-                Box(
-                    Modifier.size(48.dp).clip(CircleShape).background(bg).clickable(role = Role.Tab) { onSelect(tab) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(tab.icon, contentDescription = stringResource(tab.label), tint = fg)
+                // With every tab on, a narrow phone shares the width so none is pushed off the bar.
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier.fillMaxWidth().widthIn(max = 48.dp).aspectRatio(1f).clip(CircleShape).background(bg)
+                            .clickable(role = Role.Tab) { onSelect(tab) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(tab.icon, contentDescription = stringResource(tab.label), tint = fg)
+                    }
                 }
             }
         }

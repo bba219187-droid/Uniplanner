@@ -19,9 +19,13 @@ object Notifications {
     const val CHANNEL_WEEKLY = "weekly_plan"
     const val CHANNEL_UPDATES = "updates"
     const val CHANNEL_MEALS = "meals"
+    const val CHANNEL_CLASSES = "classes"
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_CLASSES, context.getString(R.string.channel_classes), NotificationManager.IMPORTANCE_HIGH),
+        )
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_DEADLINES,
