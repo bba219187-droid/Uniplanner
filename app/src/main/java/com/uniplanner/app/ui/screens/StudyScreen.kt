@@ -147,7 +147,9 @@ fun StudyScreen(
     val streak = StudyStats.streakDays(allSessions.map { StudyEntry(it.courseId, it.startedAt, it.minutes) }, System.currentTimeMillis(), zone)
     val today = LocalDate.now(zone)
     val next = deadlines.filter { !it.done && it.dueAt > System.currentTimeMillis() }.minByOrNull { it.dueAt }
-    val name = FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
+    val personal by com.uniplanner.app.settings.PersonalSettings.flow(LocalContext.current).collectAsStateWithLifecycle()
+    val name = personal?.firstName?.takeIf { it.isNotBlank() }
+        ?: FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
 
     fun stop(course: Course) {
         val minutes = ((System.currentTimeMillis() - startedAt) / 60_000).toInt()
@@ -175,16 +177,8 @@ fun StudyScreen(
                         style = MaterialTheme.typography.headlineMedium,
                     )
                 }
-                Surface(
-                    onClick = onOpenProfile,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.inverseSurface,
-                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text((name ?: "U").take(1).uppercase(), style = MaterialTheme.typography.titleMedium)
-                    }
+                Surface(onClick = onOpenProfile, shape = CircleShape, modifier = Modifier.size(44.dp)) {
+                    com.uniplanner.app.settings.Avatar(personal ?: com.uniplanner.app.settings.Personal(), 44.dp, fallback = name ?: "U")
                 }
             }
         }

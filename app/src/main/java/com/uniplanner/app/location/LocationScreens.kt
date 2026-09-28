@@ -182,7 +182,9 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
+                    val photo = com.uniplanner.app.settings.rememberFriendPhoto(f.uid)
+                    if (photo != null) com.uniplanner.app.settings.RoundPhoto(photo, 40.dp)
+                    else Box(
                         Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
                         contentAlignment = Alignment.Center,
                     ) { Text(f.name.take(1).uppercase(), style = MaterialTheme.typography.titleMedium) }

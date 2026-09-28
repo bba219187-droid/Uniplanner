@@ -17,6 +17,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,12 +35,15 @@ fun SettingsScreen() {
     val ctx = LocalContext.current
     val theme by AppSettings.themeFlow(ctx).collectAsState()
     val language = AppSettings.language(ctx)
+    val personal by PersonalSettings.flow(ctx).collectAsState()
+    var editingProfile by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ScreenHeader(stringResource(R.string.settings_title))
+        ProfileCard(personal ?: Personal()) { editingProfile = true }
 
         Text(
             stringResource(R.string.settings_theme),
@@ -111,6 +117,12 @@ fun SettingsScreen() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+    if (editingProfile) {
+        ProfileDialog(personal ?: Personal(), onDismiss = { editingProfile = false }) {
+            PersonalSettings.save(ctx, it)
+            editingProfile = false
         }
     }
 }

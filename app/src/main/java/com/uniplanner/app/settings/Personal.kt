@@ -22,7 +22,15 @@ data class Personal(
     val gymPerWeek: Int? = null,
     val healthGoal: HealthGoal? = null,
     val stepGoal: Int = 8000,
+    val name: String = "",
+    val avatar: String = "",
+    val avatarColor: Int = 0,
+    val university: String = "",
+    val course: String = "",
+    val year: Int? = null,
 ) {
+    val firstName: String get() = name.trim().substringBefore(' ')
+
     /** When study sessions are suggested in the agenda. */
     val studyHours: StudyHours
         get() = when (studyTime) {
@@ -58,6 +66,12 @@ object PersonalSettings {
             gymPerWeek = p.getInt("gymPerWeek", 0).takeIf { it > 0 },
             healthGoal = runCatching { HealthGoal.valueOf(p.getString("healthGoal", null)!!) }.getOrNull(),
             stepGoal = p.getInt("stepGoal", 8000),
+            name = p.getString("name", "").orEmpty(),
+            avatar = p.getString("avatar", "").orEmpty(),
+            avatarColor = p.getInt("avatarColor", 0),
+            university = p.getString("university", "").orEmpty(),
+            course = p.getString("course", "").orEmpty(),
+            year = p.getInt("year", 0).takeIf { it > 0 },
         )
     }
 
@@ -71,6 +85,12 @@ object PersonalSettings {
             .putInt("gymPerWeek", value.gymPerWeek ?: 0)
             .putString("healthGoal", value.healthGoal?.name)
             .putInt("stepGoal", value.stepGoal)
+            .putString("name", value.name.trim())
+            .putString("avatar", value.avatar)
+            .putInt("avatarColor", value.avatarColor)
+            .putString("university", value.university.trim())
+            .putString("course", value.course.trim())
+            .putInt("year", value.year ?: 0)
             .apply()
         state.value = value
     }

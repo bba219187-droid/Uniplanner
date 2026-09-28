@@ -333,6 +333,8 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
             _error.value = null
             try {
                 block(r)
+                // A photo chosen before signing in goes on the profile now.
+                com.uniplanner.app.settings.ProfilePhoto.syncAfterSignIn(getApplication())
             } catch (e: Exception) {
                 _error.value = e.localizedMessage ?: e.javaClass.simpleName
             } finally {

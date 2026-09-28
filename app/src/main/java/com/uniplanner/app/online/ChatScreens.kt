@@ -105,7 +105,12 @@ import java.util.Date
 private val avatarColors = listOf(0xFF3355E0, 0xFF4E8A2E, 0xFF8A4FB0, 0xFFB57A0A, 0xFFC94220, 0xFF0E7C86)
 
 @Composable
-private fun Avatar(name: String, group: Boolean, size: Int = 48) {
+private fun Avatar(name: String, group: Boolean, size: Int = 48, uid: String? = null, own: Boolean = false) {
+    val photo = if (own) com.uniplanner.app.settings.rememberOwnPhoto() else com.uniplanner.app.settings.rememberFriendPhoto(uid)
+    if (photo != null) {
+        com.uniplanner.app.settings.RoundPhoto(photo, size.dp)
+        return
+    }
     val base = Color(avatarColors[Math.floorMod(name.hashCode(), avatarColors.size)])
     val light = MaterialTheme.colorScheme.background.let { it.red + it.green + it.blue > 1.5f }
     val bg = if (light) lerp(base, Color.White, 0.78f) else lerp(base, Color.Black, 0.55f)
@@ -119,6 +124,10 @@ private fun Avatar(name: String, group: Boolean, size: Int = 48) {
         }
     }
 }
+
+/** A friend chat's id is both students' ids joined by "_"; the other one is the friend. */
+private fun friendUid(kind: ChatKind, id: String, me: String?): String? =
+    if (kind == ChatKind.GROUP || me == null) null else id.split('_').firstOrNull { it != me && it.isNotBlank() }
 
 private fun shortTime(millis: Long, yesterday: String): String {
     val zone = ZoneId.systemDefault()
@@ -168,7 +177,7 @@ fun SocialScreen(vm: OnlineViewModel, onOpenChat: (ChatKind, String) -> Unit) {
                     }
                 }
                 IconButton(onClick = { editingProfile = true }) {
-                    Avatar(profile?.name.orEmpty(), group = false, size = 32)
+                    Avatar(profile?.name.orEmpty(), group = false, size = 32, own = true)
                 }
             }
         }
@@ -183,7 +192,7 @@ fun SocialScreen(vm: OnlineViewModel, onOpenChat: (ChatKind, String) -> Unit) {
             }
             items(incoming, key = { "r${it.id}" }) { f ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(f.otherName, group = false)
+                    Avatar(f.otherName, group = false, uid = f.otherUid)
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(f.otherName, style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.chat_wants_friend), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -210,7 +219,7 @@ fun SocialScreen(vm: OnlineViewModel, onOpenChat: (ChatKind, String) -> Unit) {
                 Modifier.fillMaxWidth().clickable { onOpenChat(c.kind, c.id) }.padding(horizontal = 18.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Avatar(c.title, group = c.kind == ChatKind.GROUP)
+                Avatar(c.title, group = c.kind == ChatKind.GROUP, uid = friendUid(c.kind, c.id, uid))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(c.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val preview = c.last?.let { last ->
@@ -417,7 +426,7 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-            Avatar(conversation?.title.orEmpty(), group = kind == ChatKind.GROUP, size = 40)
+            Avatar(conversation?.title.orEmpty(), group = kind == ChatKind.GROUP, size = 40, uid = friendUid(kind, id, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid))
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 Text(conversation?.title.orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
