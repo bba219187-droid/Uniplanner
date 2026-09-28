@@ -132,7 +132,7 @@ class OnboardingModel(app: Application) : AndroidViewModel(app) {
 
     /** Saves the answers once the permission dialogs are over, and gets ready for a next time. */
     fun complete() {
-        LocationShare.setChoicesLater(ctx, location)
+        LocationShare.setChoicesLater(ctx, location, exactAgreed = true)
         Steps.schedule(ctx)
         PersonalSettings.save(ctx, draft.copy(done = true))
         bubbles.clear()

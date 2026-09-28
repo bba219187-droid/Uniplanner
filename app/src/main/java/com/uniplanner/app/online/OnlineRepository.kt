@@ -1,6 +1,7 @@
 package com.uniplanner.app.online
 
 import android.content.Context
+import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.Firebase
@@ -8,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.Blob
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -351,42 +353,57 @@ class OnlineRepository {
                     return@addSnapshotListener
                 }
                 trySend(
-                    snap?.documents.orEmpty().map { d ->
-                        val text = d.getString("text").orEmpty()
-                        val link = d.getString("link").orEmpty()
-                        val type = MessageType.of(d.getString("type"))
-                        val blobId = d.getString("blobId")
-                        val lat = d.getDouble("lat")
-                        val lng = d.getDouble("lng")
-                        ChatMessage(
-                            id = d.id,
-                            authorId = d.getString("authorId").orEmpty(),
-                            authorName = d.getString("authorName").orEmpty(),
-                            text = if (link.isNotBlank() && link !in text) listOf(text, link).filter { it.isNotBlank() }.joinToString("\n") else text,
-                            createdAt = d.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
-                            pending = d.metadata.hasPendingWrites(),
-                            type = type,
-                            attachment = if ((type == MessageType.IMAGE || type == MessageType.FILE) && blobId != null) {
-                                Attachment(
-                                    blobId = blobId,
-                                    parts = (d.getLong("parts") ?: 1L).toInt().coerceIn(1, 20),
-                                    fileName = d.getString("fileName").orEmpty(),
-                                    size = d.getLong("fileSize") ?: 0L,
-                                    mime = d.getString("mime") ?: "application/octet-stream",
-                                    width = (d.getLong("width") ?: 0L).toInt(),
-                                    height = (d.getLong("height") ?: 0L).toInt(),
-                                    thumb = d.getBlob("thumb")?.toBytes(),
-                                )
-                            } else {
-                                null
-                            },
-                            place = if (type == MessageType.LOCATION && lat != null && lng != null) SharedPlace(lat, lng, text) else null,
-                        )
-                    },
+                    snap?.documents.orEmpty().map { d -> message(kind, id, d) },
                 )
             }
         awaitClose { reg.remove() }
     }.retrying()
+
+    /**
+     * Any member can write any fields, so each one is read as the type it should have and a
+     * malformed message shows as empty instead of stopping the chat.
+     */
+    private fun message(kind: ChatKind, chatId: String, d: DocumentSnapshot): ChatMessage {
+        fun str(field: String) = d.get(field) as? String
+        fun num(field: String) = d.get(field) as? Number
+        val text = str("text").orEmpty()
+        val link = str("link").orEmpty()
+        val type = MessageType.of(str("type"))
+        val blobId = Attachments.validBlobId(str("blobId"))
+        val lat = num("lat")?.toDouble()
+        val lng = num("lng")?.toDouble()
+        // Estimated while it is on its way, the same estimate as the chat's newest-message time.
+        val at = d.get("createdAt", DocumentSnapshot.ServerTimestampBehavior.ESTIMATE) as? Timestamp
+        return ChatMessage(
+            id = d.id,
+            authorId = str("authorId").orEmpty(),
+            authorName = str("authorName").orEmpty(),
+            text = if (link.isNotBlank() && link !in text) listOf(text, link).filter { it.isNotBlank() }.joinToString("\n") else text,
+            createdAt = at?.toDate()?.time ?: System.currentTimeMillis(),
+            pending = d.metadata.hasPendingWrites(),
+            type = type,
+            attachment = if ((type == MessageType.IMAGE || type == MessageType.FILE) && blobId != null) {
+                Attachment(
+                    blobId = blobId,
+                    parts = (num("parts")?.toInt() ?: 1).coerceIn(1, Attachments.partsOf(Attachments.MAX_FILE_BYTES)),
+                    fileName = str("fileName").orEmpty(),
+                    size = num("fileSize")?.toLong() ?: 0L,
+                    mime = str("mime") ?: "application/octet-stream",
+                    width = num("width")?.toInt() ?: 0,
+                    height = num("height")?.toInt() ?: 0,
+                    thumb = (d.get("thumb") as? Blob)?.toBytes(),
+                    cacheKey = Attachments.cacheKey(kind, chatId, blobId),
+                )
+            } else {
+                null
+            },
+            place = if (type == MessageType.LOCATION && lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0) {
+                SharedPlace(lat, lng, text)
+            } else {
+                null
+            },
+        )
+    }
 
     suspend fun sendMessage(me: Profile, kind: ChatKind, id: String, text: String) {
         val clean = text.trim()
@@ -394,12 +411,19 @@ class OnlineRepository {
         post(me, kind, id, mapOf("text" to clean), preview = clean)
     }
 
-    /** Writes a message and keeps it as the conversation's newest, in one go. */
-    private suspend fun post(me: Profile, kind: ChatKind, id: String, fields: Map<String, Any>, preview: String, doc: String? = null) {
+    private suspend fun post(me: Profile, kind: ChatKind, id: String, fields: Map<String, Any>, preview: String) {
+        write(me, kind, id, fields, preview).await()
+    }
+
+    /**
+     * Writes a message and keeps it as the conversation's newest, in one go. Firestore keeps it on
+     * the phone until it reaches the server, so callers need not wait for the returned task.
+     */
+    private fun write(me: Profile, kind: ChatKind, id: String, fields: Map<String, Any>, preview: String): Task<Void> {
         val batch = db.batch()
         val col = messagesOf(kind, id)
         batch.set(
-            if (doc != null) col.document(doc) else col.document(),
+            col.document(),
             mapOf(
                 "authorId" to me.uid,
                 "authorName" to me.name,
@@ -417,7 +441,7 @@ class OnlineRepository {
                 "lastName" to me.name,
             ),
         )
-        batch.commit().await()
+        return batch.commit()
     }
 
     /** A new id for an attachment's pieces, known before sending so the sender can keep a copy. */
@@ -427,7 +451,7 @@ class OnlineRepository {
      * A photo or file. The pieces are written first and have no "createdAt", so the message list,
      * which is ordered by it, never shows them; the message comes last and points at them.
      */
-    suspend fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String) {
+    fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String): Task<Void> {
         val col = messagesOf(kind, id)
         val parts = Attachments.partsOf(out.bytes.size)
         for (i in 0 until parts) {
@@ -449,18 +473,17 @@ class OnlineRepository {
             if (out.height > 0) put("height", out.height)
             out.thumb?.let { put("thumb", Blob.fromBytes(it)) }
         }
-        post(me, kind, id, fields, preview)
+        return write(me, kind, id, fields, preview)
     }
 
-    suspend fun sendPlace(me: Profile, kind: ChatKind, id: String, place: SharedPlace, preview: String) {
-        post(me, kind, id, mapOf("type" to MessageType.LOCATION.key, "text" to place.name, "lat" to place.lat, "lng" to place.lng), preview)
-    }
+    fun sendPlace(me: Profile, kind: ChatKind, id: String, place: SharedPlace, preview: String): Task<Void> =
+        write(me, kind, id, mapOf("type" to MessageType.LOCATION.key, "text" to place.name, "lat" to place.lat, "lng" to place.lng), preview)
 
     /** Downloads the pieces of a photo or file and puts them back together. */
     suspend fun download(kind: ChatKind, id: String, a: Attachment): ByteArray? {
         val col = messagesOf(kind, id)
         val pieces = (0 until a.parts).map { i ->
-            col.document(Attachments.partId(a.blobId, i)).get().await().getBlob("data")?.toBytes() ?: return null
+            (col.document(Attachments.partId(a.blobId, i)).get().await().get("data") as? Blob)?.toBytes() ?: return null
         }
         return pieces.fold(ByteArray(0)) { all, p -> all + p }
     }
@@ -500,8 +523,8 @@ private fun <T> Flow<T>.retrying(): Flow<T> = retryWhen { cause, attempt ->
     true
 }
 
-private fun com.google.firebase.firestore.DocumentSnapshot.lastMessage(): LastMessage? {
+private fun DocumentSnapshot.lastMessage(): LastMessage? {
     val text = getString("lastText") ?: return null
-    val at = getTimestamp("lastAt")?.toDate()?.time ?: System.currentTimeMillis()
+    val at = (get("lastAt", DocumentSnapshot.ServerTimestampBehavior.ESTIMATE) as? Timestamp)?.toDate()?.time ?: System.currentTimeMillis()
     return LastMessage(text, at, getString("lastBy").orEmpty(), getString("lastName").orEmpty())
 }

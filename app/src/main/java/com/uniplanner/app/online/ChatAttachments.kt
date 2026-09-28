@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.text.format.Formatter
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -53,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -69,6 +71,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.uniplanner.app.R
 import com.uniplanner.app.location.MapPin
 import com.uniplanner.app.location.PinMap
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** What the attach button offers, as in messaging apps. */
@@ -110,10 +113,7 @@ private fun AttachOption(icon: ImageVector, label: String, color: Color, onClick
 @Composable
 fun PhotoContent(vm: OnlineViewModel, kind: ChatKind, chatId: String, a: Attachment, onOpen: () -> Unit, onLongPress: () -> Unit) {
     val thumb = remember(a.blobId) { Attachments.thumbBitmap(a.thumb)?.asImageBitmap() }
-    val photo by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, a.blobId) {
-        val file = vm.attachmentFile(kind, chatId, a) ?: return@produceState
-        value = Attachments.bitmap(file, a.blobId, 900)?.asImageBitmap()
-    }
+    val photo by rememberPhoto(vm, kind, chatId, a, 900)
     val ratio = if (a.width > 0 && a.height > 0) (a.width.toFloat() / a.height).coerceIn(0.6f, 1.8f) else 1f
     Box(
         Modifier.width(240.dp).aspectRatio(ratio).clip(RoundedCornerShape(12.dp))
@@ -127,6 +127,20 @@ fun PhotoContent(vm: OnlineViewModel, kind: ChatKind, chatId: String, a: Attachm
         if (photo == null) CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp, color = Color.White)
     }
 }
+
+/** Loads a photo, trying again a little later while it cannot be downloaded (no internet, for example). */
+@Composable
+private fun rememberPhoto(vm: OnlineViewModel, kind: ChatKind, chatId: String, a: Attachment, side: Int) =
+    produceState<ImageBitmap?>(null, a.cacheKey, side) {
+        var wait = 2_000L
+        while (value == null) {
+            value = vm.attachmentFile(kind, chatId, a)?.let { Attachments.bitmap(it, a.cacheKey, side) }?.asImageBitmap()
+            if (value == null) {
+                delay(wait)
+                wait = minOf(wait * 2, 30_000L)
+            }
+        }
+    }
 
 /** A file in a bubble: its name and size. Tapping opens it in an app that can show it. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -217,10 +231,7 @@ fun DeletedContent(mine: Boolean, fg: Color) {
 /** A photo on the whole screen, with pinch to zoom, and a button to share or save it. */
 @Composable
 fun PhotoViewer(vm: OnlineViewModel, kind: ChatKind, chatId: String, a: Attachment, onClose: () -> Unit) {
-    val photo by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, a.blobId) {
-        val file = vm.attachmentFile(kind, chatId, a) ?: return@produceState
-        value = Attachments.bitmap(file, a.blobId, 2048)?.asImageBitmap()
-    }
+    val photo by rememberPhoto(vm, kind, chatId, a, 2048)
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     val scope = rememberCoroutineScope()
@@ -281,9 +292,10 @@ fun PlaceViewer(place: SharedPlace, onClose: () -> Unit) {
                     try {
                         context.startActivity(geo)
                     } catch (_: ActivityNotFoundException) {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lng}#map=17/${place.lat}/${place.lng}")),
-                        )
+                        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lng}#map=17/${place.lat}/${place.lng}"))
+                        runCatching { context.startActivity(web) }.onFailure {
+                            Toast.makeText(context, R.string.chat_no_app, Toast.LENGTH_SHORT).show()
+                        }
                     }
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally).navigationBarsPadding().padding(8.dp),

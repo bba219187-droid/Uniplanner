@@ -48,6 +48,8 @@ data class Attachment(
     val height: Int,
     /** A tiny version of a photo, shown while the real one loads. */
     val thumb: ByteArray?,
+    /** Where it is kept on this phone; see [Attachments.cacheKey]. */
+    val cacheKey: String,
 )
 
 /** A place sent in a chat. */
@@ -87,6 +89,12 @@ object Attachments {
     fun partsOf(size: Int) = maxOf(1, (size + PART_BYTES - 1) / PART_BYTES)
 
     fun partId(blobId: String, part: Int) = "${blobId}_p$part"
+
+    /** Only ids Firestore itself makes, so a message cannot point outside the chat's own folder. */
+    fun validBlobId(id: String?): String? = id?.takeIf { it.matches(Regex("[A-Za-z0-9]{1,40}")) }
+
+    /** Kept per conversation, so a message in one chat can never show a file from another. */
+    fun cacheKey(kind: ChatKind, chatId: String, blobId: String) = "${kind.name.lowercase()}_${chatId}_$blobId"
 
     /** A photo from the gallery or the camera, turned upright and made small enough to send quickly. */
     suspend fun photo(ctx: Context, uri: Uri): Outgoing? = withContext(Dispatchers.IO) {
@@ -163,28 +171,31 @@ object Attachments {
     private fun jpeg(b: Bitmap, quality: Int): ByteArray =
         ByteArrayOutputStream().also { b.compress(Bitmap.CompressFormat.JPEG, quality, it) }.toByteArray()
 
-    private fun cacheFile(ctx: Context, blobId: String) = File(ctx.cacheDir, "chat/blobs/$blobId")
+    private fun cacheFile(ctx: Context, key: String) = File(ctx.cacheDir, "chat/blobs/$key")
 
     /** Keeps what was just sent, so the sender never downloads it again. */
-    fun remember(ctx: Context, blobId: String, bytes: ByteArray) {
+    suspend fun remember(ctx: Context, key: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
         runCatching {
-            val f = cacheFile(ctx, blobId)
+            val f = cacheFile(ctx, key)
             f.parentFile?.mkdirs()
-            f.writeBytes(bytes)
+            // Written aside first, so a half-written copy is never taken for the whole file.
+            val tmp = File(f.path + ".part")
+            tmp.writeBytes(bytes)
+            if (!tmp.renameTo(f)) tmp.delete()
         }
     }
 
-    fun forget(ctx: Context, blobId: String) {
-        bitmaps.remove(blobId)
-        runCatching { cacheFile(ctx, blobId).delete() }
+    fun forget(ctx: Context, key: String) {
+        bitmaps.snapshot().keys.filter { it.startsWith("$key@") }.forEach { bitmaps.remove(it) }
+        runCatching { cacheFile(ctx, key).delete() }
     }
 
     /** The attachment's bytes on this phone, downloaded once even when several screens ask at the same time. */
-    suspend fun local(ctx: Context, blobId: String, download: suspend () -> ByteArray?): File? {
-        val f = cacheFile(ctx, blobId)
+    suspend fun local(ctx: Context, key: String, download: suspend () -> ByteArray?): File? {
+        val f = cacheFile(ctx, key)
         if (f.length() > 0) return f
         // Started only once it is in the map, so it can take itself out when it ends.
-        val job = downloads.computeIfAbsent(blobId) {
+        val job = downloads.computeIfAbsent(key) {
             scope.async(start = CoroutineStart.LAZY) {
                 try {
                     val bytes = download() ?: return@async null
@@ -194,7 +205,7 @@ object Attachments {
                     if (!tmp.renameTo(f)) tmp.delete()
                     f.takeIf { it.length() > 0 }
                 } finally {
-                    downloads.remove(blobId)
+                    downloads.remove(key)
                 }
             }
         }
@@ -218,19 +229,20 @@ object Attachments {
     fun thumbBitmap(bytes: ByteArray?): Bitmap? = bytes?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull() }
 
     /** A copy under its real name that other apps may read, to open or share it. */
-    private fun shareable(ctx: Context, file: File, a: Attachment): Uri {
-        val safe = a.fileName.replace(Regex("""[\\/:*?"<>|\u0000-\u001f]"""), "_").trim().ifEmpty { "file" }.take(120)
-        val out = File(ctx.cacheDir, "chat/open/${a.blobId}/$safe")
+    suspend fun shareable(ctx: Context, file: File, a: Attachment): Uri = withContext(Dispatchers.IO) {
+        // The name comes from the sender, so nothing in it may lead out of this folder.
+        val safe = a.fileName.replace(Regex("""[\\/:*?"<>|\u0000-\u001f]"""), "_").trim().trimStart('.')
+            .ifEmpty { "file" }.take(80)
+        val out = File(ctx.cacheDir, "chat/open/${a.cacheKey}/$safe")
         if (out.length() != file.length()) {
             out.parentFile?.mkdirs()
             file.copyTo(out, overwrite = true)
         }
-        return FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", out)
+        FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", out)
     }
 
     /** Opens the file in an app that can show it. False when the phone has none. */
-    fun open(ctx: Context, file: File, a: Attachment): Boolean {
-        val uri = shareable(ctx, file, a)
+    fun open(ctx: Context, uri: Uri, a: Attachment): Boolean {
         val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, a.mime)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
@@ -242,8 +254,7 @@ object Attachments {
     }
 
     /** Sends the file to another app (to save it, or pass it on). */
-    fun share(ctx: Context, file: File, a: Attachment) {
-        val uri = shareable(ctx, file, a)
+    fun share(ctx: Context, uri: Uri, a: Attachment) {
         val send = Intent(Intent.ACTION_SEND).setType(a.mime).putExtra(Intent.EXTRA_STREAM, uri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         ctx.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -255,8 +266,9 @@ object Attachments {
         return FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", File(dir, "photo_${System.currentTimeMillis()}.jpg"))
     }
 
-    /** Removes the camera's copies once they were sent. */
-    fun clearCamera(ctx: Context) {
-        runCatching { File(ctx.cacheDir, "chat/camera").listFiles()?.forEach { it.delete() } }
+    /** Removes one photo the camera saved, once it was read or when the photo was cancelled. */
+    fun dropCameraPhoto(ctx: Context, uri: Uri) {
+        val name = uri.lastPathSegment ?: return
+        runCatching { File(ctx.cacheDir, "chat/camera/${File(name).name}").delete() }
     }
 }

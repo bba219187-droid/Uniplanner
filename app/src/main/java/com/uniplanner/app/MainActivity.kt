@@ -110,6 +110,7 @@ import com.uniplanner.app.settings.PersonalSettings
 import com.uniplanner.app.health.Steps
 import com.uniplanner.app.location.AdminScreen
 import com.uniplanner.app.location.LocationScreen
+import com.uniplanner.app.location.ExactLocationQuestion
 import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
@@ -165,7 +166,10 @@ class MainActivity : ComponentActivity() {
                     when {
                         showSplash -> SplashScreen(onFinished = { splash = false })
                         personal?.done == false -> OnboardingScreen(onFinished = {})
-                        else -> UniPlannerRoot()
+                        else -> {
+                            UniPlannerRoot()
+                            ExactLocationQuestion()
+                        }
                     }
                 }
             }

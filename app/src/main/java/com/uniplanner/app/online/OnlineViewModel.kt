@@ -40,7 +40,7 @@ data class Conversation(
 /** What to tell the student after an online action. */
 enum class OnlineNotice {
     FRIEND_REQUEST_SENT, CODE_NOT_FOUND, JOINED_GROUP, RESET_EMAIL_SENT, PROFILE_SAVED,
-    FILE_TOO_BIG, NO_LOCATION, NO_APP_TO_OPEN, NOT_DOWNLOADED,
+    FILE_TOO_BIG, NO_LOCATION, NO_APP_TO_OPEN, NOT_DOWNLOADED, NOT_READABLE, SIGN_OUT_OFFLINE,
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -108,39 +108,63 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     fun sendMessage(kind: ChatKind, id: String, text: String) = withProfile { r, me -> r.sendMessage(me, kind, id, text) }
 
     private val _sending = MutableStateFlow(0)
-    /** Photos or files being prepared to send. */
+    /** Photos, files or a place being prepared to send. */
     val sending: StateFlow<Int> = _sending.asStateFlow()
 
     private fun text(res: Int, vararg args: Any): String = getApplication<Application>().getString(res, *args)
 
     /** Photos from the gallery or the camera, one message each. */
     fun sendPhotos(kind: ChatKind, id: String, uris: List<Uri>, fromCamera: Boolean = false) = sendEach(kind, id, uris) { uri ->
-        Attachments.photo(getApplication(), uri)
-    }.also { if (fromCamera) it.invokeOnCompletion { Attachments.clearCamera(getApplication()) } }
+        try {
+            Attachments.photo(getApplication(), uri)
+        } finally {
+            // The camera's copy is only needed until it has been read.
+            if (fromCamera) Attachments.dropCameraPhoto(getApplication(), uri)
+        }
+    }
 
     fun sendFile(kind: ChatKind, id: String, uri: Uri) = sendEach(kind, id, listOf(uri)) { Attachments.file(getApplication(), it) }
 
+    private fun failed(e: Exception) {
+        _error.value = e.localizedMessage ?: e.javaClass.simpleName
+    }
+
+    /**
+     * Each item is handed to Firestore as soon as it is ready, without waiting for the server:
+     * Firestore keeps it on the phone and sends it when there is internet, even after the app closes.
+     */
     private fun sendEach(kind: ChatKind, id: String, uris: List<Uri>, read: suspend (Uri) -> Outgoing?) = viewModelScope.launch {
         val r = repo ?: return@launch
         _sending.value += 1
         try {
-            val me = profile.value ?: r.loadProfile(r.uid ?: return@launch)
+            val me = try {
+                profile.value ?: r.loadProfile(r.uid ?: return@launch)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed(e)
+                return@launch
+            }
+            // One item that cannot be read does not stop the others.
             for (uri in uris) {
-                val out = try {
-                    read(uri)
+                try {
+                    val out = read(uri)
+                    if (out == null) {
+                        _notice.value = OnlineNotice.NOT_READABLE
+                        continue
+                    }
+                    val blobId = r.newBlobId(kind, id)
+                    Attachments.remember(getApplication(), Attachments.cacheKey(kind, id, blobId), out.bytes)
+                    val preview = if (out.type == MessageType.IMAGE) text(R.string.chat_preview_photo) else text(R.string.chat_preview_file, out.fileName)
+                    r.sendAttachment(me, kind, id, blobId, out, preview).addOnFailureListener(::failed)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: TooBigException) {
                     _notice.value = OnlineNotice.FILE_TOO_BIG
-                    null
-                } ?: continue
-                val blobId = r.newBlobId(kind, id)
-                Attachments.remember(getApplication(), blobId, out.bytes)
-                val preview = if (out.type == MessageType.IMAGE) text(R.string.chat_preview_photo) else text(R.string.chat_preview_file, out.fileName)
-                r.sendAttachment(me, kind, id, blobId, out, preview)
+                } catch (e: Exception) {
+                    failed(e)
+                }
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            _error.value = e.localizedMessage ?: e.javaClass.simpleName
         } finally {
             _sending.value -= 1
         }
@@ -159,28 +183,46 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
             val (loc, name) = here
             val me = profile.value ?: r.loadProfile(r.uid ?: return@launch)
             r.sendPlace(me, kind, id, SharedPlace(loc.latitude, loc.longitude, name), text(R.string.chat_preview_location))
+                .addOnFailureListener(::failed)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _error.value = e.localizedMessage ?: e.javaClass.simpleName
+            failed(e)
         } finally {
             _sending.value -= 1
         }
     }
 
-    /** The photo or file on this phone, downloading it the first time. */
+    /** The photo or file on this phone, downloading it the first time. Null when it could not be downloaded. */
     suspend fun attachmentFile(kind: ChatKind, id: String, a: Attachment): File? {
         val r = repo ?: return null
-        return runCatching { Attachments.local(getApplication(), a.blobId) { r.download(kind, id, a) } }.getOrNull()
+        return try {
+            Attachments.local(getApplication(), a.cacheKey) { r.download(kind, id, a) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /** Opens the photo or file in another app, or shares it. Waits while it downloads. */
     suspend fun openAttachment(kind: ChatKind, id: String, a: Attachment, share: Boolean = false) {
         val file = attachmentFile(kind, id, a)
-        when {
-            file == null -> _notice.value = OnlineNotice.NOT_DOWNLOADED
-            share -> Attachments.share(getApplication(), file, a)
-            !Attachments.open(getApplication(), file, a) -> _notice.value = OnlineNotice.NO_APP_TO_OPEN
+        if (file == null) {
+            _notice.value = OnlineNotice.NOT_DOWNLOADED
+            return
+        }
+        try {
+            val uri = Attachments.shareable(getApplication(), file, a)
+            if (share) {
+                Attachments.share(getApplication(), uri, a)
+            } else if (!Attachments.open(getApplication(), uri, a)) {
+                _notice.value = OnlineNotice.NO_APP_TO_OPEN
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            failed(e)
         }
     }
 
@@ -193,7 +235,7 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         val next = hidden.value + m.id
         hiddenPrefs.edit().putStringSet("ids", next).apply()
         hidden.value = next
-        m.attachment?.let { Attachments.forget(getApplication(), it.blobId) }
+        m.attachment?.let { Attachments.forget(getApplication(), it.cacheKey) }
     }
 
     /** Deletes one of my messages for everyone in the conversation. */
@@ -201,7 +243,7 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         val last = conversations.value.firstOrNull { it.kind == kind && it.id == id }?.last
         val wasNewest = last != null && last.byUid == me.uid && last.at == m.createdAt
         r.deleteForEveryone(me, kind, id, m, wasNewest, text(R.string.chat_preview_deleted))
-        m.attachment?.let { Attachments.forget(getApplication(), it.blobId) }
+        m.attachment?.let { Attachments.forget(getApplication(), it.cacheKey) }
     }
 
     private fun <T> listFlow(id: String?, source: (String) -> Flow<List<T>>): Flow<List<T>> =
@@ -246,7 +288,11 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     fun signOut() {
         val r = repo ?: return
         viewModelScope.launch {
-            LocationShare.stopSharing(getApplication())
+            // What was shared about the location has to be removed first, which needs internet.
+            if (!LocationShare.stopSharing(getApplication())) {
+                _notice.value = OnlineNotice.SIGN_OUT_OFFLINE
+                return@launch
+            }
             r.signOut()
         }
     }

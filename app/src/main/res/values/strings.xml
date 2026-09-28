@@ -526,4 +526,11 @@
     <string name="chat_no_location">Couldn\'t get your location. Check that location is on and allowed for UniPlanner.</string>
     <string name="chat_no_app">No app on this phone can open this.</string>
     <string name="chat_not_downloaded">Couldn\'t download it. Check your internet connection.</string>
+    <string name="location_friends_detail_area">Your friends see your area (about 100 m). Turn this off and on again to share your exact position on the map.</string>
+    <string name="exact_q_title">Friends now on a map</string>
+    <string name="exact_q_text">Your friends can now see exactly where you are, on a map. Until now they only saw your area (about 100 m). Do you want to share your exact position?</string>
+    <string name="exact_q_yes">Share exact</string>
+    <string name="exact_q_no">Keep my area</string>
+    <string name="chat_not_readable">Couldn\'t read that photo or file.</string>
+    <string name="sign_out_offline">Connect to the internet to sign out: your shared location has to be removed first.</string>
 </resources>

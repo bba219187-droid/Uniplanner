@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -68,6 +69,8 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
     val isAdmin by vm.isAdmin.collectAsStateWithLifecycle()
     val signedIn by vm.signedIn.collectAsStateWithLifecycle()
     val c = choices ?: LocationChoices(stats = false, friends = false)
+    // Read again whenever the switches change.
+    val exact = remember(c) { LocationShare.isExact(context) }
     var pending by remember { mutableStateOf<LocationChoices?>(null) }
     var allowed by remember { mutableStateOf(LocationShare.hasPermission(context)) }
     var denied by remember { mutableStateOf(false) }
@@ -114,7 +117,7 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
             item {
                 ChoiceRow(
                     title = stringResource(R.string.location_friends),
-                    detail = stringResource(R.string.location_friends_detail),
+                    detail = stringResource(if (c.friends && !exact) R.string.location_friends_detail_area else R.string.location_friends_detail),
                     checked = c.friends,
                     onChange = { choose(c.copy(friends = it)) },
                 )
@@ -305,4 +308,26 @@ fun AdminScreen(vm: LocationViewModel = viewModel()) {
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
+}
+
+/**
+ * Asked once of students who shared their area with friends before exact positions existed: they
+ * agreed to about 100 m, so the exact position waits for their yes.
+ */
+@Composable
+fun ExactLocationQuestion() {
+    val context = LocalContext.current
+    var show by remember { mutableStateOf(LocationShare.shouldAskExact(context)) }
+    if (!show) return
+    fun answer(yes: Boolean) {
+        LocationShare.answerExact(context, yes)
+        show = false
+    }
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.exact_q_title)) },
+        text = { Text(stringResource(R.string.exact_q_text)) },
+        confirmButton = { TextButton(onClick = { answer(true) }) { Text(stringResource(R.string.exact_q_yes)) } },
+        dismissButton = { TextButton(onClick = { answer(false) }) { Text(stringResource(R.string.exact_q_no)) } },
+    )
 }

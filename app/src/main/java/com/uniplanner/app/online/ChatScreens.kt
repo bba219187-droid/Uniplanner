@@ -379,7 +379,9 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         val shot = cameraUri
         cameraUri = null
-        if (ok && shot != null) vm.sendPhotos(kind, id, listOf(Uri.parse(shot)), fromCamera = true)
+        if (shot != null) {
+            if (ok) vm.sendPhotos(kind, id, listOf(Uri.parse(shot)), fromCamera = true) else Attachments.dropCameraPhoto(context, Uri.parse(shot))
+        }
     }
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.sendFile(kind, id, uri)

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.doOnLayout
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -76,6 +77,10 @@ fun PinMap(
         modifier = modifier,
         update = { view ->
             view.overlayManager.tilesOverlay.setColorFilter(if (dark) TilesOverlay.INVERT_COLORS else null)
+            // The map credit stays readable on the dark map.
+            view.overlays.filterIsInstance<CopyrightOverlay>().forEach {
+                it.setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            }
             view.overlays.removeAll { it is Marker }
             val density = view.resources.displayMetrics.density
             val dot = if (dots) {
@@ -118,9 +123,6 @@ private fun frame(view: MapView, pins: List<MapPin>) {
         return
     }
     val box = BoundingBox.fromGeoPointsSafe(pins.map { GeoPoint(it.lat, it.lng) })
-    if (view.width > 0 && view.height > 0) {
-        view.zoomToBoundingBox(box.increaseByScale(1.3f), false)
-    } else {
-        view.controller.setCenter(box.centerWithDateLine)
-    }
+    // Zooming needs the map's size, so it waits for the first layout when there is none yet.
+    view.doOnLayout { view.zoomToBoundingBox(box.increaseByScale(1.3f), false) }
 }

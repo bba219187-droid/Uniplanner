@@ -77,6 +77,8 @@ fun OnlineMessages(vm: OnlineViewModel) {
                 OnlineNotice.NO_LOCATION -> R.string.chat_no_location
                 OnlineNotice.NO_APP_TO_OPEN -> R.string.chat_no_app
                 OnlineNotice.NOT_DOWNLOADED -> R.string.chat_not_downloaded
+                OnlineNotice.NOT_READABLE -> R.string.chat_not_readable
+                OnlineNotice.SIGN_OUT_OFFLINE -> R.string.sign_out_offline
             },
         )
     }

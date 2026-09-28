@@ -527,4 +527,11 @@
     <string name="chat_no_location">Não foi possível obter a tua localização. Vê se a localização está ligada e permitida para a UniPlanner.</string>
     <string name="chat_no_app">Nenhuma app deste telemóvel consegue abrir isto.</string>
     <string name="chat_not_downloaded">Não foi possível descarregar. Vê a ligação à internet.</string>
+    <string name="location_friends_detail_area">Os teus amigos veem a tua zona (cerca de 100 m). Desliga e volta a ligar para partilhar a posição exata no mapa.</string>
+    <string name="exact_q_title">Amigos agora num mapa</string>
+    <string name="exact_q_text">Os teus amigos já podem ver onde estás exatamente, num mapa. Até agora viam só a tua zona (cerca de 100 m). Queres partilhar a posição exata?</string>
+    <string name="exact_q_yes">Partilhar a exata</string>
+    <string name="exact_q_no">Manter a zona</string>
+    <string name="chat_not_readable">Não foi possível ler essa foto ou ficheiro.</string>
+    <string name="sign_out_offline">Liga-te à internet para sair: a localização que partilhaste tem de ser apagada primeiro.</string>
 </resources>
