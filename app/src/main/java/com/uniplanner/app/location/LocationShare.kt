@@ -7,8 +7,8 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
-import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
@@ -37,6 +37,7 @@ data class LocationChoices(val stats: Boolean, val friends: Boolean)
 object LocationShare {
     private const val PREFS = "location"
     private const val MIN_GAP_MS = 15 * 60_000L
+    private const val STALE_MS = 6 * 60 * 60_000L
     private val choices = MutableStateFlow<LocationChoices?>(null)
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -67,45 +68,86 @@ object LocationShare {
 
     private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * The choice belongs to the account that is signed in, so another student signing in on the same
+     * phone starts with nothing shared. Turning a switch off marks its data to be removed.
+     */
     private fun save(ctx: Context, value: LocationChoices) {
-        prefs(ctx).edit().putBoolean("stats", value.stats).putBoolean("friends", value.friends).putLong("sentAt", 0).apply()
+        val p = prefs(ctx)
+        val before = choicesFlow(ctx).value ?: LocationChoices(stats = false, friends = false)
+        p.edit()
+            .putBoolean("stats", value.stats)
+            .putBoolean("friends", value.friends)
+            .putString("owner", Firebase.auth.currentUser?.uid ?: p.getString("owner", null))
+            .putBoolean("deleteStats", p.getBoolean("deleteStats", false) || (before.stats && !value.stats))
+            .putBoolean("deleteFriends", p.getBoolean("deleteFriends", false) || (before.friends && !value.friends))
+            .putLong("sentAt", 0)
+            .apply()
         choices.value = value
     }
 
-    /** Sends the current place when sharing is on, at most every quarter of an hour; removes it when off. */
+    /** Before signing out: removes what this account shared and turns sharing off on this phone. */
+    suspend fun stopSharing(ctx: Context) = withContext(Dispatchers.IO) {
+        val uid = if (Online.isConfigured(ctx)) Firebase.auth.currentUser?.uid else null
+        if (uid != null) {
+            val db = Firebase.firestore
+            withTimeoutOrNull(10_000) { runCatching { db.collection("stats").document(uid).delete().await() } }
+            withTimeoutOrNull(10_000) { runCatching { db.collection("friendLocations").document(uid).delete().await() } }
+        }
+        prefs(ctx).edit().clear().apply()
+        choices.value = LocationChoices(stats = false, friends = false)
+    }
+
+    /** Sends the current place when sharing is on, at most every quarter of an hour. */
     suspend fun refresh(ctx: Context, force: Boolean = false) = withContext(Dispatchers.IO) {
         if (!Online.isConfigured(ctx)) return@withContext
         val uid = Firebase.auth.currentUser?.uid ?: return@withContext
         val name = Firebase.auth.currentUser?.displayName.orEmpty()
+        val p = prefs(ctx)
+        val owner = p.getString("owner", null)
+        if (owner != null && owner != uid) return@withContext
+        if (owner == null) p.edit().putString("owner", uid).apply()
         val c = choicesFlow(ctx).value ?: return@withContext
         val db = Firebase.firestore
-        if (!c.stats) runCatching { db.collection("stats").document(uid).delete().await() }
-        if (!c.friends) runCatching { db.collection("friendLocations").document(uid).delete().await() }
+        // Removed once, when the switch went off, and tried again until it worked.
+        if (p.getBoolean("deleteStats", false) && !c.stats) {
+            val ok = withTimeoutOrNull(10_000) { runCatching { db.collection("stats").document(uid).delete().await() }.isSuccess }
+            if (ok == true) p.edit().putBoolean("deleteStats", false).apply()
+        }
+        if (p.getBoolean("deleteFriends", false) && !c.friends) {
+            val ok = withTimeoutOrNull(10_000) { runCatching { db.collection("friendLocations").document(uid).delete().await() }.isSuccess }
+            if (ok == true) p.edit().putBoolean("deleteFriends", false).apply()
+        }
         if (!c.stats && !c.friends) return@withContext
-        val p = prefs(ctx)
         if (!force && System.currentTimeMillis() - p.getLong("sentAt", 0) < MIN_GAP_MS) return@withContext
         if (!hasPermission(ctx)) return@withContext
         val loc = current(ctx) ?: return@withContext
         val (city, country) = place(ctx, loc)
         val now = System.currentTimeMillis()
+        // When the phone only knows an old position, friends see how old it is.
+        val at = if (loc.time in 1..now) loc.time else now
         if (c.stats) {
             runCatching {
-                db.collection("stats").document(uid)
-                    .set(mapOf("city" to city, "country" to country, "updatedAt" to now)).await()
+                withTimeoutOrNull(15_000) {
+                    db.collection("stats").document(uid)
+                        .set(mapOf("city" to city, "country" to country, "updatedAt" to now)).await()
+                }
             }
         }
-        if (c.friends) {
+        if (c.friends && now - at < STALE_MS) {
             runCatching {
-                db.collection("friendLocations").document(uid).set(
-                    mapOf(
-                        "name" to name,
-                        // About 100 m: enough to find each other, not an exact address.
-                        "lat" to round3(loc.latitude),
-                        "lng" to round3(loc.longitude),
-                        "city" to city,
-                        "at" to now,
-                    ),
-                ).await()
+                withTimeoutOrNull(15_000) {
+                    db.collection("friendLocations").document(uid).set(
+                        mapOf(
+                            "name" to name,
+                            // About 100 m: enough to find each other, not an exact address.
+                            "lat" to round3(loc.latitude),
+                            "lng" to round3(loc.longitude),
+                            "city" to city,
+                            "at" to at,
+                        ),
+                    ).await()
+                }
             }
         }
         p.edit().putLong("sentAt", now).apply()
@@ -117,18 +159,16 @@ object LocationShare {
     private suspend fun current(ctx: Context): Location? {
         val manager = ctx.getSystemService(LocationManager::class.java) ?: return null
         val providers = manager.getProviders(true)
-        val fresh = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val provider = listOf(LocationManager.NETWORK_PROVIDER, "fused", LocationManager.GPS_PROVIDER)
-                .firstOrNull { it in providers }
-            if (provider == null) null else withTimeoutOrNull(10_000) {
-                suspendCancellableCoroutine<Location?> { cont ->
-                    val cancel = android.os.CancellationSignal()
-                    cont.invokeOnCancellation { cancel.cancel() }
-                    manager.getCurrentLocation(provider, cancel, ctx.mainExecutor) { if (cont.isActive) cont.resume(it) }
+        val provider = listOf("fused", LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER).firstOrNull { it in providers }
+        // A fresh position on every Android version; the last known one only when none comes in time.
+        val fresh = if (provider == null) null else withTimeoutOrNull(10_000) {
+            suspendCancellableCoroutine<Location?> { cont ->
+                val cancel = android.os.CancellationSignal()
+                cont.invokeOnCancellation { cancel.cancel() }
+                LocationManagerCompat.getCurrentLocation(manager, provider, cancel, ContextCompat.getMainExecutor(ctx)) {
+                    if (cont.isActive) cont.resume(it)
                 }
             }
-        } else {
-            null
         }
         return fresh ?: providers.mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }.maxByOrNull { it.time }
     }

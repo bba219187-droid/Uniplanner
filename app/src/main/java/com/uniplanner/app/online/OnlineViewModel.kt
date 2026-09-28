@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.uniplanner.app.location.LocationShare
 
 /** One row of the chat list: a friend or a group. */
 data class Conversation(
@@ -78,11 +79,16 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     private fun isUnread(last: LastMessage?, read: Long?, me: String?) =
         last != null && last.byUid != me && last.at > (read ?: 0L)
 
-    fun markRead(kind: ChatKind, id: String) {
+    /**
+     * Remembers the newest message seen, by the server's clock like the messages themselves, so a
+     * phone whose clock is a little off does not show read chats as unread or the other way round.
+     */
+    fun markRead(kind: ChatKind, id: String, newestSeen: Long?) {
         val key = (if (kind == ChatKind.FRIEND) "f_" else "g_") + id
-        val now = System.currentTimeMillis()
-        readPrefs.edit().putLong(key, now).apply()
-        readAt.value = readAt.value + (key to now)
+        val last = conversations.value.firstOrNull { it.kind == kind && it.id == id }?.last?.at
+        val seen = maxOf(readAt.value[key] ?: 0L, last ?: 0L, newestSeen ?: 0L)
+        readPrefs.edit().putLong(key, seen).apply()
+        readAt.value = readAt.value + (key to seen)
     }
 
     fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = repo?.messages(kind, id) ?: emptyFlow()
@@ -127,8 +133,13 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Removes what this account shared about its location, then signs out. */
     fun signOut() {
-        repo?.signOut()
+        val r = repo ?: return
+        viewModelScope.launch {
+            LocationShare.stopSharing(getApplication())
+            r.signOut()
+        }
     }
 
     fun saveProfile(name: String, university: String, course: String, level: String) = act { r ->
@@ -156,7 +167,7 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     fun addPost(groupId: String, text: String, link: String) = withProfile { r, me -> r.addPost(me, groupId, text, link) }
 
     private fun withProfile(block: suspend (OnlineRepository, Profile) -> Unit) = act { r ->
-        val me = profile.value ?: return@act
+        val me = profile.value ?: r.loadProfile(r.uid ?: return@act)
         block(r, me)
     }
 

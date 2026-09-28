@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -30,26 +31,31 @@ data class CityCount(val city: String, val country: String, val students: Int)
 class LocationViewModel(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
     private val configured = Online.isConfigured(app)
-    private val uid: String? = if (configured) Firebase.auth.currentUser?.uid else null
     private val repo = if (configured) OnlineRepository() else null
+    /** Follows sign-in and sign-out while the screen is kept in the back stack. */
+    private val uid: StateFlow<String?> =
+        (repo?.authState() ?: flowOf(null)).stateIn(viewModelScope, SharingStarted.Eagerly, repo?.uid)
 
-    val signedIn: Boolean = uid != null
+    val signedIn: StateFlow<Boolean> =
+        uid.map { it != null }.stateIn(viewModelScope, SharingStarted.Eagerly, uid.value != null)
     val choices: StateFlow<LocationChoices?> = LocationShare.choicesFlow(ctx)
 
     val friends: StateFlow<List<FriendPlace>> =
-        (if (uid == null || repo == null) flowOf(emptyList()) else repo.friendships(uid)).flatMapLatest { fs ->
+        uid.flatMapLatest { id -> if (id == null || repo == null) flowOf(emptyList()) else repo.friendships(id) }.flatMapLatest { fs ->
             val accepted = fs.filter { it.accepted }
             if (accepted.isEmpty()) flowOf(emptyList())
             else combine(accepted.map { f -> friendPlace(f.otherUid, f.otherName) }) { places -> places.filterNotNull().sortedByDescending { it.at } }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val isAdmin: StateFlow<Boolean> =
-        (if (uid == null) flowOf(false) else callbackFlow {
-            val reg = Firebase.firestore.collection("admins").document(uid).addSnapshotListener { snap, _ ->
-                trySend(snap?.exists() == true)
+        uid.flatMapLatest { id ->
+            if (id == null) flowOf(false) else callbackFlow {
+                val reg = Firebase.firestore.collection("admins").document(id).addSnapshotListener { snap, _ ->
+                    trySend(snap?.exists() == true)
+                }
+                awaitClose { reg.remove() }
             }
-            awaitClose { reg.remove() }
-        }).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** Every student who shares their city, grouped by city. Only admins can read it. */
     val cities: StateFlow<List<CityCount>?> =

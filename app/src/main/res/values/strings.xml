@@ -485,4 +485,5 @@
         <item>Yoga</item>
     </string-array>
     <string name="ob_city_only">🏙️ Only my city</string>
+    <string name="location_open_settings">Open settings</string>
 </resources>

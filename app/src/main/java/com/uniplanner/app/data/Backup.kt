@@ -28,6 +28,22 @@ data class Snapshot(
 
 object BackupCodec {
     const val FORMAT = 1
+    /** How [pack] stores the text, so older copies saved as plain JSON can still be read. */
+    const val PACKED = "gzip-base64"
+
+    /**
+     * Squeezes the JSON about ten times smaller, so years of workouts and meals stay well under
+     * the size one account document can hold.
+     */
+    fun pack(json: String): String {
+        val bytes = java.io.ByteArrayOutputStream()
+        java.util.zip.GZIPOutputStream(bytes).use { it.write(json.toByteArray(Charsets.UTF_8)) }
+        return java.util.Base64.getEncoder().encodeToString(bytes.toByteArray())
+    }
+
+    fun unpack(packed: String): String =
+        java.util.zip.GZIPInputStream(java.util.Base64.getDecoder().decode(packed).inputStream())
+            .use { it.readBytes().toString(Charsets.UTF_8) }
 
     fun encode(s: Snapshot): String = JSONObject()
         .put("format", FORMAT)

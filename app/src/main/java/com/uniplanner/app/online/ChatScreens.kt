@@ -347,7 +347,7 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     var menu by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
 
-    LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id) }
+    LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id, messages.firstOrNull { !it.pending }?.createdAt) }
     OnlineMessages(vm)
 
     Column(Modifier.fillMaxSize().imePadding()) {

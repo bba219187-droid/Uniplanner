@@ -10,9 +10,12 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.tasks.await
 
 data class Profile(
@@ -98,7 +101,24 @@ class OnlineRepository {
     }
 
     suspend fun signIn(email: String, password: String) {
-        auth.signInWithEmailAndPassword(email.trim(), password).await()
+        val user = auth.signInWithEmailAndPassword(email.trim(), password).await().user ?: return
+        // An account whose profile failed to save when it was created gets one now.
+        runCatching { ensureProfile(user.uid, user.displayName ?: email.substringBefore('@')) }
+    }
+
+    /** The student's profile, created first if it is missing. */
+    suspend fun loadProfile(uid: String): Profile {
+        val user = auth.currentUser
+        ensureProfile(uid, user?.displayName ?: user?.email?.substringBefore('@').orEmpty())
+        val snap = db.collection("users").document(uid).get().await()
+        return Profile(
+            uid = uid,
+            name = snap.getString("name").orEmpty(),
+            university = snap.getString("university").orEmpty(),
+            course = snap.getString("course").orEmpty(),
+            level = snap.getString("level").orEmpty(),
+            friendCode = snap.getString("friendCode").orEmpty(),
+        )
     }
 
     suspend fun register(email: String, password: String, name: String) {
@@ -134,7 +154,11 @@ class OnlineRepository {
     }
 
     fun profile(uid: String): Flow<Profile?> = callbackFlow {
-        val reg = db.collection("users").document(uid).addSnapshotListener { snap, _ ->
+        val reg = db.collection("users").document(uid).addSnapshotListener { snap, e ->
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
             if (snap == null || !snap.exists()) {
                 trySend(null)
             } else {
@@ -151,7 +175,7 @@ class OnlineRepository {
             }
         }
         awaitClose { reg.remove() }
-    }
+    }.retrying()
 
     suspend fun saveProfile(uid: String, name: String, university: String, course: String, level: String) {
         ensureProfile(uid, name)
@@ -164,7 +188,11 @@ class OnlineRepository {
 
     fun friendships(uid: String): Flow<List<Friendship>> = callbackFlow {
         val reg = db.collection("friendships").whereArrayContains("members", uid)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, e ->
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
                 val list = snap?.documents.orEmpty().mapNotNull { d ->
                     @Suppress("UNCHECKED_CAST")
                     val members = d.get("members") as? List<String> ?: return@mapNotNull null
@@ -183,7 +211,7 @@ class OnlineRepository {
                 trySend(list.sortedBy { it.otherName.lowercase() })
             }
         awaitClose { reg.remove() }
-    }
+    }.retrying()
 
     /** Returns false when no student has that friend code. */
     suspend fun sendFriendRequest(me: Profile, code: String): Boolean {
@@ -217,7 +245,11 @@ class OnlineRepository {
 
     fun groups(uid: String): Flow<List<Group>> = callbackFlow {
         val reg = db.collection("groups").whereArrayContains("members", uid)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, e ->
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
                 trySend(
                     snap?.documents.orEmpty().map { d ->
                         Group(
@@ -233,7 +265,7 @@ class OnlineRepository {
                 )
             }
         awaitClose { reg.remove() }
-    }
+    }.retrying()
 
     suspend fun createGroup(me: Profile, name: String, description: String) {
         db.collection("groups").add(
@@ -264,7 +296,11 @@ class OnlineRepository {
     fun posts(groupId: String): Flow<List<Post>> = callbackFlow {
         val reg = db.collection("groups").document(groupId).collection("posts")
             .orderBy("createdAt", Query.Direction.DESCENDING).limit(200)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, e ->
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
                 trySend(
                     snap?.documents.orEmpty().map { d ->
                         Post(
@@ -278,7 +314,7 @@ class OnlineRepository {
                 )
             }
         awaitClose { reg.remove() }
-    }
+    }.retrying()
 
     suspend fun addPost(me: Profile, groupId: String, text: String, link: String) {
         db.collection("groups").document(groupId).collection("posts").add(
@@ -303,7 +339,11 @@ class OnlineRepository {
 
     fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = callbackFlow {
         val reg = messagesOf(kind, id).orderBy("createdAt", Query.Direction.DESCENDING).limit(300)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, e ->
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
                 trySend(
                     snap?.documents.orEmpty().map { d ->
                         val text = d.getString("text").orEmpty()
@@ -320,7 +360,7 @@ class OnlineRepository {
                 )
             }
         awaitClose { reg.remove() }
-    }
+    }.retrying()
 
     suspend fun sendMessage(me: Profile, kind: ChatKind, id: String, text: String) {
         val clean = text.trim()
@@ -347,6 +387,16 @@ class OnlineRepository {
         )
         batch.commit().await()
     }
+}
+
+/**
+ * A listener that failed (no network yet, or a permission the server has not caught up with, such
+ * as a friend request accepted a moment ago) listens again after a pause instead of going quiet.
+ */
+private fun <T> Flow<T>.retrying(): Flow<T> = retryWhen { cause, attempt ->
+    if (cause is CancellationException) return@retryWhen false
+    delay(minOf(30_000L, 1_000L shl attempt.toInt().coerceAtMost(5)))
+    true
 }
 
 private fun com.google.firebase.firestore.DocumentSnapshot.lastMessage(): LastMessage? {

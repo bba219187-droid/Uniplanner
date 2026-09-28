@@ -3,6 +3,7 @@ package com.uniplanner.app.location
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,7 +34,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniplanner.app.R
 import com.uniplanner.app.ui.screens.ScreenHeader
 import com.uniplanner.app.ui.screens.SectionTitle
+import kotlinx.coroutines.delay
 
 private fun ago(at: Long): String =
     DateUtils.getRelativeTimeSpanString(at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
@@ -60,12 +64,23 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
     val choices by vm.choices.collectAsStateWithLifecycle()
     val friends by vm.friends.collectAsStateWithLifecycle()
     val isAdmin by vm.isAdmin.collectAsStateWithLifecycle()
+    val signedIn by vm.signedIn.collectAsStateWithLifecycle()
     val c = choices ?: LocationChoices(stats = false, friends = false)
     var pending by remember { mutableStateOf<LocationChoices?>(null) }
     var allowed by remember { mutableStateOf(LocationShare.hasPermission(context)) }
+    var denied by remember { mutableStateOf(false) }
+    // Picks up a permission given in the phone's settings while the app was in the background.
+    LaunchedEffect(Unit) {
+        while (true) {
+            allowed = LocationShare.hasPermission(context)
+            if (allowed) denied = false
+            delay(1_000)
+        }
+    }
 
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         allowed = result.values.any { it }
+        denied = !allowed
         pending?.let { if (allowed) vm.setChoices(it) }
         pending = null
     }
@@ -91,7 +106,7 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (!vm.signedIn) {
+        if (!signedIn) {
             item { Text(stringResource(R.string.location_sign_in), style = MaterialTheme.typography.bodyMedium) }
         } else {
             item {
@@ -110,8 +125,16 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
                     onChange = { choose(c.copy(stats = it)) },
                 )
             }
-            if ((c.stats || c.friends) && !allowed) {
-                item { Text(stringResource(R.string.location_no_permission), color = MaterialTheme.colorScheme.error) }
+            if (denied || ((c.stats || c.friends) && !allowed)) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.location_no_permission), color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = {
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                            runCatching { context.startActivity(intent) }
+                        }) { Text(stringResource(R.string.location_open_settings)) }
+                    }
+                }
             }
             item { SectionTitle(stringResource(R.string.location_friends_title)) }
             if (friends.isEmpty()) {

@@ -109,10 +109,11 @@ object CloudBackup {
     /** Uploads this phone's planner to the account. */
     suspend fun save(uid: String = Firebase.auth.currentUser?.uid ?: error("Not signed in")) = lock.withLock {
         val now = System.currentTimeMillis()
-        val data = BackupCodec.encode(AppDatabase.get(app).snapshot())
+        val data = BackupCodec.pack(BackupCodec.encode(AppDatabase.get(app).snapshot()))
         doc(uid).set(
             mapOf(
                 "format" to BackupCodec.FORMAT,
+                "encoding" to BackupCodec.PACKED,
                 "data" to data,
                 "savedAt" to now,
                 "device" to "${Build.MANUFACTURER} ${Build.MODEL}",
@@ -125,7 +126,8 @@ object CloudBackup {
     /** Replaces this phone's planner with the copy in the account and links the phone to it. */
     suspend fun restore(uid: String = Firebase.auth.currentUser?.uid ?: error("Not signed in")) = lock.withLock {
         val remote = doc(uid).get().await()
-        val data = remote.getString("data") ?: return@withLock
+        val raw = remote.getString("data") ?: return@withLock
+        val data = if (remote.getString("encoding") == BackupCodec.PACKED) BackupCodec.unpack(raw) else raw
         val snapshot = BackupCodec.decode(data)
         val db = AppDatabase.get(app)
         db.deadlines().getAll().forEach { ReminderScheduler.cancelDeadline(app, it.id) }
