@@ -175,6 +175,14 @@ object TimetableSync {
                 web.settings.loadWithOverviewMode = true
                 CookieManager.getInstance().setAcceptCookie(true)
                 web.webViewClient = object : WebViewClient() {
+                    override fun onReceivedSslError(view: WebView, sslHandler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                        // Same check as the portal screen: only a chain that verifies once completed.
+                        Thread {
+                            val ok = PortalCertificates.verify(ctx, error)
+                            view.post { if (ok) sslHandler.proceed() else sslHandler.cancel() }
+                        }.start()
+                    }
+
                     override fun onPageFinished(view: WebView, pageUrl: String) {
                         // Some portals finish drawing a moment later, or pass through a redirect first.
                         handler.removeCallbacksAndMessages(null)

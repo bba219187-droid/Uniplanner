@@ -108,9 +108,16 @@ fun PortalScreen(onClose: () -> Unit) {
                 }
 
                 override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
-                    // Never accepted: a bad certificate could be someone reading the login.
-                    handler.cancel()
-                    pageError = context.getString(R.string.portal_ssl_error)
+                    // Only accepted when the full chain checks out; a bad certificate could be someone reading the login.
+                    Thread {
+                        val ok = PortalCertificates.verify(context, error)
+                        view.post {
+                            if (ok) handler.proceed() else {
+                                handler.cancel()
+                                pageError = context.getString(R.string.portal_ssl_error)
+                            }
+                        }
+                    }.start()
                 }
             }
             webChromeClient = object : WebChromeClient() {
