@@ -45,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,7 +87,7 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
         pending = null
     }
     fun choose(next: LocationChoices) {
-        val turningOn = (next.stats && !c.stats) || (next.friends && !c.friends)
+        val turningOn = (next.stats && !c.stats) || (next.friends && !c.friends) || (next.map && !c.map)
         if (turningOn && !LocationShare.hasPermission(context)) {
             pending = next
             ask.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
@@ -119,13 +121,21 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
             }
             item {
                 ChoiceRow(
+                    title = stringResource(R.string.location_map),
+                    detail = stringResource(R.string.location_map_detail),
+                    checked = c.map,
+                    onChange = { choose(c.copy(map = it)) },
+                )
+            }
+            item {
+                ChoiceRow(
                     title = stringResource(R.string.location_stats),
                     detail = stringResource(R.string.location_stats_detail),
                     checked = c.stats,
                     onChange = { choose(c.copy(stats = it)) },
                 )
             }
-            if (denied || ((c.stats || c.friends) && !allowed)) {
+            if (denied || ((c.overview || c.friends) && !allowed)) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.location_no_permission), color = MaterialTheme.colorScheme.error)
@@ -137,6 +147,18 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
                 }
             }
             item { SectionTitle(stringResource(R.string.location_friends_title)) }
+            if (friends.isNotEmpty()) {
+                item {
+                    PinMap(
+                        pins = friends.map { f ->
+                            MapPin(f.uid, f.lat, f.lng, title = f.name, snippet = listOf(f.city, ago(f.at)).filter { it.isNotBlank() }.joinToString(" · "))
+                        },
+                        dark = MaterialTheme.colorScheme.background.luminance() < 0.5f,
+                        pinColor = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(24.dp)),
+                    )
+                }
+            }
             if (friends.isEmpty()) {
                 item {
                     Text(
@@ -210,12 +232,13 @@ private fun ChoiceRow(title: String, detail: String, checked: Boolean, onChange:
     }
 }
 
-/** The admin's overview: how many students share their city, and where they are. No names. */
+/** The admin's overview: a map of the students who agreed to be on it, and students per city. No names. */
 @Composable
 fun AdminScreen(vm: LocationViewModel = viewModel()) {
-    val cities by vm.cities.collectAsStateWithLifecycle()
+    val overview by vm.overview.collectAsStateWithLifecycle()
     val isAdmin by vm.isAdmin.collectAsStateWithLifecycle()
-    val list = cities.orEmpty()
+    val list = overview?.cities.orEmpty()
+    val dots = overview?.dots.orEmpty()
     val total = list.sumOf { it.students }
     val max = list.maxOfOrNull { it.students } ?: 1
     LazyColumn(
@@ -241,7 +264,21 @@ fun AdminScreen(vm: LocationViewModel = viewModel()) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.inverseOnSurface,
                     )
+                    Text(
+                        pluralStringResource(R.plurals.admin_on_map, dots.size, dots.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                    )
                 }
+            }
+            item {
+                PinMap(
+                    pins = dots,
+                    dark = MaterialTheme.colorScheme.background.luminance() < 0.5f,
+                    pinColor = MaterialTheme.colorScheme.secondary,
+                    dots = true,
+                    modifier = Modifier.fillMaxWidth().height(380.dp).clip(RoundedCornerShape(24.dp)),
+                )
             }
             items(list, key = { "${it.city}|${it.country}" }) { row ->
                 Column(

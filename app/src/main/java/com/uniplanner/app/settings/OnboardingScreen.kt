@@ -188,7 +188,7 @@ fun OnboardingScreen(onFinished: () -> Unit, model: OnboardingModel = viewModel(
         val wanted = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
             if (Area.HEALTH in draft.areas || Area.GYM in draft.areas) Steps.permission?.let { add(it) }
-            if (model.location.friends || model.location.stats) {
+            if (model.location.friends || model.location.overview) {
                 add(Manifest.permission.ACCESS_COARSE_LOCATION)
                 add(Manifest.permission.ACCESS_FINE_LOCATION)
             }
@@ -402,7 +402,8 @@ private fun Answers(
         }
         Question.FRIENDS -> OneOf(
             listOf(
-                LocationChoices(stats = true, friends = true) to stringResource(R.string.ob_yes_share),
+                LocationChoices(stats = true, friends = true, map = true) to stringResource(R.string.ob_yes_share),
+                LocationChoices(stats = false, friends = true) to stringResource(R.string.ob_friends_only),
                 LocationChoices(stats = true, friends = false) to stringResource(R.string.ob_city_only),
                 LocationChoices(stats = false, friends = false) to stringResource(R.string.ob_not_now),
             ),

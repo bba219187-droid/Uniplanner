@@ -11,6 +11,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.uniplanner.app.online.Online
 import kotlinx.coroutines.CoroutineScope
@@ -25,18 +27,27 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import kotlin.coroutines.resume
-import kotlin.math.roundToLong
-
-/** What the student agreed to share. Both are off until they turn them on. */
-data class LocationChoices(val stats: Boolean, val friends: Boolean)
 
 /**
- * Location is only read while the app is open, and only sent when the student said yes:
- * the city and country for the app's overview, and a rounded position for accepted friends.
+ * What the student agreed to share. All are off until they turn them on.
+ * - [stats]: only the city and country, counted in the admins' overview.
+ * - [friends]: the exact position and name, for accepted friends, on their map.
+ * - [map]: the exact position without a name, as a dot on the admins' map.
+ */
+data class LocationChoices(val stats: Boolean, val friends: Boolean, val map: Boolean = false) {
+    /** Something goes into the admins' overview: the city, and the position when [map] is on. */
+    val overview: Boolean get() = stats || map
+}
+
+/**
+ * Location is only read while the app is open, and only sent for what the student said yes to.
  */
 object LocationShare {
     private const val PREFS = "location"
-    private const val MIN_GAP_MS = 15 * 60_000L
+    /** How often the app sends the position again while it is open. */
+    const val REFRESH_MS = 5 * 60_000L
+    // A little under the refresh, so the next round is never skipped for being a few seconds early.
+    private const val MIN_GAP_MS = 4 * 60_000L
     private const val STALE_MS = 6 * 60 * 60_000L
     private val choices = MutableStateFlow<LocationChoices?>(null)
 
@@ -45,7 +56,7 @@ object LocationShare {
     fun choicesFlow(ctx: Context): StateFlow<LocationChoices?> {
         if (choices.value == null) {
             val p = prefs(ctx)
-            choices.value = LocationChoices(p.getBoolean("stats", false), p.getBoolean("friends", false))
+            choices.value = LocationChoices(p.getBoolean("stats", false), p.getBoolean("friends", false), p.getBoolean("map", false))
         }
         return choices
     }
@@ -78,9 +89,11 @@ object LocationShare {
         p.edit()
             .putBoolean("stats", value.stats)
             .putBoolean("friends", value.friends)
+            .putBoolean("map", value.map)
             .putString("owner", Firebase.auth.currentUser?.uid ?: p.getString("owner", null))
-            .putBoolean("deleteStats", p.getBoolean("deleteStats", false) || (before.stats && !value.stats))
+            .putBoolean("deleteStats", p.getBoolean("deleteStats", false) || (before.overview && !value.overview))
             .putBoolean("deleteFriends", p.getBoolean("deleteFriends", false) || (before.friends && !value.friends))
+            .putBoolean("clearMap", p.getBoolean("clearMap", false) || (before.map && !value.map))
             .putLong("sentAt", 0)
             .apply()
         choices.value = value
@@ -98,7 +111,7 @@ object LocationShare {
         choices.value = LocationChoices(stats = false, friends = false)
     }
 
-    /** Sends the current place when sharing is on, at most every quarter of an hour. */
+    /** Sends the current place when sharing is on, at most every few minutes. */
     suspend fun refresh(ctx: Context, force: Boolean = false) = withContext(Dispatchers.IO) {
         if (!Online.isConfigured(ctx)) return@withContext
         val uid = Firebase.auth.currentUser?.uid ?: return@withContext
@@ -110,7 +123,7 @@ object LocationShare {
         val c = choicesFlow(ctx).value ?: return@withContext
         val db = Firebase.firestore
         // Removed once, when the switch went off, and tried again until it worked.
-        if (p.getBoolean("deleteStats", false) && !c.stats) {
+        if (p.getBoolean("deleteStats", false) && !c.overview) {
             val ok = withTimeoutOrNull(10_000) { runCatching { db.collection("stats").document(uid).delete().await() }.isSuccess }
             if (ok == true) p.edit().putBoolean("deleteStats", false).apply()
         }
@@ -118,7 +131,17 @@ object LocationShare {
             val ok = withTimeoutOrNull(10_000) { runCatching { db.collection("friendLocations").document(uid).delete().await() }.isSuccess }
             if (ok == true) p.edit().putBoolean("deleteFriends", false).apply()
         }
-        if (!c.stats && !c.friends) return@withContext
+        // The map was turned off but the city is still shared: the position goes, the city stays.
+        if (p.getBoolean("clearMap", false) && !c.map) {
+            val ok = !c.overview || withTimeoutOrNull(10_000) {
+                runCatching {
+                    val gone = mapOf("lat" to FieldValue.delete(), "lng" to FieldValue.delete(), "at" to FieldValue.delete())
+                    db.collection("stats").document(uid).set(gone, SetOptions.merge()).await()
+                }.isSuccess
+            } == true
+            if (ok) p.edit().putBoolean("clearMap", false).apply()
+        }
+        if (!c.overview && !c.friends) return@withContext
         if (!force && System.currentTimeMillis() - p.getLong("sentAt", 0) < MIN_GAP_MS) return@withContext
         if (!hasPermission(ctx)) return@withContext
         val loc = current(ctx) ?: return@withContext
@@ -126,12 +149,20 @@ object LocationShare {
         val now = System.currentTimeMillis()
         // When the phone only knows an old position, friends see how old it is.
         val at = if (loc.time in 1..now) loc.time else now
-        if (c.stats) {
-            runCatching {
-                withTimeoutOrNull(15_000) {
-                    db.collection("stats").document(uid)
-                        .set(mapOf("city" to city, "country" to country, "updatedAt" to now)).await()
+        if (c.overview) {
+            // Replaced as a whole, so turning the map off leaves only the city.
+            val overview = buildMap<String, Any> {
+                put("city", city)
+                put("country", country)
+                put("updatedAt", now)
+                if (c.map && now - at < STALE_MS) {
+                    put("lat", loc.latitude)
+                    put("lng", loc.longitude)
+                    put("at", at)
                 }
+            }
+            runCatching {
+                withTimeoutOrNull(15_000) { db.collection("stats").document(uid).set(overview).await() }
             }
         }
         if (c.friends && now - at < STALE_MS) {
@@ -140,9 +171,9 @@ object LocationShare {
                     db.collection("friendLocations").document(uid).set(
                         mapOf(
                             "name" to name,
-                            // About 100 m: enough to find each other, not an exact address.
-                            "lat" to round3(loc.latitude),
-                            "lng" to round3(loc.longitude),
+                            "lat" to loc.latitude,
+                            "lng" to loc.longitude,
+                            "accuracy" to loc.accuracy.toDouble(),
                             "city" to city,
                             "at" to at,
                         ),
@@ -152,8 +183,6 @@ object LocationShare {
         }
         p.edit().putLong("sentAt", now).apply()
     }
-
-    private fun round3(v: Double) = (v * 1000).roundToLong() / 1000.0
 
     @SuppressLint("MissingPermission")
     private suspend fun current(ctx: Context): Location? {

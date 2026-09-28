@@ -86,6 +86,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.androidx.security.crypto)
     implementation(libs.mlkit.text.recognition)
+    implementation(libs.osmdroid.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

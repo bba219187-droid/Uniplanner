@@ -63,7 +63,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -112,6 +114,7 @@ import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.update.AvailableUpdate
 import com.uniplanner.app.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -128,6 +131,15 @@ class MainActivity : ComponentActivity() {
         // Permissions are asked at the end of the welcome questions; later opens only ask what is still missing.
         if (PersonalSettings.get(this).done && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        // While the app is on screen, the shared position stays fresh for friends and the admins' map.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    runCatching { LocationShare.refresh(applicationContext) }
+                    delay(LocationShare.REFRESH_MS)
+                }
+            }
         }
         handleLink(intent)
         setContent {
@@ -165,7 +177,6 @@ class MainActivity : ComponentActivity() {
         // Picks up tests and deadlines the student moved in the phone's agenda.
         lifecycleScope.launch(Dispatchers.IO) { runCatching { AgendaSync.pullChanges(applicationContext) } }
         lifecycleScope.launch(Dispatchers.IO) { runCatching { Steps.refresh(applicationContext) } }
-        lifecycleScope.launch { runCatching { LocationShare.refresh(applicationContext) } }
     }
 
     override fun onNewIntent(intent: Intent) {

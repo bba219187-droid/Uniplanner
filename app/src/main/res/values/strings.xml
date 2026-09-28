@@ -421,7 +421,7 @@
     <string name="location_intro">Nothing is shared until you turn it on. The app only reads where you are while it is open.</string>
     <string name="location_sign_in">Sign in on the Social tab to share your location.</string>
     <string name="location_friends">Share with my friends</string>
-    <string name="location_friends_detail">Your friends see your area (about 100 m) and when it was updated.</string>
+    <string name="location_friends_detail">Your friends see your exact position on a map, with your name, and when it was updated.</string>
     <string name="location_stats">Help the app with my city</string>
     <string name="location_stats_detail">Only your city and country go into an overview without names.</string>
     <string name="location_no_permission">Allow location in the phone settings for sharing to work.</string>
@@ -460,7 +460,7 @@
     <string name="ob_year">Born</string>
     <string name="ob_later">Later</string>
     <string name="ob_q_steps">How many steps a day do you want to walk?</string>
-    <string name="ob_q_friends">Do you want to share your location? Friends see your area (about 100 m) and the app counts students by city, without names. You can change this in Settings.</string>
+    <string name="ob_q_friends">Do you want to share your location? Friends see exactly where you are on a map. The app\'s map shows your position as a dot without your name, and counts students by city. You can change this in Settings.</string>
     <string name="ob_yes_share">📍 Yes, share</string>
     <string name="ob_not_now">Not now</string>
     <string name="ob_done">All set! 🎉 I set your goals from your answers. Let\'s go?</string>
@@ -494,5 +494,12 @@
     <plurals name="gym_last_workouts">
         <item quantity="one">last workout</item>
         <item quantity="other">last %d workouts</item>
+    </plurals>
+    <string name="location_map">Show me on the app\'s map</string>
+    <string name="location_map_detail">Your exact position, without your name, seen only by UniPlanner\'s admins.</string>
+    <string name="ob_friends_only">👥 Only with friends</string>
+    <plurals name="admin_on_map">
+        <item quantity="one">%d on the map</item>
+        <item quantity="other">%d on the map</item>
     </plurals>
 </resources>

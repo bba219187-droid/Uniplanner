@@ -27,6 +27,9 @@ data class FriendPlace(val uid: String, val name: String, val lat: Double, val l
 /** One city in the overview, with how many students are there. */
 data class CityCount(val city: String, val country: String, val students: Int)
 
+/** What admins see: students per city, and a dot for each one who agreed to be on the map. */
+data class AdminOverview(val cities: List<CityCount>, val dots: List<MapPin>)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocationViewModel(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
@@ -57,17 +60,23 @@ class LocationViewModel(app: Application) : AndroidViewModel(app) {
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    /** Every student who shares their city, grouped by city. Only admins can read it. */
-    val cities: StateFlow<List<CityCount>?> =
+    /** Every student who shares their city, grouped by city, and the map dots. Only admins can read it. */
+    val overview: StateFlow<AdminOverview?> =
         isAdmin.flatMapLatest { admin ->
-            if (!admin) flowOf<List<CityCount>?>(null) else callbackFlow<List<CityCount>?> {
+            if (!admin) flowOf<AdminOverview?>(null) else callbackFlow<AdminOverview?> {
                 val reg = Firebase.firestore.collection("stats").addSnapshotListener { snap, _ ->
-                    val rows = snap?.documents.orEmpty().map { (it.getString("city").orEmpty()) to (it.getString("country").orEmpty()) }
-                    trySend(
-                        rows.groupingBy { it }.eachCount()
-                            .map { (place, n) -> CityCount(place.first, place.second, n) }
-                            .sortedByDescending { it.students },
-                    )
+                    val docs = snap?.documents.orEmpty()
+                    val cities = docs.map { (it.getString("city").orEmpty()) to (it.getString("country").orEmpty()) }
+                        .groupingBy { it }.eachCount()
+                        .map { (place, n) -> CityCount(place.first, place.second, n) }
+                        .sortedByDescending { it.students }
+                    // The document id is never shown: a dot has no name.
+                    val dots = docs.mapIndexedNotNull { i, d ->
+                        val lat = d.getDouble("lat") ?: return@mapIndexedNotNull null
+                        val lng = d.getDouble("lng") ?: return@mapIndexedNotNull null
+                        MapPin("dot$i", lat, lng)
+                    }
+                    trySend(AdminOverview(cities, dots))
                 }
                 awaitClose { reg.remove() }
             }

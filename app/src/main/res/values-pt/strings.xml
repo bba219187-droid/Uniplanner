@@ -421,7 +421,7 @@
     <string name="location_intro">Nada é partilhado até ligares. A app só vê onde estás enquanto está aberta.</string>
     <string name="location_sign_in">Entra na tua conta na aba Amigos para partilhar a localização.</string>
     <string name="location_friends">Partilhar com os meus amigos</string>
-    <string name="location_friends_detail">Os teus amigos veem a tua zona (cerca de 100 m) e quando foi atualizada.</string>
+    <string name="location_friends_detail">Os teus amigos veem a tua posição exata num mapa, com o teu nome, e quando foi atualizada.</string>
     <string name="location_stats">Ajudar a app com a minha cidade</string>
     <string name="location_stats_detail">Só a cidade e o país entram num resumo sem nomes.</string>
     <string name="location_no_permission">Permite a localização nas definições do telemóvel para a partilha funcionar.</string>
@@ -460,7 +460,7 @@
     <string name="ob_year">Ano</string>
     <string name="ob_later">Mais tarde</string>
     <string name="ob_q_steps">Quantos passos por dia queres fazer?</string>
-    <string name="ob_q_friends">Queres partilhar a tua localização? Os amigos veem a tua zona (cerca de 100 m) e a app conta os estudantes por cidade, sem nomes. Podes mudar nas Definições.</string>
+    <string name="ob_q_friends">Queres partilhar a tua localização? Os amigos veem onde estás exatamente, num mapa. O mapa da app mostra a tua posição como um ponto sem nome e conta os estudantes por cidade. Podes mudar nas Definições.</string>
     <string name="ob_yes_share">📍 Sim, partilhar</string>
     <string name="ob_not_now">Agora não</string>
     <string name="ob_done">Está tudo pronto! 🎉 Ajustei as metas às tuas respostas. Bora?</string>
@@ -494,5 +494,13 @@
     <plurals name="gym_last_workouts">
         <item quantity="one">último treino</item>
         <item quantity="other">últimos %d treinos</item>
+    </plurals>
+    <string name="location_map">Aparecer no mapa da app</string>
+    <string name="location_map_detail">A tua posição exata, sem nome, vista só pelos administradores da UniPlanner.</string>
+    <string name="ob_friends_only">👥 Só com amigos</string>
+    <plurals name="admin_on_map">
+        <item quantity="one">%d no mapa</item>
+        <item quantity="many">%d no mapa</item>
+        <item quantity="other">%d no mapa</item>
     </plurals>
 </resources>
