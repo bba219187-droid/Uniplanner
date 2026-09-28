@@ -44,6 +44,7 @@ import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -175,7 +176,11 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
     Gym("gym", R.string.tab_gym, Icons.Filled.FitnessCenter),
     Social("social", R.string.tab_social, Icons.Filled.Group),
     Health("health", R.string.tab_health, Icons.Filled.FavoriteBorder),
+    More("more", R.string.tab_more, Icons.Filled.Settings),
 }
+
+/** Screens reached from the More tab; the More tab stays highlighted while they are open. */
+private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda", "settings", "location", "admin")
 
 
 @Composable
@@ -198,7 +203,8 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             // A chat takes the whole screen, like in a messaging app.
             if (current?.startsWith("chat/") != true) FloatingTabBar(
                 selected = { tab ->
-                    if (tab == Tab.Gym && current?.startsWith("workout") == true) true
+                    if (tab == Tab.More) current in moreRoutes
+                    else if (tab == Tab.Gym && current?.startsWith("workout") == true) true
                     else if (tab == Tab.Social && current?.startsWith("chat/") == true) true
                     else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                 },
@@ -234,7 +240,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     onOpenCourses = { nav.navigate("courses") },
                     onOpenAgenda = { nav.navigate("agenda") },
                     onOpenStats = { nav.navigate("stats") },
-                    onOpenProfile = { nav.navigate("more") { launchSingleTop = true } },
+                    onOpenProfile = { nav.navigate(Tab.More.route) { launchSingleTop = true } },
                 )
             }
             composable(Tab.Social.route) { SocialScreen(online, onOpenChat = { kind, id -> nav.navigate("chat/${kind.name}/$id") }) }
@@ -246,7 +252,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     onBack = { nav.popBackStack() },
                 )
             }
-            composable("more") { MoreScreen(onOpen = { nav.navigate(it) }) }
+            composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
             composable(Tab.Health.route) { HealthScreen() }
             composable("location") { LocationScreen(onOpenAdmin = { nav.navigate("admin") }) }
             composable("admin") { AdminScreen() }
