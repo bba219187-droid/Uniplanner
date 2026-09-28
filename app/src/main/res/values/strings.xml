@@ -463,8 +463,8 @@
     <string name="ob_year">Born</string>
     <string name="ob_later">Later</string>
     <string name="ob_q_steps">How many steps a day do you want to walk?</string>
-    <string name="ob_q_friends">Do you want your friends to see what area you\'re in? You can change this whenever you like.</string>
-    <string name="ob_yes_share">Yes, share</string>
+    <string name="ob_q_friends">Do you want to share your location? Friends see your area (about 100 m) and the app counts students by city, without names. You can change this in Settings.</string>
+    <string name="ob_yes_share">📍 Yes, share</string>
     <string name="ob_not_now">Not now</string>
     <string name="ob_done">All set! 🎉 I set your goals from your answers. Let\'s go?</string>
     <string name="ob_redo_hint">You can answer again in Settings.</string>
@@ -484,4 +484,5 @@
         <item>Cycling</item>
         <item>Yoga</item>
     </string-array>
+    <string name="ob_city_only">🏙️ Only my city</string>
 </resources>

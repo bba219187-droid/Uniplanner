@@ -79,7 +79,8 @@ private fun questionsFor(areas: Set<Area>): List<Question> = buildList {
     if (Area.STUDY in areas) { add(Question.STUDY_HOURS); add(Question.STUDY_TIME) }
     if (Area.GYM in areas) { add(Question.GYM_KINDS); add(Question.GYM_FREQ) }
     if (Area.HEALTH in areas) { add(Question.HEALTH_GOAL); add(Question.HEALTH_BODY); add(Question.HEALTH_STEPS) }
-    if (Area.FRIENDS in areas) add(Question.FRIENDS)
+    // Always asked, so every student decides about location on the first open.
+    add(Question.FRIENDS)
     add(Question.DONE)
 }
 
@@ -95,7 +96,6 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     var question by remember { mutableStateOf(Question.AREAS) }
     val bubbles = remember { mutableStateListOf<Bubble>() }
     var nextId by remember { mutableStateOf(0) }
-    var shareWithFriends by remember { mutableStateOf(false) }
     val list = rememberLazyListState()
 
     val firstName = FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
@@ -141,15 +141,20 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         }
     }
 
-    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+    var chosenLocation by remember { mutableStateOf<LocationChoices?>(null) }
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        chosenLocation?.let { c -> scope.launch { LocationShare.setChoices(ctx, c) } }
+    }
+    /** Saves the choice at once and asks the phone for permission when something is shared. */
+    fun chooseLocation(c: LocationChoices) {
+        chosenLocation = c
+        scope.launch { LocationShare.setChoices(ctx, c) }
+        if ((c.friends || c.stats) && !LocationShare.hasPermission(ctx)) {
+            askLocation.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
+        }
+    }
     fun finish() {
         PersonalSettings.save(ctx, draft.copy(done = true))
-        if (shareWithFriends) {
-            scope.launch { LocationShare.setChoices(ctx, LocationChoices(stats = LocationShare.choicesFlow(ctx).value?.stats ?: false, friends = true)) }
-            if (!LocationShare.hasPermission(ctx)) {
-                askLocation.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-            }
-        }
         onFinished()
     }
 
@@ -182,7 +187,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Answers(q, draft, onAnswer = ::answer, onShare = { shareWithFriends = it }, onFinish = ::finish)
+                Answers(q, draft, onAnswer = ::answer, onLocation = ::chooseLocation, onFinish = ::finish)
             }
         }
     }
@@ -237,7 +242,7 @@ private fun Answers(
     q: Question,
     draft: Personal,
     onAnswer: (String, (Personal) -> Personal) -> Unit,
-    onShare: (Boolean) -> Unit,
+    onLocation: (LocationChoices) -> Unit,
     onFinish: () -> Unit,
 ) {
     val ctx = LocalContext.current
@@ -354,9 +359,13 @@ private fun Answers(
             onAnswer(label) { it.copy(stepGoal = n) }
         }
         Question.FRIENDS -> OneOf(
-            listOf(true to stringResource(R.string.ob_yes_share), false to stringResource(R.string.ob_not_now)),
-        ) { yes, label ->
-            onShare(yes)
+            listOf(
+                LocationChoices(stats = true, friends = true) to stringResource(R.string.ob_yes_share),
+                LocationChoices(stats = true, friends = false) to stringResource(R.string.ob_city_only),
+                LocationChoices(stats = false, friends = false) to stringResource(R.string.ob_not_now),
+            ),
+        ) { c, label ->
+            onLocation(c)
             onAnswer(label) { it }
         }
         Question.DONE -> {

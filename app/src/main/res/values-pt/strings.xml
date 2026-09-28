@@ -463,8 +463,8 @@
     <string name="ob_year">Ano</string>
     <string name="ob_later">Mais tarde</string>
     <string name="ob_q_steps">Quantos passos por dia queres fazer?</string>
-    <string name="ob_q_friends">Queres que os teus amigos vejam em que zona estás? Podes mudar isto quando quiseres.</string>
-    <string name="ob_yes_share">Sim, partilhar</string>
+    <string name="ob_q_friends">Queres partilhar a tua localização? Os amigos veem a tua zona (cerca de 100 m) e a app conta os estudantes por cidade, sem nomes. Podes mudar nas Definições.</string>
+    <string name="ob_yes_share">📍 Sim, partilhar</string>
     <string name="ob_not_now">Agora não</string>
     <string name="ob_done">Está tudo pronto! 🎉 Ajustei as metas às tuas respostas. Bora?</string>
     <string name="ob_redo_hint">Podes responder outra vez nas Definições.</string>
@@ -484,4 +484,5 @@
         <item>Bicicleta</item>
         <item>Yoga</item>
     </string-array>
+    <string name="ob_city_only">🏙️ Só a minha cidade</string>
 </resources>
