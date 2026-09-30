@@ -32,6 +32,12 @@ jobs:
           echo "{\"versionCode\": ${GITHUB_RUN_NUMBER}, \"versionName\": \"0.2.${GITHUB_RUN_NUMBER}\"}" > version.json
           cat version.json
       # Direct phone-friendly link: /releases/latest/download/UniPlanner.apk
+      # Keep the release tag on the newest commit, so it never points at old history.
+      - name: Move release tag
+        if: github.event_name == 'push'
+        run: |
+          git tag -f versao-teste
+          git push -f origin refs/tags/versao-teste
       - name: Publish test release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
