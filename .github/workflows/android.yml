@@ -1,0 +1,46 @@
+name: Android
+
+on:
+  push:
+    branches: [main, feature/primeira-versao]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Build APK
+        run: ./gradlew assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uniplanner-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+      - name: Prepare release files
+        if: github.event_name == 'push'
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk UniPlanner.apk
+          echo "{\"versionCode\": ${GITHUB_RUN_NUMBER}, \"versionName\": \"0.2.${GITHUB_RUN_NUMBER}\"}" > version.json
+          cat version.json
+      # Direct phone-friendly link: /releases/latest/download/UniPlanner.apk
+      - name: Publish test release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: versao-teste
+          name: UniPlanner (versão de teste)
+          body: Versão de teste gerada automaticamente a partir do commit ${{ github.sha }}.
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: |
+            UniPlanner.apk
+            version.json

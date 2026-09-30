@@ -1,0 +1,106 @@
+package com.uniplanner.app.location
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
+import com.uniplanner.app.online.Online
+import com.uniplanner.app.online.OnlineRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+/** Where a friend last shared they were. */
+data class FriendPlace(val uid: String, val name: String, val lat: Double, val lng: Double, val city: String, val at: Long)
+
+/** One city in the overview, with how many students are there. */
+data class CityCount(val city: String, val country: String, val students: Int)
+
+/** What admins see: students per city, and a dot for each one who agreed to be on the map. */
+data class AdminOverview(val cities: List<CityCount>, val dots: List<MapPin>)
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class LocationViewModel(app: Application) : AndroidViewModel(app) {
+    private val ctx = app.applicationContext
+    private val configured = Online.isConfigured(app)
+    private val repo = if (configured) OnlineRepository() else null
+    /** Follows sign-in and sign-out while the screen is kept in the back stack. */
+    private val uid: StateFlow<String?> =
+        (repo?.authState() ?: flowOf(null)).stateIn(viewModelScope, SharingStarted.Eagerly, repo?.uid)
+
+    val signedIn: StateFlow<Boolean> =
+        uid.map { it != null }.stateIn(viewModelScope, SharingStarted.Eagerly, uid.value != null)
+    val choices: StateFlow<LocationChoices?> = LocationShare.choicesFlow(ctx)
+
+    val friends: StateFlow<List<FriendPlace>> =
+        uid.flatMapLatest { id -> if (id == null || repo == null) flowOf(emptyList()) else repo.friendships(id) }.flatMapLatest { fs ->
+            val accepted = fs.filter { it.accepted }
+            if (accepted.isEmpty()) flowOf(emptyList())
+            else combine(accepted.map { f -> friendPlace(f.otherUid, f.otherName) }) { places -> places.filterNotNull().sortedByDescending { it.at } }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val isAdmin: StateFlow<Boolean> =
+        uid.flatMapLatest { id ->
+            if (id == null) flowOf(false) else callbackFlow {
+                val reg = Firebase.firestore.collection("admins").document(id).addSnapshotListener { snap, _ ->
+                    trySend(snap?.exists() == true)
+                }
+                awaitClose { reg.remove() }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Every student who shares their city, grouped by city, and the map dots. Only admins can read it. */
+    val overview: StateFlow<AdminOverview?> =
+        isAdmin.flatMapLatest { admin ->
+            if (!admin) flowOf<AdminOverview?>(null) else callbackFlow<AdminOverview?> {
+                val reg = Firebase.firestore.collection("stats").addSnapshotListener { snap, _ ->
+                    val docs = snap?.documents.orEmpty()
+                    val cities = docs.map { (it.getString("city").orEmpty()) to (it.getString("country").orEmpty()) }
+                        .groupingBy { it }.eachCount()
+                        .map { (place, n) -> CityCount(place.first, place.second, n) }
+                        .sortedByDescending { it.students }
+                    // The document id is never shown: a dot has no name.
+                    val dots = docs.mapIndexedNotNull { i, d ->
+                        val lat = d.getDouble("lat") ?: return@mapIndexedNotNull null
+                        val lng = d.getDouble("lng") ?: return@mapIndexedNotNull null
+                        MapPin("dot$i", lat, lng)
+                    }
+                    trySend(AdminOverview(cities, dots))
+                }
+                awaitClose { reg.remove() }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private fun friendPlace(otherUid: String, fallbackName: String): Flow<FriendPlace?> = callbackFlow {
+        val reg = Firebase.firestore.collection("friendLocations").document(otherUid).addSnapshotListener { d, _ ->
+            val lat = d?.getDouble("lat")
+            val lng = d?.getDouble("lng")
+            trySend(
+                if (d == null || lat == null || lng == null) null
+                else FriendPlace(
+                    otherUid,
+                    d.getString("name").orEmpty().ifBlank { fallbackName },
+                    lat, lng,
+                    d.getString("city").orEmpty(),
+                    d.getLong("at") ?: 0L,
+                ),
+            )
+        }
+        awaitClose { reg.remove() }
+    }
+
+    fun setChoices(value: LocationChoices) = viewModelScope.launch { LocationShare.setChoices(ctx, value) }
+
+    fun refreshNow() = viewModelScope.launch { LocationShare.refresh(ctx, force = true) }
+}

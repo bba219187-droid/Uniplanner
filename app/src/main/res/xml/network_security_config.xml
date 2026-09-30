@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IPCA's certificates come from HARICA (via GEANT), whose 2021 roots only ship with newer
+     Android versions. Trust them for the school's own sites only, on top of the system store. -->
+<network-security-config>
+    <domain-config>
+        <domain includeSubdomains="true">ipca.pt</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/ipca_ca" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
