@@ -22,7 +22,11 @@ object Presence {
     const val BEAT_MS = 60_000L
     private const val FRESH_MS = 150_000L
 
+    /** Whether the app is on screen now. */
+    @Volatile var visible = false
+
     fun beat(online: Boolean) {
+        visible = online
         val uid = Firebase.auth.currentUser?.uid ?: return
         Firebase.firestore.collection("users").document(uid)
             .set(mapOf("online" to online, "seenAt" to FieldValue.serverTimestamp()), SetOptions.merge())

@@ -660,4 +660,16 @@
     <string name="call_camera">Câmara</string>
     <string name="call_share">Ecrã</string>
     <string name="call_flip">Virar</string>
+    <string name="channel_messages">Mensagens</string>
+    <string name="notify_new_message">🔒 Nova mensagem</string>
+    <string name="chat_e2e_notice">As mensagens e chamadas são encriptadas ponta a ponta. Ninguém fora desta conversa, nem a UniPlanner, as consegue ler ou ouvir.</string>
+    <string name="info_media">Fotos e ficheiros (%d)</string>
+    <string name="info_media_none">Ainda nada partilhado.</string>
+    <string name="info_privacy">Privacidade</string>
+    <string name="info_e2e">Encriptação ponta a ponta: as mensagens, fotos, ficheiros e chamadas só são vistos por quem está nesta conversa.</string>
+    <string name="info_timer">Mensagens temporárias</string>
+    <string name="info_timer_text">As mensagens novas desaparecem para todos 24 horas depois de enviadas.</string>
+    <string name="info_timer_off">Desligado (guardar tudo)</string>
+    <string name="info_timer_24h">24 horas</string>
+    <string name="info_members">Membros</string>
 </resources>

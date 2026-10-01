@@ -78,7 +78,7 @@ fun callPermissions(video: Boolean): Array<String> =
 fun CallOverlay() {
     val call by CallManager.call.collectAsStateWithLifecycle()
     val c = call ?: return
-    val remote by CallManager.remoteVideo.collectAsStateWithLifecycle()
+    val remotes by CallManager.remoteVideos.collectAsStateWithLifecycle()
     val local by CallManager.localVideo.collectAsStateWithLifecycle()
     val context = LocalContext.current
     BackHandler {}
@@ -94,22 +94,26 @@ fun CallOverlay() {
     }
 
     Box(Modifier.fillMaxSize().background(Ink)) {
-        val egl = CallManager.session?.egl
-        val showRemote = remote != null && c.phase == CallPhase.ACTIVE
-        if (showRemote && egl != null) VideoView(remote!!, egl, Modifier.fillMaxSize(), mirror = false)
+        val egl = CallManager.media?.egl
+        val active = c.phase == CallPhase.ACTIVE && c.people.isNotEmpty()
+        // Everyone else in the call: one fills the screen, more share it in a grid.
+        if (active && egl != null) PeopleGrid(c.people, remotes, egl, Modifier.fillMaxSize())
 
         Column(
             Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(if (showRemote) 8.dp else 64.dp))
-            if (!showRemote) {
+            Spacer(Modifier.height(if (active) 8.dp else 64.dp))
+            if (!active) {
                 Box(Modifier.size(104.dp).clip(CircleShape).background(Color(0xFFDCE3FC)), contentAlignment = Alignment.Center) {
-                    Text(c.peerName.take(1).uppercase(), fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, color = Ink)
+                    Text(c.title.take(1).uppercase(), fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, color = Ink)
                 }
                 Spacer(Modifier.height(20.dp))
             }
-            Text(c.peerName, fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = if (showRemote) 20.sp else 30.sp, color = Paper)
+            Text(c.title, fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = if (active) 20.sp else 30.sp, color = Paper)
+            if (c.kind == com.uniplanner.app.online.ChatKind.GROUP && c.phase == CallPhase.RINGING && c.callerName.isNotBlank()) {
+                Text(c.callerName, fontSize = 15.sp, color = Paper.copy(alpha = 0.8f))
+            }
             Spacer(Modifier.height(6.dp))
             Text(status(c), fontFamily = Mono, fontSize = 14.sp, color = Paper.copy(alpha = 0.75f))
             Spacer(Modifier.height(6.dp))
@@ -151,7 +155,8 @@ fun CallOverlay() {
         }
 
         // Your own picture, small in the corner, like WhatsApp.
-        if (local != null && egl != null && c.phase != CallPhase.ENDED) {
+        if (local != null && CallManager.media != null && c.phase != CallPhase.ENDED) {
+            val egl = CallManager.media!!.egl
             VideoView(
                 local!!, egl,
                 Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(16.dp).size(width = 110.dp, height = 160.dp)
@@ -159,6 +164,36 @@ fun CallOverlay() {
                 mirror = !c.sharing,
                 onTop = true,
             )
+        }
+    }
+}
+
+/** The other people: their video when they send it, otherwise their initial and name. */
+@Composable
+private fun PeopleGrid(people: Map<String, String>, videos: Map<String, VideoTrack>, egl: EglBase, modifier: Modifier) {
+    val list = people.entries.toList()
+    val rows = if (list.size <= 2) list.map { listOf(it) } else list.chunked(2)
+    Column(modifier) {
+        rows.forEach { row ->
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                row.forEach { (uid, name) ->
+                    Box(Modifier.weight(1f).fillMaxSize().padding(if (list.size > 1) 2.dp else 0.dp).clip(RoundedCornerShape(if (list.size > 1) 16.dp else 0.dp))
+                        .background(Color(0xFF2C2A31)), contentAlignment = Alignment.Center) {
+                        val track = videos[uid]
+                        if (track != null) VideoView(track, egl, Modifier.fillMaxSize(), mirror = false)
+                        if (list.size > 1 || track == null) {
+                            Text(
+                                name.ifBlank { "?" },
+                                color = Paper,
+                                fontFamily = Bricolage,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.align(if (track != null) Alignment.BottomStart else Alignment.Center).padding(10.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

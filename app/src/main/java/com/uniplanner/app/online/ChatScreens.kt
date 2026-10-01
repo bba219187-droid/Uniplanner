@@ -110,7 +110,7 @@ import java.util.Date
 private val avatarColors = listOf(0xFF3355E0, 0xFF4E8A2E, 0xFF8A4FB0, 0xFFB57A0A, 0xFFC94220, 0xFF0E7C86)
 
 @Composable
-private fun Avatar(name: String, group: Boolean, size: Int = 48, uid: String? = null, own: Boolean = false) {
+internal fun Avatar(name: String, group: Boolean, size: Int = 48, uid: String? = null, own: Boolean = false) {
     val photo = if (own) com.uniplanner.app.settings.rememberOwnPhoto() else com.uniplanner.app.settings.rememberFriendPhoto(uid)
     if (photo != null) {
         com.uniplanner.app.settings.RoundPhoto(photo, size.dp)
@@ -131,7 +131,7 @@ private fun Avatar(name: String, group: Boolean, size: Int = 48, uid: String? = 
 }
 
 /** A friend chat's id is both students' ids joined by "_"; the other one is the friend. */
-private fun friendUid(kind: ChatKind, id: String, me: String?): String? =
+internal fun friendUid(kind: ChatKind, id: String, me: String?): String? =
     if (kind == ChatKind.GROUP || me == null) null else id.split('_').firstOrNull { it != me && it.isNotBlank() }
 
 private fun shortTime(millis: Long, yesterday: String): String {
@@ -147,7 +147,7 @@ private fun shortTime(millis: Long, yesterday: String): String {
 
 /** "visto hoje às 14:32", "visto ontem às 9:05" or "visto a 28/09 às 18:10". */
 @Composable
-private fun lastSeen(millis: Long): String {
+internal fun lastSeen(millis: Long): String {
     val zone = ZoneId.systemDefault()
     val day = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
     val today = LocalDate.now(zone)
@@ -444,11 +444,24 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     }
 
     var callVideo by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
     val askCall = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        val callee = friendUid(kind, id, uid)
-        if (callee != null && result[android.Manifest.permission.RECORD_AUDIO] != false) {
-            CallManager.start(context, id, callee, conversation?.title.orEmpty(), callVideo)
+        if (result[android.Manifest.permission.RECORD_AUDIO] != false) {
+            val myName = vm.profile.value?.name.orEmpty()
+            CallManager.start(context, kind, id, conversation?.title.orEmpty(), myName, callVideo)
         }
+    }
+
+    // Keeps this chat's disappearing-messages setting known while it is open, for sending.
+    val timerHours by remember(kind, id) { vm.timer(kind, id) }.collectAsState(initial = ChatTimers.of(id))
+    if (showInfo) {
+        ChatInfo(
+            vm, kind, id, conversation?.title.orEmpty(), uid, messages,
+            onClose = { showInfo = false },
+            onCall = { video -> showInfo = false; callVideo = video; askCall.launch(callPermissions(video)) },
+            onPhoto = { a -> showInfo = false; viewingPhoto = a },
+            onFile = { a -> scope.launch { runCatching { vm.openAttachment(kind, id, a) } } },
+        )
     }
 
     LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id, messages.firstOrNull { !it.pending }?.createdAt) }
@@ -461,7 +474,8 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
         ) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
             Avatar(conversation?.title.orEmpty(), group = kind == ChatKind.GROUP, size = 40, uid = friendUid(kind, id, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid))
-            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+            // Tapping the name opens the friend's or group's page, like WhatsApp.
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { showInfo = true }.padding(horizontal = 10.dp)) {
                 Text(conversation?.title.orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val friend = friendUid(kind, id, uid)
                 val seen by remember(friend) { friend?.let(Presence::of) ?: kotlinx.coroutines.flow.flowOf(null) }
@@ -472,14 +486,13 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
                         seen?.online == true -> stringResource(R.string.chat_online)
                         seen?.at != null -> lastSeen(seen!!.at!!)
                         else -> stringResource(R.string.chat_friend)
-                    },
+                    } + if (timerHours > 0) " · ⏱ 24h" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (seen?.online == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Calls are between two friends, like WhatsApp; groups keep to messages.
-            val callee = friendUid(kind, id, uid)
-            if (callee != null) {
+            // Calls in friend chats and groups, like WhatsApp.
+            run {
                 IconButton(onClick = { callVideo = false; askCall.launch(callPermissions(false)) }) {
                     Icon(Icons.Filled.Call, stringResource(R.string.call_voice))
                 }
@@ -560,6 +573,20 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
                             )
                         }
                     }
+                }
+            }
+            // Shown above the first message, like WhatsApp, and scrolls away as the chat grows.
+            item(key = "e2e_notice") {
+                Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        "🔒 " + stringResource(R.string.chat_e2e_notice),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.widthIn(max = 300.dp).clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
                 }
             }
             if (messages.isEmpty()) {

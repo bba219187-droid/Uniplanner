@@ -29,7 +29,7 @@ class CallService : Service() {
             this, 1, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val name = CallManager.call.value?.peerName.orEmpty()
+        val name = CallManager.call.value?.title.orEmpty()
         val notification = NotificationCompat.Builder(this, CallManager.CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(name.ifBlank { getString(R.string.app_name) })

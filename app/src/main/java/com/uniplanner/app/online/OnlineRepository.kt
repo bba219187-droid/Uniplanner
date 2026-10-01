@@ -385,10 +385,49 @@ class OnlineRepository {
             }
         awaitClose { reg.remove() }
     }.retrying().combine(ChatCrypto.state) { docs, _ -> docs }.map { docs ->
+        val now = System.currentTimeMillis()
+        val (expired, live) = docs.partition { ((it.get("expiresAt") as? Number)?.toLong() ?: Long.MAX_VALUE) < now }
+        removeExpired(kind, id, expired)
         // Encrypted messages need the conversation's keys; the server is asked only for a new key id.
-        val needed = docs.mapNotNull { it.get("kid") as? String }.toSet()
+        val needed = live.mapNotNull { it.get("kid") as? String }.toSet()
         if (needed.isNotEmpty()) runCatching { ChatCrypto.keys(kind, id, needed) }
-        docs.map { d -> message(kind, id, d) }
+        live.map { d -> message(kind, id, d) }
+    }
+
+    /** Each phone deletes its own disappearing messages, with their pieces, once their day is over. */
+    private fun removeExpired(kind: ChatKind, id: String, expired: List<DocumentSnapshot>) {
+        val me = uid ?: return
+        val mine = expired.filter { it.get("authorId") == me }
+        if (mine.isEmpty()) return
+        val col = messagesOf(kind, id)
+        val batch = db.batch()
+        mine.take(100).forEach { d ->
+            batch.delete(d.reference)
+            val blob = d.get("blobId") as? String
+            val parts = (d.get("parts") as? Number)?.toInt() ?: 0
+            if (blob != null) for (i in 0 until parts.coerceAtMost(200)) batch.delete(col.document(Attachments.partId(blob, i)))
+        }
+        batch.commit()
+    }
+
+    /** The conversation's disappearing-messages setting, in hours (0 is off). */
+    fun timer(kind: ChatKind, id: String): Flow<Int> = callbackFlow {
+        val reg = messagesOf(kind, id).whereEqualTo("kind", "timer").addSnapshotListener { snap, _ ->
+            val newest = snap?.documents.orEmpty().maxByOrNull { (it.get("setAt") as? Number)?.toLong() ?: 0 }
+            val h = (newest?.get("hours") as? Number)?.toInt() ?: 0
+            ChatTimers.set(id, h)
+            trySend(h)
+        }
+        awaitClose { reg.remove() }
+    }.retrying()
+
+    suspend fun setTimer(kind: ChatKind, id: String, hours: Int) {
+        val me = uid ?: return
+        val now = System.currentTimeMillis()
+        messagesOf(kind, id).document("timer_${now}_$me").set(
+            mapOf("kind" to "timer", "authorId" to me, "hours" to hours, "setAt" to now),
+        ).await()
+        ChatTimers.set(id, hours)
     }
 
     /**
@@ -480,12 +519,14 @@ class OnlineRepository {
         preview: String,
         key: Pair<String, ByteArray>?,
     ): Task<Void> {
+        val timer = ChatTimers.of(id)
+        val timed = if (timer > 0) fields + ("expiresAt" to System.currentTimeMillis() + timer * 3_600_000L) else fields
         // With a key, everything but the type and the attachment's location is sealed.
         val stored = if (key == null) {
-            fields
+            timed
         } else {
-            val open = fields.filterKeys { it in PUBLIC_FIELDS }
-            open + ChatCrypto.sealFields(id, key, fields.filterKeys { it !in PUBLIC_FIELDS })
+            val open = timed.filterKeys { it in PUBLIC_FIELDS }
+            open + ChatCrypto.sealFields(id, key, timed.filterKeys { it !in PUBLIC_FIELDS })
         }
         val shownPreview = if (key == null) preview.take(200) else ChatCrypto.sealPreview(id, key, preview.take(200))
         val batch = db.batch()
@@ -589,8 +630,19 @@ class OnlineRepository {
     }
 }
 
+/**
+ * Disappearing messages, per conversation: 0 keeps them, 24 deletes them a day after sending.
+ * The choice is a hidden "timer" document in the conversation, so any member can change it and
+ * the newest one counts.
+ */
+object ChatTimers {
+    private val hours = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    fun of(chatId: String): Int = hours[chatId] ?: 0
+    internal fun set(chatId: String, h: Int) { hours[chatId] = h }
+}
+
 /** Kept readable on an encrypted message: what kind it is and where an attachment's pieces are. */
-private val PUBLIC_FIELDS = setOf("type", "blobId", "parts", "thumb")
+private val PUBLIC_FIELDS = setOf("type", "blobId", "parts", "thumb", "expiresAt")
 
 /** Shown for a message this phone has no key for. */
 const val UNREADABLE = "🔒"

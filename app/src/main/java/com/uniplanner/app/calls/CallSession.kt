@@ -26,7 +26,6 @@ import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoCapturer
-import org.webrtc.VideoSink
 import org.webrtc.VideoSource
 import org.webrtc.VideoTrack
 import org.webrtc.audio.JavaAudioDeviceModule
@@ -34,31 +33,23 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * One call's WebRTC connection. Sound and picture go straight between the two phones, encrypted
- * with DTLS-SRTP; the keys for that are agreed inside the offer and answer, which travel sealed
- * with the chat's end-to-end key, so the server never sees them.
- *
- * A video sender is always there, so the camera or the screen can be turned on mid-call without
- * asking the other phone again.
+ * This phone's side of a call: the microphone, the camera or screen, and one connection per other
+ * person (a group call connects everyone with everyone). Sound and picture go straight between
+ * phones, encrypted with DTLS-SRTP; the keys for that are agreed inside the offers and answers,
+ * which travel sealed with the chat's end-to-end key, so the server never sees them.
  */
-class CallSession(
-    private val context: Context,
-    private val onIce: (IceCandidate) -> Unit,
-    private val onConnection: (PeerConnection.PeerConnectionState) -> Unit,
-    private val onRemoteVideo: (VideoTrack) -> Unit,
-) {
+class CallMedia(private val context: Context) {
     val egl: EglBase = EglBase.create()
     private val factory: PeerConnectionFactory
-    private val pc: PeerConnection
-    private val audio: AudioTrack
-    private val videoSender: RtpSender
+    val audio: AudioTrack
     private var capturer: VideoCapturer? = null
     private var source: VideoSource? = null
     private var helper: SurfaceTextureHelper? = null
     var localVideo: VideoTrack? = null
         private set
-    private val pendingIce = mutableListOf<IceCandidate>()
-    private var remoteSet = false
+    private val peers = mutableListOf<Peer>()
+    /** Every connection made, also the ones closed, to free them at the end. */
+    private val made = mutableListOf<Peer>()
 
     init {
         initialize(context)
@@ -72,7 +63,126 @@ class CallSession(
                     .createAudioDeviceModule(),
             )
             .createPeerConnectionFactory()
-        val config = PeerConnection.RTCConfiguration(ICE_SERVERS).apply {
+        audio = factory.createAudioTrack("audio", factory.createAudioSource(MediaConstraints()))
+    }
+
+    /** A connection to one person. The one who offers adds the video slot; the one who answers takes the offered one. */
+    fun peer(
+        offerer: Boolean,
+        onIce: (IceCandidate) -> Unit,
+        onConnection: (PeerConnection.PeerConnectionState) -> Unit,
+        onRemoteVideo: (VideoTrack) -> Unit,
+    ): Peer = Peer(factory, offerer, audio, localVideo, onIce, onConnection, onRemoteVideo).also { synchronized(peers) { peers += it; made += it } }
+
+    fun drop(peer: Peer) {
+        synchronized(peers) { peers -= peer }
+        peer.close()
+    }
+
+    fun setMuted(muted: Boolean) {
+        audio.setEnabled(!muted)
+    }
+
+    fun startCamera(front: Boolean = true): VideoTrack? {
+        val enumerator = Camera2Enumerator(context)
+        val names = enumerator.deviceNames
+        val name = names.firstOrNull { enumerator.isFrontFacing(it) == front } ?: names.firstOrNull() ?: return null
+        return startCapture(enumerator.createCapturer(name, null), screencast = false)
+    }
+
+    fun switchCamera() {
+        (capturer as? CameraVideoCapturer)?.switchCamera(null)
+    }
+
+    fun startScreen(permission: Intent, width: Int, height: Int): VideoTrack? = startCapture(
+        ScreenCapturerAndroid(permission, object : MediaProjection.Callback() {
+            override fun onStop() {}
+        }),
+        screencast = true, width = width, height = height, fps = 15,
+    )
+
+    private fun startCapture(c: VideoCapturer, screencast: Boolean, width: Int = 1280, height: Int = 720, fps: Int = 30): VideoTrack {
+        stopVideo()
+        val h = SurfaceTextureHelper.create("capture", egl.eglBaseContext)
+        val s = factory.createVideoSource(screencast)
+        c.initialize(h, context, s.capturerObserver)
+        c.startCapture(width, height, fps)
+        val track = factory.createVideoTrack(if (screencast) "screen" else "camera", s)
+        capturer = c
+        source = s
+        helper = h
+        localVideo = track
+        synchronized(peers) { peers.forEach { it.sendVideo(track) } }
+        return track
+    }
+
+    fun stopVideo() {
+        synchronized(peers) { peers.forEach { it.sendVideo(null) } }
+        runCatching { capturer?.stopCapture() }
+        capturer?.dispose()
+        localVideo?.dispose()
+        source?.dispose()
+        helper?.dispose()
+        capturer = null
+        localVideo = null
+        source = null
+        helper = null
+    }
+
+    fun close() {
+        stopVideo()
+        synchronized(peers) {
+            // Freed only now: freeing a connection also frees the shared microphone track.
+            made.forEach { it.close(); it.dispose() }
+            peers.clear()
+            made.clear()
+        }
+        runCatching { audio.dispose() }
+        runCatching { factory.dispose() }
+        runCatching { egl.release() }
+    }
+
+    companion object {
+        // Public STUN servers let the phones find each other through home and mobile routers.
+        val ICE_SERVERS = listOf(
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+        )
+        @Volatile private var initialized = false
+
+        private fun initialize(context: Context) {
+            if (initialized) return
+            PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context.applicationContext).createInitializationOptions())
+            initialized = true
+        }
+
+        fun sdpToJson(d: SessionDescription) = JSONObject().put("type", d.type.canonicalForm()).put("sdp", d.description).toString()
+        fun sdpFromJson(s: String): SessionDescription = JSONObject(s).let {
+            SessionDescription(SessionDescription.Type.fromCanonicalForm(it.getString("type")), it.getString("sdp"))
+        }
+        fun iceToJson(c: IceCandidate) = JSONObject().put("mid", c.sdpMid).put("index", c.sdpMLineIndex).put("sdp", c.sdp).toString()
+        fun iceFromJson(s: String): IceCandidate = JSONObject(s).let { IceCandidate(it.optString("mid"), it.getInt("index"), it.getString("sdp")) }
+    }
+}
+
+/** The connection to one other person in the call. */
+class Peer internal constructor(
+    factory: PeerConnectionFactory,
+    offerer: Boolean,
+    audio: AudioTrack,
+    video: VideoTrack?,
+    onIce: (IceCandidate) -> Unit,
+    onConnection: (PeerConnection.PeerConnectionState) -> Unit,
+    private val onRemoteVideo: (VideoTrack) -> Unit,
+) {
+    private val pc: PeerConnection
+    private var videoSender: RtpSender? = null
+    private var wanted: VideoTrack? = video
+    private val pendingIce = mutableListOf<IceCandidate>()
+    private var remoteSet = false
+
+    init {
+        val config = PeerConnection.RTCConfiguration(CallMedia.ICE_SERVERS).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
@@ -93,73 +203,35 @@ class CallSession(
             override fun onRenegotiationNeeded() {}
             override fun onAddTrack(r: RtpReceiver, s: Array<out MediaStream>) {}
         }) ?: error("No peer connection")
-        audio = factory.createAudioTrack("audio", factory.createAudioSource(MediaConstraints()))
         pc.addTrack(audio, listOf("call"))
-        videoSender = pc.addTransceiver(
-            MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,
-            RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV, listOf("call")),
-        ).sender
+        if (offerer) {
+            // Always a video slot, so a camera or screen can start mid-call without asking again.
+            videoSender = pc.addTransceiver(
+                MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,
+                RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV, listOf("call")),
+            ).sender.also { it.setTrack(video, false) }
+        }
     }
 
-    fun setMuted(muted: Boolean) {
-        audio.setEnabled(!muted)
+    fun sendVideo(track: VideoTrack?) {
+        wanted = track
+        videoSender?.setTrack(track, false)
     }
 
-    /** Sends the front camera. */
-    fun startCamera(front: Boolean = true): VideoTrack? {
-        val names = Camera2Enumerator(context).deviceNames
-        val enumerator = Camera2Enumerator(context)
-        val name = names.firstOrNull { enumerator.isFrontFacing(it) == front } ?: names.firstOrNull() ?: return null
-        return startCapture(enumerator.createCapturer(name, null), screencast = false)
+    suspend fun offer(): SessionDescription = describe { o -> pc.createOffer(o, MediaConstraints()) }.also { setLocal(it) }
+
+    suspend fun answer(): SessionDescription {
+        // The answerer sends on the video slot the offer brought, not on a new one.
+        if (videoSender == null) {
+            pc.transceivers.firstOrNull { it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO }?.let { t ->
+                t.direction = RtpTransceiver.RtpTransceiverDirection.SEND_RECV
+                videoSender = t.sender
+                t.sender.setTrack(wanted, false)
+                (t.receiver.track() as? VideoTrack)?.let(onRemoteVideo)
+            }
+        }
+        return describe { o -> pc.createAnswer(o, MediaConstraints()) }.also { setLocal(it) }
     }
-
-    fun switchCamera() {
-        (capturer as? CameraVideoCapturer)?.switchCamera(null)
-    }
-
-    /** Sends the screen, after the student agreed in Android's own dialog. */
-    fun startScreen(permission: Intent, width: Int, height: Int): VideoTrack? = startCapture(
-        ScreenCapturerAndroid(permission, object : MediaProjection.Callback() {
-            override fun onStop() {}
-        }),
-        screencast = true,
-        width = width,
-        height = height,
-        fps = 15,
-    )
-
-    private fun startCapture(c: VideoCapturer, screencast: Boolean, width: Int = 1280, height: Int = 720, fps: Int = 30): VideoTrack {
-        stopVideo()
-        val h = SurfaceTextureHelper.create("capture", egl.eglBaseContext)
-        val s = factory.createVideoSource(screencast)
-        c.initialize(h, context, s.capturerObserver)
-        c.startCapture(width, height, fps)
-        val track = factory.createVideoTrack(if (screencast) "screen" else "camera", s)
-        videoSender.setTrack(track, false)
-        capturer = c
-        source = s
-        helper = h
-        localVideo = track
-        return track
-    }
-
-    /** Stops the camera or the screen; the call goes on with sound only. */
-    fun stopVideo() {
-        videoSender.setTrack(null, false)
-        runCatching { capturer?.stopCapture() }
-        capturer?.dispose()
-        localVideo?.dispose()
-        source?.dispose()
-        helper?.dispose()
-        capturer = null
-        localVideo = null
-        source = null
-        helper = null
-    }
-
-    suspend fun offer(): SessionDescription = describe(create = { o -> pc.createOffer(o, MediaConstraints()) }).also { setLocal(it) }
-
-    suspend fun answer(): SessionDescription = describe(create = { o -> pc.createAnswer(o, MediaConstraints()) }).also { setLocal(it) }
 
     suspend fun setRemote(d: SessionDescription) {
         suspendCancellableCoroutine { cont ->
@@ -192,41 +264,17 @@ class CallSession(
     }
 
     fun close() {
-        stopVideo()
         runCatching { pc.close() }
-        runCatching { pc.dispose() }
-        runCatching { factory.dispose() }
-        runCatching { egl.release() }
     }
 
-    fun addRemoteSink(track: VideoTrack, sink: VideoSink) = track.addSink(sink)
+    internal fun dispose() {
+        runCatching { pc.dispose() }
+    }
 
     private open class SdpAdapter : SdpObserver {
         override fun onCreateSuccess(d: SessionDescription) {}
         override fun onSetSuccess() {}
         override fun onCreateFailure(error: String?) {}
         override fun onSetFailure(error: String?) {}
-    }
-
-    companion object {
-        // Public STUN servers let the two phones find each other through home and mobile routers.
-        private val ICE_SERVERS = listOf(
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-        )
-        @Volatile private var initialized = false
-
-        private fun initialize(context: Context) {
-            if (initialized) return
-            PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context.applicationContext).createInitializationOptions())
-            initialized = true
-        }
-
-        fun sdpToJson(d: SessionDescription) = JSONObject().put("type", d.type.canonicalForm()).put("sdp", d.description).toString()
-        fun sdpFromJson(s: String): SessionDescription = JSONObject(s).let {
-            SessionDescription(SessionDescription.Type.fromCanonicalForm(it.getString("type")), it.getString("sdp"))
-        }
-        fun iceToJson(c: IceCandidate) = JSONObject().put("mid", c.sdpMid).put("index", c.sdpMLineIndex).put("sdp", c.sdp).toString()
-        fun iceFromJson(s: String): IceCandidate = JSONObject(s).let { IceCandidate(it.optString("mid"), it.getInt("index"), it.getString("sdp")) }
     }
 }

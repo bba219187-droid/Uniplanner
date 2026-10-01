@@ -1,11 +1,12 @@
 {
-  "id": "2026-10-01-chamadas",
-  "title": "Conversas privadas e chamadas",
-  "intro": "As tuas conversas passam a ser encriptadas ponta a ponta, como no WhatsApp, e já podes ligar aos teus amigos.",
+  "id": "2026-10-01-perfis-grupos",
+  "title": "Chamadas em grupo e mais privacidade",
+  "intro": "As conversas ficaram mais parecidas com o WhatsApp.",
   "items": [
-    "Mensagens, fotos e ficheiros encriptados: só tu e quem está na conversa os vê.",
-    "Um PIN de 6 números para recuperar as conversas noutro telemóvel.",
-    "Chamadas de voz e vídeo encriptadas, com partilha de ecrã.",
-    "Vês se os amigos estão online ou quando estiveram pela última vez."
+    "Chamadas de voz e vídeo também nos grupos.",
+    "Corrigido: quem atende a videochamada já vê a câmara do outro.",
+    "Toca no nome de um amigo ou grupo para ver o perfil, os membros e as fotos e ficheiros partilhados.",
+    "Mensagens temporárias: escolhe guardar tudo ou apagar ao fim de 24 horas.",
+    "Avisos de mensagens novas com a app fechada (de 15 em 15 minutos)."
   ]
 }

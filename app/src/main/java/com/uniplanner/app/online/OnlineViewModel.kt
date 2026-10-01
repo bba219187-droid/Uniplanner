@@ -71,14 +71,13 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
                 if (id == null) ChatCrypto.forget() else runCatching { ChatCrypto.prepare(getApplication(), id) }
             }
         }
-        // Rings when a friend calls, while the app is running.
+        // Rings when a friend or a group calls, while the app is running.
         viewModelScope.launch {
-            friendships.collect { list ->
-                if (uid.value == null) {
-                    CallManager.stopWatching()
-                } else {
-                    CallManager.watch(getApplication(), list.filter { it.accepted }.associate { it.id to it.otherName })
-                }
+            combine(friendships, groups) { fs, gs ->
+                fs.filter { it.accepted }.associate { (ChatKind.FRIEND to it.id) to it.otherName } +
+                    gs.associate { (ChatKind.GROUP to it.id) to it.name }
+            }.collect { chats ->
+                if (uid.value == null) CallManager.stopWatching() else CallManager.watch(getApplication(), chats)
             }
         }
     }
@@ -119,6 +118,12 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
 
     fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> =
         (repo?.messages(kind, id) ?: emptyFlow()).combine(hidden) { list, gone -> list.filter { it.id !in gone } }
+
+    fun timer(kind: ChatKind, id: String): Flow<Int> = repo?.timer(kind, id) ?: flowOf(0)
+
+    fun setTimer(kind: ChatKind, id: String, hours: Int) = act { it.setTimer(kind, id, hours) }
+
+    fun profileOf(uid: String): Flow<Profile?> = repo?.profile(uid) ?: flowOf(null)
 
     fun sendMessage(kind: ChatKind, id: String, text: String) = withProfile { r, me -> r.sendMessage(me, kind, id, text) }
 

@@ -26,6 +26,7 @@ class UniPlannerApp : Application() {
         UpdateChecker.scheduleDailyCheck(this)
         CloudBackup.start(this)
         CloudSettings.start(this)
+        com.uniplanner.app.online.MessageCheckWorker.schedule(this)
         Steps.schedule(this)
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { runCatching { MealReminders.ensureScheduled(this@UniPlannerApp) } }
         runCatching { TimetableReminders.ensureScheduled(this) }
