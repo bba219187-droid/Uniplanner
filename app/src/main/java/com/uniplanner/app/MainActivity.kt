@@ -21,6 +21,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -109,6 +110,10 @@ import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.health.HealthScreen
 import com.uniplanner.app.settings.Area
 import com.uniplanner.app.settings.OnboardingScreen
+import com.uniplanner.app.settings.Welcome
+import com.uniplanner.app.update.NotesBody
+import com.uniplanner.app.update.WhatsNewPrompt
+import com.uniplanner.app.settings.WelcomeSignIn
 import com.uniplanner.app.settings.PersonalSettings
 import com.uniplanner.app.health.Steps
 import com.uniplanner.app.location.AdminScreen
@@ -168,8 +173,10 @@ class MainActivity : ComponentActivity() {
                     label = "splash",
                 ) { showSplash ->
                     val personal by PersonalSettings.flow(applicationContext).collectAsState()
+                    val welcome by Welcome.flow(applicationContext).collectAsState()
                     when {
                         showSplash -> SplashScreen(onFinished = { splash = false })
+                        welcome == true -> WelcomeSignIn()
                         personal?.done == false -> OnboardingScreen(onFinished = {})
                         else -> {
                             UniPlannerRoot()
@@ -220,6 +227,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     val current = backStack?.destination?.route
 
     UpdatePrompt()
+    WhatsNewPrompt()
     BackupChoicePrompt()
 
     // Coming back from the university login page: show the Moodle screen, which finishes the sign-in.
@@ -383,7 +391,17 @@ private fun UpdatePrompt() {
         AlertDialog(
             onDismissRequest = { update = null },
             title = { Text(stringResource(R.string.update_title)) },
-            text = { Text(stringResource(R.string.update_text, u.versionName)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.update_text, u.versionName))
+                    u.notes?.let { n ->
+                        if (n.title.isNotBlank()) {
+                            Text(n.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
+                        }
+                        NotesBody(n, Modifier.padding(top = if (n.title.isBlank()) 12.dp else 0.dp))
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     UpdateChecker.openDownload(context)

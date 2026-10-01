@@ -604,4 +604,13 @@
     <string name="profile_photo_change">Change photo</string>
     <string name="profile_photo_remove">Remove</string>
     <string name="profile_photo_friends">Your friends see your photo when you are signed in.</string>
+    <string name="welcome_title">Welcome to UniPlanner</string>
+    <string name="welcome_text">Sign in with Google to keep your profile, timetable and planner in your account. If you already have one, everything comes back as you left it.</string>
+    <string name="welcome_google">Continue with Google</string>
+    <string name="welcome_later">Not now</string>
+    <string name="welcome_failed">Could not sign in. Check your internet and try again.</string>
+    <string name="ob_welcome_back">Welcome back%s! 👋 I brought back your profile and timetable. Just one question left.</string>
+    <string name="whats_new_title">What\'s new in %s</string>
+    <string name="whats_new_version">Version %s</string>
+    <string name="whats_new_ok">Nice!</string>
 </resources>

@@ -606,4 +606,13 @@
     <string name="profile_photo_change">Mudar foto</string>
     <string name="profile_photo_remove">Tirar</string>
     <string name="profile_photo_friends">Os teus amigos veem a tua foto quando tens sessão iniciada.</string>
+    <string name="welcome_title">Bem-vindo à UniPlanner</string>
+    <string name="welcome_text">Entra com o Google para guardares o perfil, o horário e o planeamento na tua conta. Se já tens conta, fica tudo como deixaste.</string>
+    <string name="welcome_google">Continuar com o Google</string>
+    <string name="welcome_later">Agora não</string>
+    <string name="welcome_failed">Não deu para entrar. Vê se tens internet e tenta outra vez.</string>
+    <string name="ob_welcome_back">Bem-vindo de volta%s! 👋 Recuperei o teu perfil e o horário. Só falta uma pergunta.</string>
+    <string name="whats_new_title">Novidades da %s</string>
+    <string name="whats_new_version">Versão %s</string>
+    <string name="whats_new_ok">Fixe!</string>
 </resources>

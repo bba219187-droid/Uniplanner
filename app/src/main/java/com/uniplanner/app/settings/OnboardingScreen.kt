@@ -99,7 +99,8 @@ private fun questionsFor(areas: Set<Area>): List<Question> = buildList {
 class OnboardingModel(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
     var draft by mutableStateOf(PersonalSettings.get(ctx))
-    var question by mutableStateOf(Question.AREAS)
+    // Someone whose profile came back from the account only answers the location again.
+    var question by mutableStateOf(if (Welcome.isReturning(ctx)) Question.FRIENDS else Question.AREAS)
         private set
     val bubbles = mutableStateListOf<Bubble>()
     private var nextId = 0
@@ -135,6 +136,7 @@ class OnboardingModel(app: Application) : AndroidViewModel(app) {
         LocationShare.setChoicesLater(ctx, location, exactAgreed = true)
         Steps.schedule(ctx)
         PersonalSettings.save(ctx, draft.copy(done = true))
+        Welcome.setReturning(ctx, false)
         bubbles.clear()
         question = Question.AREAS
     }
@@ -167,7 +169,12 @@ fun OnboardingScreen(onFinished: () -> Unit, model: OnboardingModel = viewModel(
         Question.DONE to stringResource(R.string.ob_done),
     )
 
-    LaunchedEffect(Unit) { model.start(hello, texts.getValue(Question.AREAS)) }
+    val returning = remember { Welcome.isReturning(ctx) }
+    val backName = draft.firstName.ifBlank { firstName.orEmpty() }
+    val back = stringResource(R.string.ob_welcome_back, if (backName.isBlank()) "" else ", $backName")
+    LaunchedEffect(Unit) {
+        if (returning) model.start(back, texts.getValue(Question.FRIENDS)) else model.start(hello, texts.getValue(Question.AREAS))
+    }
     LaunchedEffect(bubbles.size) {
         if (bubbles.isNotEmpty()) list.animateScrollToItem(bubbles.lastIndex)
     }

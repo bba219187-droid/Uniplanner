@@ -29,7 +29,9 @@ jobs:
         if: github.event_name == 'push'
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk UniPlanner.apk
-          echo "{\"versionCode\": ${GITHUB_RUN_NUMBER}, \"versionName\": \"0.2.${GITHUB_RUN_NUMBER}\"}" > version.json
+          # The notes travel with the version, so the update question can say what is new.
+          jq --argjson code "${GITHUB_RUN_NUMBER}" --arg name "0.2.${GITHUB_RUN_NUMBER}" \
+            '{versionCode: $code, versionName: $name, notes: .}' app/src/main/assets/novidades.json > version.json
           cat version.json
       # Direct phone-friendly link: /releases/latest/download/UniPlanner.apk
       # Keep the release tag on the newest commit, so it never points at old history.

@@ -1,6 +1,11 @@
 package com.uniplanner.app.online
 
 import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
@@ -86,6 +91,25 @@ object Online {
     fun googleClientId(context: Context): String? {
         val id = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         return if (id != 0) context.getString(id) else null
+    }
+
+    /** Opens the Google account picker; null when the student closes it. */
+    suspend fun googleIdToken(activityContext: Context): String? {
+        val clientId = googleClientId(activityContext) ?: throw IllegalStateException("Google sign-in is not set up")
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(
+                GetGoogleIdOption.Builder()
+                    .setServerClientId(clientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .build(),
+            )
+            .build()
+        return try {
+            val result = CredentialManager.create(activityContext).getCredential(activityContext, request)
+            GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+        } catch (_: GetCredentialCancellationException) {
+            null
+        }
     }
 
     fun newCode(length: Int = 6): String {

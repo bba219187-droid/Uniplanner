@@ -91,6 +91,16 @@ object ProfilePhoto {
         file(ctx).takeIf { it.exists() }?.let { upload(it.readBytes()) }
     }
 
+    /** Brings the photo back from the profile when this phone has none, e.g. after clearing the app's data. */
+    suspend fun restore(ctx: Context, uid: String) {
+        if (exists(ctx)) return
+        val bytes = runCatching {
+            Firebase.firestore.collection("users").document(uid).get().await().getBlob("photo")?.toBytes()
+        }.getOrNull() ?: return
+        withContext(Dispatchers.IO) { file(ctx).writeBytes(bytes) }
+        version.value++
+    }
+
     /** A friend's photo from their profile, or null. Cached for the session. */
     suspend fun friend(uid: String): ImageBitmap? {
         synchronized(friends) { if (uid in friends) return friends[uid] }

@@ -18,7 +18,23 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
-data class AvailableUpdate(val versionCode: Int, val versionName: String)
+/** What a version brings: a short introduction and the list of changes. */
+data class ReleaseNotes(val id: String, val title: String, val intro: String, val items: List<String>) {
+    companion object {
+        fun parse(o: JSONObject?): ReleaseNotes? {
+            if (o == null) return null
+            val items = o.optJSONArray("items")
+            return ReleaseNotes(
+                id = o.optString("id"),
+                title = o.optString("title"),
+                intro = o.optString("intro"),
+                items = if (items == null) emptyList() else (0 until items.length()).map { items.getString(it) },
+            ).takeIf { it.id.isNotBlank() }
+        }
+    }
+}
+
+data class AvailableUpdate(val versionCode: Int, val versionName: String, val notes: ReleaseNotes? = null)
 
 /**
  * CI publishes the latest APK and a small version.json next to it in the
@@ -32,7 +48,7 @@ object UpdateChecker {
 
     fun parse(json: String): AvailableUpdate {
         val o = JSONObject(json)
-        return AvailableUpdate(o.getInt("versionCode"), o.optString("versionName"))
+        return AvailableUpdate(o.getInt("versionCode"), o.optString("versionName"), ReleaseNotes.parse(o.optJSONObject("notes")))
     }
 
     fun isNewer(update: AvailableUpdate, installedVersionCode: Int): Boolean =

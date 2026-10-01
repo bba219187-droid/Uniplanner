@@ -95,6 +95,11 @@ object PersonalSettings {
         state.value = value
     }
 
+    /** Reads the answers again after they were brought back from the account. */
+    fun reload(ctx: Context) {
+        state.value = load(ctx)
+    }
+
     /** Opens the welcome questions again, keeping the answers as the starting point. */
     fun restart(ctx: Context) = save(ctx, get(ctx).copy(done = false))
 }

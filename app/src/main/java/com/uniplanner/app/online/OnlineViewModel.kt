@@ -5,13 +5,8 @@ import android.content.Context
 import android.net.Uri
 import com.uniplanner.app.R
 import java.io.File
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -266,22 +261,8 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun signInWithGoogle(activityContext: Context) = act { r ->
-        val clientId = Online.googleClientId(getApplication()) ?: throw IllegalStateException("Google sign-in is not set up")
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(
-                GetGoogleIdOption.Builder()
-                    .setServerClientId(clientId)
-                    .setFilterByAuthorizedAccounts(false)
-                    .build(),
-            )
-            .build()
-        try {
-            val result = CredentialManager.create(activityContext).getCredential(activityContext, request)
-            val token = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
-            r.signInWithGoogle(token)
-        } catch (_: GetCredentialCancellationException) {
-            // The student closed the account picker.
-        }
+        // Null when the student closed the account picker.
+        Online.googleIdToken(activityContext)?.let { r.signInWithGoogle(it) }
     }
 
     /** Removes what this account shared about its location, then signs out. */

@@ -79,6 +79,12 @@ object TimetableStore {
     fun clear(ctx: Context) = update(ctx) { TimetableState(remindersOn = it.remindersOn, minutesBefore = it.minutesBefore) }
         .also { TimetableReminders.rescheduleAll(ctx) }
 
+    /** Reads the timetable again after it was brought back from the account. */
+    fun reload(ctx: Context) {
+        state.value = load(ctx)
+        TimetableReminders.rescheduleAll(ctx)
+    }
+
     private fun load(ctx: Context): TimetableState {
         val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("state", null) ?: return TimetableState()
         return runCatching { decode(JSONObject(raw)) }.getOrDefault(TimetableState())
