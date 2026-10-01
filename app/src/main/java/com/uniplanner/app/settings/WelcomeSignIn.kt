@@ -3,7 +3,6 @@ package com.uniplanner.app.settings
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,11 +26,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.uniplanner.app.ui.screens.AreaCards
+import com.uniplanner.app.ui.theme.Bricolage
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.uniplanner.app.R
@@ -126,17 +128,25 @@ fun WelcomeSignIn() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
-        Box(Modifier.size(84.dp).clip(CircleShape).background(colors.secondaryContainer), contentAlignment = Alignment.Center) {
-            Text("🎓", style = MaterialTheme.typography.displaySmall)
-        }
-        Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        // Same cards as the entrance, so the two screens read as one.
+        AreaCards(animate = false)
+        Spacer(Modifier.height(36.dp))
+        Text(
+            stringResource(R.string.welcome_title),
+            fontFamily = Bricolage,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 30.sp,
+            lineHeight = 34.sp,
+            letterSpacing = (-0.5).sp,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(10.dp))
         Text(
             stringResource(R.string.welcome_text),
             style = MaterialTheme.typography.bodyLarge,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 340.dp),
         )
         Spacer(Modifier.weight(1f))
         if (failed) {

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.UniPlanner" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Paper behind the app while it starts, so there is no white flash before the entrance. -->
+    <style name="Theme.UniPlanner" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/entrance_background</item>
+    </style>
 </resources>

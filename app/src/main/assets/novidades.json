@@ -1,11 +1,11 @@
 {
-  "id": "2026-10-01-conta",
-  "title": "A tua conta guarda tudo",
-  "intro": "Agora entras com o Google logo ao abrir a app, e o teu perfil e horário ficam guardados na conta.",
+  "id": "2026-10-01-entrada",
+  "title": "Uma entrada nova",
+  "intro": "A app abre agora com o mesmo estilo de papel e cartões de cor que tens lá dentro.",
   "items": [
-    "Entrar com o Google no início, antes das perguntas.",
-    "Se já tens conta, o perfil volta sozinho e só respondes à localização.",
-    "O perfil, a foto e o horário voltam mesmo depois de limpar os dados da app.",
-    "Cada atualização mostra o que mudou, como esta."
+    "Ecrã de entrada novo, com os cartões de Estudo, Ginásio, Saúde e Amigos.",
+    "Ícone da app em preto e creme, a combinar com o resto.",
+    "Sem o flash branco ao abrir.",
+    "Entrar com o Google logo no início, e o perfil e o horário ficam guardados na conta."
   ]
 }

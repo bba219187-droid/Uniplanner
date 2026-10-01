@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ shows its own splash first: same paper and the ink icon, so it flows into the entrance. -->
+    <style name="Theme.UniPlanner" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/entrance_background</item>
+        <item name="android:windowSplashScreenBackground">@color/entrance_background</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+    </style>
+</resources>
