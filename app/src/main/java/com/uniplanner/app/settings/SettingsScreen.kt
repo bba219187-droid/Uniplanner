@@ -103,6 +103,32 @@ fun SettingsScreen() {
         }
 
         Text(
+            stringResource(R.string.settings_ringtone),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, start = 4.dp),
+        )
+        var tone by remember { mutableStateOf(com.uniplanner.app.calls.Ringtones.get(ctx)) }
+        androidx.compose.runtime.DisposableEffect(Unit) { onDispose { com.uniplanner.app.calls.Ringtones.stop() } }
+        Card(Modifier.fillMaxWidth()) {
+            com.uniplanner.app.calls.CallTone.entries.forEachIndexed { i, t ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    // Choosing a tone plays it once, so it can be heard before keeping it.
+                    Modifier.fillMaxWidth().clickable {
+                        tone = t
+                        com.uniplanner.app.calls.Ringtones.set(ctx, t)
+                        com.uniplanner.app.calls.Ringtones.play(ctx, t, preview = true)
+                    }.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(t.label), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    RadioButton(selected = t == tone, onClick = null)
+                }
+            }
+        }
+
+        Text(
             stringResource(R.string.settings_personal),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

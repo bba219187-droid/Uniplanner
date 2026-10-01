@@ -672,4 +672,10 @@
     <string name="info_timer_off">Desligado (guardar tudo)</string>
     <string name="info_timer_24h">24 horas</string>
     <string name="info_members">Membros</string>
+    <string name="settings_ringtone">Toque das chamadas</string>
+    <string name="tone_classic_mobile">Telemóvel clássico (Gran Vals) 📱</string>
+    <string name="tone_old_phone">Telefone antigo ☎️</string>
+    <string name="tone_marimba">Marimba</string>
+    <string name="tone_soft">Suave</string>
+    <string name="tone_system">Toque do sistema</string>
 </resources>

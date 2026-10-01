@@ -1,8 +1,10 @@
 {
-  "id": "2026-10-01-perfis-grupos",
-  "title": "Chamadas em grupo e mais privacidade",
-  "intro": "As conversas ficaram mais parecidas com o WhatsApp.",
+  "id": "2026-10-01-toques",
+  "title": "Toques para as chamadas",
+  "intro": "As chamadas já tocam com a melodia clássica dos telemóveis.",
   "items": [
+    "Toque por omissão: a melodia Gran Vals dos telemóveis antigos.",
+    "Outros toques à escolha em Definições → Toque das chamadas, ou o toque do sistema.",
     "Chamadas de voz e vídeo também nos grupos.",
     "Corrigido: quem atende a videochamada já vê a câmara do outro.",
     "Toca no nome de um amigo ou grupo para ver o perfil, os membros e as fotos e ficheiros partilhados.",

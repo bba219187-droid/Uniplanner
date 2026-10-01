@@ -7,8 +7,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
-import android.media.Ringtone
-import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -100,7 +98,6 @@ object CallManager {
     private var key: Pair<String, ByteArray>? = null
     private var signals: ListenerRegistration? = null
     private var timeout: Job? = null
-    private var ringtone: Ringtone? = null
     private val incomingWatches = HashMap<String, ListenerRegistration>()
     private val handled = HashSet<String>()
 
@@ -506,19 +503,9 @@ object CallManager {
         am.isSpeakerphoneOn = on && speaker
     }
 
-    private fun startRinging() {
-        ringtone = runCatching {
-            RingtoneManager.getRingtone(app, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))?.also { r ->
-                if (Build.VERSION.SDK_INT >= 28) r.isLooping = true
-                r.play()
-            }
-        }.getOrNull()
-    }
+    private fun startRinging() = Ringtones.play(app)
 
-    private fun stopRinging() {
-        runCatching { ringtone?.stop() }
-        ringtone = null
-    }
+    private fun stopRinging() = Ringtones.stop()
 
     @SuppressLint("MissingPermission")
     private fun notifyIncoming(name: String, video: Boolean) {

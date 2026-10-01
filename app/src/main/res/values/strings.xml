@@ -670,4 +670,10 @@
     <string name="info_timer_off">Off (keep everything)</string>
     <string name="info_timer_24h">24 hours</string>
     <string name="info_members">Members</string>
+    <string name="settings_ringtone">Call ringtone</string>
+    <string name="tone_classic_mobile">Classic mobile (Gran Vals) 📱</string>
+    <string name="tone_old_phone">Old phone ☎️</string>
+    <string name="tone_marimba">Marimba</string>
+    <string name="tone_soft">Soft</string>
+    <string name="tone_system">System ringtone</string>
 </resources>
