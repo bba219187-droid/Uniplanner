@@ -1,11 +1,11 @@
 {
-  "id": "2026-10-01-entrada",
-  "title": "Uma entrada nova",
-  "intro": "A app abre agora com o mesmo estilo de papel e cartões de cor que tens lá dentro.",
+  "id": "2026-10-01-chamadas",
+  "title": "Conversas privadas e chamadas",
+  "intro": "As tuas conversas passam a ser encriptadas ponta a ponta, como no WhatsApp, e já podes ligar aos teus amigos.",
   "items": [
-    "Ecrã de entrada novo, com os cartões de Estudo, Ginásio, Saúde e Amigos.",
-    "Ícone da app em preto e creme, a combinar com o resto.",
-    "Sem o flash branco ao abrir.",
-    "Entrar com o Google logo no início, e o perfil e o horário ficam guardados na conta."
+    "Mensagens, fotos e ficheiros encriptados: só tu e quem está na conversa os vê.",
+    "Um PIN de 6 números para recuperar as conversas noutro telemóvel.",
+    "Chamadas de voz e vídeo encriptadas, com partilha de ecrã.",
+    "Vês se os amigos estão online ou quando estiveram pela última vez."
   ]
 }

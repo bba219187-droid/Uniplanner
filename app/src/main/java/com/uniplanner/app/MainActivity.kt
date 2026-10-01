@@ -28,6 +28,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -111,6 +112,8 @@ import com.uniplanner.app.health.HealthScreen
 import com.uniplanner.app.settings.Area
 import com.uniplanner.app.settings.OnboardingScreen
 import com.uniplanner.app.settings.Welcome
+import com.uniplanner.app.online.Presence
+import com.uniplanner.app.calls.CallOverlay
 import com.uniplanner.app.update.NotesBody
 import com.uniplanner.app.update.WhatsNewPrompt
 import com.uniplanner.app.settings.WelcomeSignIn
@@ -152,6 +155,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Friends see "online" while the app is on screen, and "last seen" after.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    while (true) {
+                        runCatching { Presence.beat(online = true) }
+                        delay(Presence.BEAT_MS)
+                    }
+                } finally {
+                    runCatching { Presence.beat(online = false) }
+                }
+            }
+        }
         handleLink(intent)
         setContent {
             val mode by AppSettings.themeFlow(applicationContext).collectAsState()
@@ -178,9 +194,10 @@ class MainActivity : ComponentActivity() {
                         showSplash -> SplashScreen(onFinished = { splash = false })
                         welcome == true -> WelcomeSignIn()
                         personal?.done == false -> OnboardingScreen(onFinished = {})
-                        else -> {
+                        else -> Box(Modifier.fillMaxSize()) {
                             UniPlannerRoot()
                             ExactLocationQuestion()
+                            CallOverlay()
                         }
                     }
                 }

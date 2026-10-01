@@ -91,6 +91,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uniplanner.app.R
+import com.uniplanner.app.calls.callPermissions
+import com.uniplanner.app.calls.CallManager
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Call
 import com.uniplanner.app.location.LocationShare
 import com.uniplanner.app.ui.screens.EmptyState
 import com.uniplanner.app.ui.screens.ScreenHeader
@@ -138,6 +142,20 @@ private fun shortTime(millis: Long, yesterday: String): String {
         day == today -> DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))
         day == today.minusDays(1) -> yesterday
         else -> day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+    }
+}
+
+/** "visto hoje às 14:32", "visto ontem às 9:05" or "visto a 28/09 às 18:10". */
+@Composable
+private fun lastSeen(millis: Long): String {
+    val zone = ZoneId.systemDefault()
+    val day = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+    val today = LocalDate.now(zone)
+    val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))
+    return when (day) {
+        today -> stringResource(R.string.chat_seen_today, time)
+        today.minusDays(1) -> stringResource(R.string.chat_seen_yesterday, time)
+        else -> stringResource(R.string.chat_seen_on, day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)), time)
     }
 }
 
@@ -425,6 +443,14 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
         }
     }
 
+    var callVideo by remember { mutableStateOf(false) }
+    val askCall = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        val callee = friendUid(kind, id, uid)
+        if (callee != null && result[android.Manifest.permission.RECORD_AUDIO] != false) {
+            CallManager.start(context, id, callee, conversation?.title.orEmpty(), callVideo)
+        }
+    }
+
     LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id, messages.firstOrNull { !it.pending }?.createdAt) }
     OnlineMessages(vm)
 
@@ -437,11 +463,29 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
             Avatar(conversation?.title.orEmpty(), group = kind == ChatKind.GROUP, size = 40, uid = friendUid(kind, id, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid))
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 Text(conversation?.title.orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val friend = friendUid(kind, id, uid)
+                val seen by remember(friend) { friend?.let(Presence::of) ?: kotlinx.coroutines.flow.flowOf(null) }
+                    .collectAsState(initial = null)
                 Text(
-                    if (group != null) stringResource(R.string.groups_members, group.memberCount) else stringResource(R.string.chat_friend),
+                    when {
+                        group != null -> stringResource(R.string.groups_members, group.memberCount)
+                        seen?.online == true -> stringResource(R.string.chat_online)
+                        seen?.at != null -> lastSeen(seen!!.at!!)
+                        else -> stringResource(R.string.chat_friend)
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (seen?.online == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            // Calls are between two friends, like WhatsApp; groups keep to messages.
+            val callee = friendUid(kind, id, uid)
+            if (callee != null) {
+                IconButton(onClick = { callVideo = false; askCall.launch(callPermissions(false)) }) {
+                    Icon(Icons.Filled.Call, stringResource(R.string.call_voice))
+                }
+                IconButton(onClick = { callVideo = true; askCall.launch(callPermissions(true)) }) {
+                    Icon(Icons.Filled.Videocam, stringResource(R.string.call_video))
+                }
             }
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.chat_options)) }

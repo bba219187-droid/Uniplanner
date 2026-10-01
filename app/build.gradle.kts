@@ -87,6 +87,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.mlkit.text.recognition)
     implementation(libs.osmdroid.android)
+    implementation(libs.stream.webrtc)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

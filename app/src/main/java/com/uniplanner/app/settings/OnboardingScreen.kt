@@ -195,6 +195,11 @@ fun OnboardingScreen(onFinished: () -> Unit, model: OnboardingModel = viewModel(
         val wanted = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
             if (Area.HEALTH in draft.areas || Area.GYM in draft.areas) Steps.permission?.let { add(it) }
+            // Calls with friends need the microphone and camera.
+            if (Area.FRIENDS in draft.areas) {
+                add(Manifest.permission.RECORD_AUDIO)
+                add(Manifest.permission.CAMERA)
+            }
             if (model.location.friends || model.location.overview) {
                 add(Manifest.permission.ACCESS_COARSE_LOCATION)
                 add(Manifest.permission.ACCESS_FINE_LOCATION)

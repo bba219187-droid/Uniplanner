@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import com.uniplanner.app.R
+import com.uniplanner.app.calls.CallManager
 import java.io.File
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -68,6 +69,16 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             uid.collect { id ->
                 if (id == null) ChatCrypto.forget() else runCatching { ChatCrypto.prepare(getApplication(), id) }
+            }
+        }
+        // Rings when a friend calls, while the app is running.
+        viewModelScope.launch {
+            friendships.collect { list ->
+                if (uid.value == null) {
+                    CallManager.stopWatching()
+                } else {
+                    CallManager.watch(getApplication(), list.filter { it.accepted }.associate { it.id to it.otherName })
+                }
             }
         }
     }
