@@ -48,6 +48,8 @@ data class Attachment(
     val height: Int,
     /** A tiny version of a photo, shown while the real one loads. */
     val thumb: ByteArray?,
+    /** The conversation key the pieces are sealed with; null for an unencrypted attachment. */
+    val kid: String? = null,
     /** Where it is kept on this phone; see [Attachments.cacheKey]. */
     val cacheKey: String,
 )

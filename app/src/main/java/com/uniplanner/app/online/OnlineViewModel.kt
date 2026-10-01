@@ -63,6 +63,15 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
     val groups: StateFlow<List<Group>> = uid.flatMapLatest { id -> listFlow(id) { repo!!.groups(it) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    init {
+        // Loads this account's encryption keys once signed in, and drops them on sign-out.
+        viewModelScope.launch {
+            uid.collect { id ->
+                if (id == null) ChatCrypto.forget() else runCatching { ChatCrypto.prepare(getApplication(), id) }
+            }
+        }
+    }
+
     private val readPrefs = app.getSharedPreferences("chat_read", Context.MODE_PRIVATE)
     private val readAt = MutableStateFlow(readPrefs.all.mapValues { (it.value as? Long) ?: 0L })
 

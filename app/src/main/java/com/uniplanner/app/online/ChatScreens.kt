@@ -64,6 +64,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -153,6 +154,7 @@ fun SocialScreen(vm: OnlineViewModel, onOpenChat: (ChatKind, String) -> Unit) {
         SignInScreen(vm)
         return
     }
+    E2ePinPrompt()
     val conversations by vm.conversations.collectAsStateWithLifecycle()
     val friendships by vm.friendships.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
@@ -222,11 +224,16 @@ fun SocialScreen(vm: OnlineViewModel, onOpenChat: (ChatKind, String) -> Unit) {
                 Avatar(c.title, group = c.kind == ChatKind.GROUP, uid = friendUid(c.kind, c.id, uid))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(c.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    // An encrypted preview is opened on the phone; until then it shows a lock.
+                    val e2e by ChatCrypto.state.collectAsStateWithLifecycle()
+                    val lastText by produceState(c.last?.text?.takeUnless(ChatCrypto::isSealedPreview) ?: UNREADABLE, c.last?.text, e2e) {
+                        value = c.last?.text?.let { ChatCrypto.openPreview(c.kind, c.id, it) } ?: UNREADABLE
+                    }
                     val preview = c.last?.let { last ->
                         when {
-                            last.byUid == me -> stringResource(R.string.chat_you) + ": " + last.text
-                            c.kind == ChatKind.GROUP -> last.byName.substringBefore(' ') + ": " + last.text
-                            else -> last.text
+                            last.byUid == me -> stringResource(R.string.chat_you) + ": " + lastText
+                            c.kind == ChatKind.GROUP -> last.byName.substringBefore(' ') + ": " + lastText
+                            else -> lastText
                         }
                     } ?: stringResource(if (c.kind == ChatKind.GROUP) R.string.chat_group_new else R.string.chat_friend_new, c.memberCount)
                     Text(
@@ -367,6 +374,7 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
     val groups by vm.groups.collectAsStateWithLifecycle()
     val friendships by vm.friendships.collectAsStateWithLifecycle()
     val messages by remember(kind, id) { vm.messages(kind, id) }.collectAsState(initial = emptyList())
+    E2ePinPrompt()
     val conversation = conversations.firstOrNull { it.kind == kind && it.id == id }
     val group = groups.firstOrNull { it.id == id }.takeIf { kind == ChatKind.GROUP }
     var text by remember { mutableStateOf("") }

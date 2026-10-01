@@ -614,4 +614,21 @@
     <string name="whats_new_version">Version %s</string>
     <string name="whats_new_ok">Nice!</string>
     <string name="splash_tagline">Your whole semester, in one place.</string>
+    <string name="e2e_new_title">Protect your chats 🔒</string>
+    <string name="e2e_new_text">Messages, photos and calls are now end-to-end encrypted: only you and the people in the chat can see them. Choose a 6-digit PIN to get them back if you change phones or clear the app\'s data.</string>
+    <string name="e2e_new_lost">Choose a new PIN. Older encrypted messages can no longer be read on this phone.</string>
+    <string name="e2e_pin">PIN (6 digits)</string>
+    <string name="e2e_pin_again">Repeat the PIN</string>
+    <string name="e2e_pin_mismatch">The PINs do not match.</string>
+    <string name="e2e_offline">Could not save it. Check your internet.</string>
+    <string name="e2e_create">Create PIN</string>
+    <string name="e2e_enter_title">Enter your PIN</string>
+    <string name="e2e_enter_text">To get your encrypted chats back, enter the PIN you chose.</string>
+    <string name="e2e_wrong">Wrong PIN. Try again.</string>
+    <string name="e2e_unlock">Restore</string>
+    <string name="e2e_forgot">I forgot it</string>
+    <string name="e2e_forgot_title">Start with a new PIN?</string>
+    <string name="e2e_forgot_text">Without the old PIN, the encrypted messages you had cannot be read. New ones work as usual.</string>
+    <string name="e2e_forgot_yes">New PIN</string>
+    <string name="e2e_back">Back</string>
 </resources>

@@ -24,6 +24,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.tasks.await
 import java.util.Date
@@ -119,6 +121,13 @@ object Online {
 
     fun friendshipId(a: String, b: String): String = listOf(a, b).sorted().joinToString("_")
 }
+
+internal fun conversationOf(kind: ChatKind, id: String) =
+    if (kind == ChatKind.FRIEND) Firebase.firestore.collection("friendships").document(id) else Firebase.firestore.collection("groups").document(id)
+
+// Group messages live in "posts", where the first version of groups kept them.
+internal fun chatMessages(kind: ChatKind, id: String) =
+    conversationOf(kind, id).collection(if (kind == ChatKind.FRIEND) "messages" else "posts")
 
 class OnlineRepository {
     private val auth: FirebaseAuth get() = Firebase.auth
@@ -362,12 +371,8 @@ class OnlineRepository {
 
     // --- Chat --------------------------------------------------------------
 
-    private fun conversation(kind: ChatKind, id: String) =
-        if (kind == ChatKind.FRIEND) db.collection("friendships").document(id) else db.collection("groups").document(id)
-
-    // Group messages live in "posts", where the first version of groups kept them.
-    private fun messagesOf(kind: ChatKind, id: String) =
-        conversation(kind, id).collection(if (kind == ChatKind.FRIEND) "messages" else "posts")
+    private fun conversation(kind: ChatKind, id: String) = conversationOf(kind, id)
+    private fun messagesOf(kind: ChatKind, id: String) = chatMessages(kind, id)
 
     fun messages(kind: ChatKind, id: String): Flow<List<ChatMessage>> = callbackFlow {
         val reg = messagesOf(kind, id).orderBy("createdAt", Query.Direction.DESCENDING).limit(300)
@@ -376,20 +381,38 @@ class OnlineRepository {
                     close(e)
                     return@addSnapshotListener
                 }
-                trySend(
-                    snap?.documents.orEmpty().map { d -> message(kind, id, d) },
-                )
+                trySend(snap?.documents.orEmpty())
             }
         awaitClose { reg.remove() }
-    }.retrying()
+    }.retrying().combine(ChatCrypto.state) { docs, _ -> docs }.map { docs ->
+        // Encrypted messages need the conversation's keys; the server is asked only for a new key id.
+        val needed = docs.mapNotNull { it.get("kid") as? String }.toSet()
+        if (needed.isNotEmpty()) runCatching { ChatCrypto.keys(kind, id, needed) }
+        docs.map { d -> message(kind, id, d) }
+    }
 
     /**
      * Any member can write any fields, so each one is read as the type it should have and a
      * malformed message shows as empty instead of stopping the chat.
      */
     private fun message(kind: ChatKind, chatId: String, d: DocumentSnapshot): ChatMessage {
-        fun str(field: String) = d.get(field) as? String
-        fun num(field: String) = d.get(field) as? Number
+        val kid = d.get("kid") as? String
+        val sealed = d.get("enc") as? String
+        val open = if (sealed != null) ChatCrypto.openFields(chatId, kid, sealed) else null
+        // An encrypted message takes its fields from the sealed part; the rest stays as it is.
+        fun str(field: String) = if (open != null && open.has(field)) open.optString(field) else d.get(field) as? String
+        fun num(field: String) = if (open != null && open.has(field)) open.opt(field) as? Number else d.get(field) as? Number
+        if (sealed != null && open == null) {
+            return ChatMessage(
+                id = d.id,
+                authorId = (d.get("authorId") as? String).orEmpty(),
+                authorName = (d.get("authorName") as? String).orEmpty(),
+                text = UNREADABLE,
+                createdAt = ((d.get("createdAt", DocumentSnapshot.ServerTimestampBehavior.ESTIMATE) as? Timestamp)?.toDate()?.time)
+                    ?: System.currentTimeMillis(),
+                pending = d.metadata.hasPendingWrites(),
+            )
+        }
         val text = str("text").orEmpty()
         val link = str("link").orEmpty()
         val type = MessageType.of(str("type"))
@@ -415,7 +438,10 @@ class OnlineRepository {
                     mime = str("mime") ?: "application/octet-stream",
                     width = num("width")?.toInt() ?: 0,
                     height = num("height")?.toInt() ?: 0,
-                    thumb = (d.get("thumb") as? Blob)?.toBytes(),
+                    thumb = (d.get("thumb") as? Blob)?.toBytes()?.let { t ->
+                        if (sealed != null) ChatCrypto.openBytes(chatId, kid, t, "thumb|$blobId") else t
+                    },
+                    kid = if (sealed != null) kid else null,
                     cacheKey = Attachments.cacheKey(kind, chatId, blobId),
                 )
             } else {
@@ -435,15 +461,33 @@ class OnlineRepository {
         post(me, kind, id, mapOf("text" to clean), preview = clean)
     }
 
+    /** The conversation key to write with, or null when this phone has no key pair (old chats stay readable). */
+    private suspend fun sendingKey(kind: ChatKind, id: String) = runCatching { ChatCrypto.keyForSending(kind, id) }.getOrNull()
+
     private suspend fun post(me: Profile, kind: ChatKind, id: String, fields: Map<String, Any>, preview: String) {
-        write(me, kind, id, fields, preview).await()
+        write(me, kind, id, fields, preview, sendingKey(kind, id)).await()
     }
 
     /**
      * Writes a message and keeps it as the conversation's newest, in one go. Firestore keeps it on
      * the phone until it reaches the server, so callers need not wait for the returned task.
      */
-    private fun write(me: Profile, kind: ChatKind, id: String, fields: Map<String, Any>, preview: String): Task<Void> {
+    private fun write(
+        me: Profile,
+        kind: ChatKind,
+        id: String,
+        fields: Map<String, Any>,
+        preview: String,
+        key: Pair<String, ByteArray>?,
+    ): Task<Void> {
+        // With a key, everything but the type and the attachment's location is sealed.
+        val stored = if (key == null) {
+            fields
+        } else {
+            val open = fields.filterKeys { it in PUBLIC_FIELDS }
+            open + ChatCrypto.sealFields(id, key, fields.filterKeys { it !in PUBLIC_FIELDS })
+        }
+        val shownPreview = if (key == null) preview.take(200) else ChatCrypto.sealPreview(id, key, preview.take(200))
         val batch = db.batch()
         val col = messagesOf(kind, id)
         batch.set(
@@ -454,12 +498,12 @@ class OnlineRepository {
                 "text" to "",
                 "link" to "",
                 "createdAt" to FieldValue.serverTimestamp(),
-            ) + fields,
+            ) + stored,
         )
         batch.update(
             conversation(kind, id),
             mapOf(
-                "lastText" to preview.take(200),
+                "lastText" to shownPreview,
                 "lastAt" to FieldValue.serverTimestamp(),
                 "lastBy" to me.uid,
                 "lastName" to me.name,
@@ -475,15 +519,17 @@ class OnlineRepository {
      * A photo or file. The pieces are written first and have no "createdAt", so the message list,
      * which is ordered by it, never shows them; the message comes last and points at them.
      */
-    fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String): Task<Void> {
+    suspend fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String): Task<Void> {
+        val key = sendingKey(kind, id)
         val col = messagesOf(kind, id)
         val parts = Attachments.partsOf(out.bytes.size)
         for (i in 0 until parts) {
             val from = i * Attachments.PART_BYTES
             val to = minOf(out.bytes.size, from + Attachments.PART_BYTES)
             // Not awaited: writes reach the server in order, so the pieces always land before the message.
+            val piece = out.bytes.copyOfRange(from, to).let { if (key == null) it else ChatCrypto.sealBytes(id, key, it, "part|$blobId|$i") }
             col.document(Attachments.partId(blobId, i)).set(
-                mapOf("authorId" to me.uid, "part" to i, "data" to Blob.fromBytes(out.bytes.copyOfRange(from, to))),
+                mapOf("authorId" to me.uid, "part" to i, "data" to Blob.fromBytes(piece)),
             )
         }
         val fields = buildMap<String, Any> {
@@ -495,19 +541,25 @@ class OnlineRepository {
             put("mime", out.mime)
             if (out.width > 0) put("width", out.width)
             if (out.height > 0) put("height", out.height)
-            out.thumb?.let { put("thumb", Blob.fromBytes(it)) }
+            out.thumb?.let { put("thumb", Blob.fromBytes(if (key == null) it else ChatCrypto.sealBytes(id, key, it, "thumb|$blobId"))) }
         }
-        return write(me, kind, id, fields, preview)
+        return write(me, kind, id, fields, preview, key)
     }
 
-    fun sendPlace(me: Profile, kind: ChatKind, id: String, place: SharedPlace, preview: String): Task<Void> =
-        write(me, kind, id, mapOf("type" to MessageType.LOCATION.key, "text" to place.name, "lat" to place.lat, "lng" to place.lng), preview)
+    suspend fun sendPlace(me: Profile, kind: ChatKind, id: String, place: SharedPlace, preview: String): Task<Void> =
+        write(
+            me, kind, id,
+            mapOf("type" to MessageType.LOCATION.key, "text" to place.name, "lat" to place.lat, "lng" to place.lng),
+            preview,
+            sendingKey(kind, id),
+        )
 
     /** Downloads the pieces of a photo or file and puts them back together. */
     suspend fun download(kind: ChatKind, id: String, a: Attachment): ByteArray? {
         val col = messagesOf(kind, id)
         val pieces = (0 until a.parts).map { i ->
-            (col.document(Attachments.partId(a.blobId, i)).get().await().get("data") as? Blob)?.toBytes() ?: return null
+            val piece = (col.document(Attachments.partId(a.blobId, i)).get().await().get("data") as? Blob)?.toBytes() ?: return null
+            if (a.kid == null) piece else ChatCrypto.openBytes(id, a.kid, piece, "part|${a.blobId}|$i") ?: return null
         }
         return pieces.fold(ByteArray(0)) { all, p -> all + p }
     }
@@ -536,6 +588,12 @@ class OnlineRepository {
         batch.commit().await()
     }
 }
+
+/** Kept readable on an encrypted message: what kind it is and where an attachment's pieces are. */
+private val PUBLIC_FIELDS = setOf("type", "blobId", "parts", "thumb")
+
+/** Shown for a message this phone has no key for. */
+const val UNREADABLE = "🔒"
 
 /**
  * A listener that failed (no network yet, or a permission the server has not caught up with, such
