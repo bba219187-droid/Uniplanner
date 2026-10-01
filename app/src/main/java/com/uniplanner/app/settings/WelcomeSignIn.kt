@@ -100,8 +100,6 @@ fun WelcomeSignIn() {
                             // Profile and timetable are back; only the location and permissions are asked again.
                             Welcome.setReturning(ctx, true)
                             PersonalSettings.save(ctx, p.copy(done = false))
-                        } else if (p.name.isBlank() && !user.displayName.isNullOrBlank()) {
-                            PersonalSettings.save(ctx, p.copy(name = user.displayName.orEmpty()))
                         }
                     }
                     true

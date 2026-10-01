@@ -84,10 +84,24 @@ object CloudSettings {
                 if (source == TimetableSource.PORTAL || source == TimetableSource.CALENDAR) TimetableSync.schedule(app)
             }
         }
+        runCatching { fillName(uid) }
         runCatching { ProfilePhoto.restore(app, uid) }
         pulledFor = uid
         gotProfile
     }.also { push() }
+
+    /**
+     * A profile without a name takes the account's: the Google name (e.g. "Pedro Oliveira"),
+     * or the name on the online profile. A name the student typed is never replaced.
+     */
+    private suspend fun fillName(uid: String) {
+        val p = PersonalSettings.get(app)
+        if (p.name.isNotBlank()) return
+        val name = Firebase.auth.currentUser?.displayName?.takeIf { it.isNotBlank() }
+            ?: Firebase.firestore.collection("users").document(uid).get().await().getString("name")?.takeIf { it.isNotBlank() }
+            ?: return
+        PersonalSettings.save(app, PersonalSettings.get(app).copy(name = name.trim()))
+    }
 
     /** Uploads the profile and timetable, once the account's copy has been read. */
     private suspend fun push() {
