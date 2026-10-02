@@ -37,11 +37,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.lerp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import com.uniplanner.app.R
 import com.uniplanner.app.ui.theme.Bricolage
 import com.uniplanner.app.ui.theme.Coral
 import com.uniplanner.app.ui.theme.Ink
 import com.uniplanner.app.ui.theme.Mono
+import com.uniplanner.app.ui.theme.Paper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -55,15 +65,14 @@ private val areaCards = listOf(
     AreaCard("👋", R.string.tab_social, Color(0xFFEADCF5)),
 )
 
-/** The app's mark: the cap on a dark ink tile, like the launcher icon. */
+/** The app's mark: the "U" catching the coral ball, on a dark ink tile like the launcher icon. */
 @Composable
 fun AppMark(size: Int = 76) {
     Box(
         Modifier.size(size.dp).clip(RoundedCornerShape((size * 0.28f).dp)).background(Ink),
         contentAlignment = Alignment.Center,
     ) {
-        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size((size * 1.15f).dp))
-        Box(Modifier.align(Alignment.TopEnd).padding((size * 0.16f).dp).size((size * 0.12f).dp).clip(CircleShape).background(Coral))
+        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size((size * 1.5f).dp))
     }
 }
 
@@ -113,62 +122,126 @@ fun AreaCards(modifier: Modifier = Modifier, animate: Boolean = true) {
     }
 }
 
-/** Opening screen: the area cards, the name, a short line, and the copyright. */
+private val burstEmojis = listOf("📚", "💪", "🍎", "👋", "📅", "⏱", "🎓", "🔥", "✏️", "🎧")
+private val letterColors = listOf(Color(0xFFDCE3FC), Color(0xFFDDEBD0), Color(0xFFF6E6C3), Color(0xFFEADCF5), Coral)
+
+/**
+ * The frenetic opening, about 1.8 seconds: the mark spins in and bounces, the areas burst out of
+ * it, the letters of the name slam down one by one and shake the screen, then a coral wave and a
+ * paper wave sweep it away into the app.
+ */
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
-    val title = remember { Animatable(0f) }
-    val bar = remember { Animatable(0f) }
+    val name = stringResource(R.string.app_name)
+    val mark = remember { Animatable(0f) }
+    val burst = remember { Animatable(0f) }
+    val letters = remember(name) { name.map { Animatable(0f) } }
+    val shake = remember { Animatable(0f) }
+    val tagline = remember { Animatable(0f) }
+    val coral = remember { Animatable(0f) }
+    val paper = remember { Animatable(0f) }
+    val bouncy = spring<Float>(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow)
+
     LaunchedEffect(Unit) {
-        delay(350)
-        title.animateTo(1f, tween(550, easing = FastOutSlowInEasing))
-    }
-    LaunchedEffect(Unit) {
-        bar.animateTo(1f, tween(1800, easing = FastOutSlowInEasing))
-        delay(150)
+        launch { mark.animateTo(1f, bouncy) }
+        launch {
+            delay(220)
+            burst.animateTo(1f, tween(750, easing = FastOutSlowInEasing))
+        }
+        letters.forEachIndexed { i, l ->
+            launch {
+                delay(480L + 45L * i)
+                l.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium))
+            }
+        }
+        launch {
+            delay(480L + 45L * letters.size + 80)
+            shake.animateTo(1f, tween(320, easing = LinearEasing))
+            tagline.animateTo(1f, tween(220))
+        }
+        delay(1_400)
+        launch { coral.animateTo(1f, tween(330, easing = FastOutSlowInEasing)) }
+        delay(170)
+        paper.animateTo(1f, tween(330, easing = FastOutSlowInEasing))
         onFinished()
     }
 
-    val colors = MaterialTheme.colorScheme
-    Column(
-        Modifier.fillMaxSize().background(colors.background).statusBarsPadding().navigationBarsPadding().padding(horizontal = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.weight(1f))
-        AreaCards()
-        Spacer(Modifier.height(40.dp))
+    val paperColor = MaterialTheme.colorScheme.background
+    BoxWithConstraints(Modifier.fillMaxSize().background(Ink)) {
+        val reach = kotlin.math.hypot(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+        // A decaying wobble while the last letters land.
+        val jolt = if (shake.value in 0.001f..0.999f) sin(shake.value * 40f) * (1f - shake.value) * 22f else 0f
+
+        // The areas fly out of the mark in every direction, spinning.
+        burstEmojis.forEachIndexed { i, e ->
+            val angle = i * (2 * PI / burstEmojis.size) + 0.3
+            val t = burst.value
+            Text(
+                e,
+                fontSize = 30.sp,
+                modifier = Modifier.align(Alignment.Center).graphicsLayer {
+                    translationX = (cos(angle) * t * reach * 0.42f).toFloat() + jolt
+                    translationY = (sin(angle) * t * reach * 0.42f).toFloat()
+                    rotationZ = t * 540f * (if (i % 2 == 0) 1 else -1)
+                    alpha = if (t < 0.7f) minOf(1f, t * 5f) else (1f - t) / 0.3f
+                    scaleX = 0.6f + t
+                    scaleY = 0.6f + t
+                },
+            )
+        }
+
         Column(
-            Modifier.graphicsLayer { translationY = (1f - title.value) * 30f }.alpha(title.value),
+            Modifier.align(Alignment.Center).graphicsLayer { translationX = jolt },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AppMark(56)
-            Spacer(Modifier.height(16.dp))
-            Text(
-                stringResource(R.string.app_name),
-                fontFamily = Bricolage,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 40.sp,
-                letterSpacing = (-1).sp,
-                color = colors.onBackground,
-            )
+            Box(
+                Modifier.graphicsLayer {
+                    scaleX = mark.value
+                    scaleY = mark.value
+                    rotationZ = (1f - mark.value) * -200f
+                },
+            ) { AppMark(96) }
+            Spacer(Modifier.height(26.dp))
+            Row {
+                name.forEachIndexed { i, ch ->
+                    val t = letters[i].value
+                    Text(
+                        ch.toString(),
+                        fontFamily = Bricolage,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 46.sp,
+                        letterSpacing = (-1).sp,
+                        // Each letter lands in a card colour and settles to paper as the screen shakes.
+                        color = lerp(letterColors[i % letterColors.size], Paper, shake.value),
+                        modifier = Modifier.graphicsLayer {
+                            translationY = (1f - t) * -260f
+                            rotationZ = (1f - t) * (if (i % 2 == 0) 25f else -25f)
+                            alpha = minOf(1f, t * 3f)
+                        },
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(R.string.splash_tagline),
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.onSurfaceVariant,
+                fontFamily = Mono,
+                fontSize = 13.sp,
+                color = Paper.copy(alpha = 0.7f * tagline.value),
             )
         }
-        Spacer(Modifier.height(28.dp))
-        // A thin coral line fills while the app gets ready.
-        Box(Modifier.width(120.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant)) {
-            Box(Modifier.fillMaxWidth(bar.value).height(4.dp).clip(CircleShape).background(colors.secondary))
-        }
-        Spacer(Modifier.weight(1f))
+
         Text(
             stringResource(R.string.splash_copyright),
             fontFamily = Mono,
             fontSize = 11.sp,
-            color = colors.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 20.dp),
+            color = Paper.copy(alpha = 0.45f),
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 20.dp),
         )
+
+        // Two waves from the centre: coral, then the app's own paper.
+        Canvas(Modifier.fillMaxSize()) {
+            if (coral.value > 0f) drawCircle(Coral, radius = reach * coral.value, center = center)
+            if (paper.value > 0f) drawCircle(paperColor, radius = reach * paper.value, center = center)
+        }
     }
 }
-
