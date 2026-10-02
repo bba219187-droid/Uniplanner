@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -92,7 +93,18 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 /** Big title at the top of a main screen, with an optional line under it. */
 @Composable
 fun ScreenHeader(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+    // The title drops in with a bounce each time the screen opens, echoing the entrance.
+    val drop = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        drop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
+    }
+    Column(
+        modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp).graphicsLayer {
+            translationY = (1f - drop.value) * -60f
+            rotationZ = (1f - drop.value) * -4f
+            alpha = drop.value.coerceIn(0f, 1f)
+        },
+    ) {
         if (subtitle != null) {
             Text(subtitle, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         }

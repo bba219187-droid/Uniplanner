@@ -1,11 +1,10 @@
 {
-  "id": "2026-10-02-entrada",
-  "title": "Entrada nova e ícone novo",
-  "intro": "A app abre agora com uma entrada cheia de energia e tem um ícone novo.",
+  "id": "2026-10-02-interface",
+  "title": "Interface com mais energia",
+  "intro": "A app inteira ganhou a energia da entrada.",
   "items": [
-    "Ícone novo: um \"U\" a apanhar uma bola coral.",
-    "Entrada frenética: o ícone entra a rodar, as áreas explodem, as letras caem e o ecrã treme.",
-    "Toque por omissão: a melodia Gran Vals dos telemóveis antigos.",
-    "Outros toques à escolha em Definições → Toque das chamadas, ou o toque do sistema."
+    "Transições entre abas com mola: o ecrã novo entra a deslizar e a crescer.",
+    "Barra de baixo: a aba escolhida fica coral e o ícone salta.",
+    "Os títulos de cada ecrã caem com um pequeno ressalto."
   ]
 }

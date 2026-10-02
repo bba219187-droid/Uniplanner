@@ -65,6 +65,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -352,9 +353,9 @@ private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) 
             val areas = PersonalSettings.flow(LocalContext.current).collectAsState().value?.areas ?: Area.entries.toSet()
             Tab.entries.filter { it.area == null || it.area in areas }.forEach { tab ->
                 val on = selected(tab)
-                val bg by animateColorAsState(if (on) colors.inverseOnSurface else Color.Transparent, label = "tabBg")
+                val bg by animateColorAsState(if (on) com.uniplanner.app.ui.theme.Coral else Color.Transparent, label = "tabBg")
                 val fg by animateColorAsState(
-                    if (on) colors.inverseSurface else colors.inverseOnSurface.copy(alpha = 0.6f),
+                    if (on) Color.White else colors.inverseOnSurface.copy(alpha = 0.6f),
                     label = "tabFg",
                 )
                 // With every tab on, a narrow phone shares the width so none is pushed off the bar.
@@ -364,7 +365,22 @@ private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) 
                             .clickable(role = Role.Tab) { onSelect(tab) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(tab.icon, contentDescription = stringResource(tab.label), tint = fg)
+                        // The chosen tab jumps and wiggles, like the letters of the entrance.
+                        val jump by androidx.compose.animation.core.animateFloatAsState(
+                            if (on) 1f else 0f,
+                            androidx.compose.animation.core.spring(dampingRatio = 0.32f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+                            label = "tabJump",
+                        )
+                        Icon(
+                            tab.icon,
+                            contentDescription = stringResource(tab.label),
+                            tint = fg,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = 1f + 0.18f * jump
+                                scaleY = 1f + 0.18f * jump
+                                rotationZ = (1f - jump) * if (on) -30f else 0f
+                            },
+                        )
                     }
                 }
             }
@@ -390,12 +406,22 @@ private fun direction(from: String?, to: String?): Int {
 
 private const val SLIDE_MS = 320
 
+// Springy, a little overshoot: the new screen swings in and grows into place, like the entrance.
+private val swing = androidx.compose.animation.core.spring(
+    dampingRatio = 0.78f,
+    stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+    visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1),
+)
+private val pop = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.6f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)
+
 private fun slideIn(direction: Int): EnterTransition =
-    slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { width -> direction * width } +
-        fadeIn(tween(SLIDE_MS))
+    slideInHorizontally(swing) { width -> direction * width } +
+        androidx.compose.animation.scaleIn(pop, initialScale = 0.88f) +
+        fadeIn(tween(SLIDE_MS / 2))
 
 private fun slideOut(direction: Int): ExitTransition =
     slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { width -> -direction * width / 3 } +
+        androidx.compose.animation.scaleOut(tween(SLIDE_MS), targetScale = 0.9f) +
         fadeOut(tween(SLIDE_MS))
 
 /** Checks once per launch whether a newer build was published and offers to install it. */
