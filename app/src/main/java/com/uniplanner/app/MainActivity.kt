@@ -213,6 +213,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        com.uniplanner.app.focus.FocusMode.leftApp(this)
+    }
+
     override fun onResume() {
         super.onResume()
         // Picks up tests and deadlines the student moved in the phone's agenda.

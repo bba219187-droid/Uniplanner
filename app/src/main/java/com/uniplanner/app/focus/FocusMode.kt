@@ -34,7 +34,18 @@ object FocusMode {
         }
         // Android asks once to confirm pinning; after that the app stays on screen until focus ends.
         runCatching { activity.startLockTask() }
-        prefs.edit().putBoolean("on", true).putLong("since", System.currentTimeMillis()).apply()
+        prefs.edit().putBoolean("on", true).putBoolean("left", false).putLong("since", System.currentTimeMillis()).apply()
+    }
+
+    /** True while focus is on but the app is no longer pinned (unpinned by swiping up, back + recents…). */
+    fun unpinned(ctx: Context): Boolean =
+        isOn(ctx) && ctx.getSystemService(android.app.ActivityManager::class.java)?.lockTaskModeState ==
+            android.app.ActivityManager.LOCK_TASK_MODE_NONE
+
+    /** The app went to the background with the screen on: this focus session no longer counts. */
+    fun leftApp(ctx: Context) {
+        val screenOn = ctx.getSystemService(android.os.PowerManager::class.java)?.isInteractive != false
+        if (isOn(ctx) && screenOn) ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("left", true).apply()
     }
 
     /** Study done with focus on, as (start, minutes): the only time that counts for achievements. */
@@ -62,7 +73,7 @@ object FocusMode {
         val since = prefs.getLong("since", 0L)
         val minutes = if (since > 0) ((System.currentTimeMillis() - since) / 60_000).toInt() else 0
         val log = prefs.getString("log", "").orEmpty()
-        val entry = if (minutes > 0 && stillPinned) "$since,$minutes" else null
+        val entry = if (minutes > 0 && stillPinned && !prefs.getBoolean("left", false)) "$since,$minutes" else null
         prefs.edit().putBoolean("on", false).remove("since")
             .putString("log", listOfNotNull(log.takeIf { it.isNotBlank() }, entry).joinToString(";")).apply()
     }

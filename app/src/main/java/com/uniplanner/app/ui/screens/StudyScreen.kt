@@ -144,9 +144,16 @@ fun StudyScreen(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var manualFor by remember { mutableStateOf<Course?>(null) }
 
+    var focus by remember { mutableStateOf(com.uniplanner.app.focus.FocusMode.isOn(context)) }
     LaunchedEffect(startedAt) {
         while (startedAt != 0L) {
             now = System.currentTimeMillis()
+            // Unpinned mid-session: focus ends at once and this session earns nothing.
+            if (com.uniplanner.app.focus.FocusMode.unpinned(context)) {
+                com.uniplanner.app.focus.FocusMode.leftApp(context)
+                com.uniplanner.app.focus.FocusMode.stop(context as? android.app.Activity, context)
+                focus = false
+            }
             delay(1_000)
         }
     }
@@ -164,7 +171,6 @@ fun StudyScreen(
     val name = personal?.firstName?.takeIf { it.isNotBlank() }
         ?: FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
 
-    var focus by remember { mutableStateOf(com.uniplanner.app.focus.FocusMode.isOn(context)) }
 
     fun stop(course: Course) {
         com.uniplanner.app.focus.FocusMode.stop(context as? android.app.Activity, context)
