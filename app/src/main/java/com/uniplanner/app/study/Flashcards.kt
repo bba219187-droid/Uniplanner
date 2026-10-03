@@ -30,6 +30,10 @@ object Flashcards {
         return state as StateFlow<FlashState?>
     }
 
+    fun reload(ctx: Context) {
+        state.value = load(ctx)
+    }
+
     fun due(s: FlashState, deckId: Long): List<Flashcard> =
         s.cards.filter { it.deckId == deckId && it.dueDay <= today() }.sortedBy { it.box }
 

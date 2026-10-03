@@ -63,6 +63,8 @@ data class ChatMessage(
     val type: MessageType = MessageType.TEXT,
     val attachment: Attachment? = null,
     val place: SharedPlace? = null,
+    /** Set when the message is a note shared for a course; see the group's notes page. */
+    val course: String = "",
 )
 
 enum class ChatKind { FRIEND, GROUP }
@@ -486,6 +488,7 @@ class OnlineRepository {
             } else {
                 null
             },
+            course = str("course").orEmpty().take(80),
             place = if (type == MessageType.LOCATION && lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0) {
                 SharedPlace(lat, lng, text)
             } else {
@@ -498,6 +501,13 @@ class OnlineRepository {
         val clean = text.trim()
         if (clean.isEmpty()) return
         post(me, kind, id, mapOf("text" to clean), preview = clean)
+    }
+
+    /** A note for a course, shared in the chat and listed on the group's notes page. */
+    suspend fun sendNote(me: Profile, kind: ChatKind, id: String, course: String, text: String) {
+        val clean = text.trim()
+        if (clean.isEmpty() || course.isBlank()) return
+        post(me, kind, id, mapOf("text" to clean, "course" to course.trim()), preview = "📝 ${course.trim()}: $clean")
     }
 
     /** The conversation key to write with, or null when this phone has no key pair (old chats stay readable). */
@@ -560,7 +570,7 @@ class OnlineRepository {
      * A photo or file. The pieces are written first and have no "createdAt", so the message list,
      * which is ordered by it, never shows them; the message comes last and points at them.
      */
-    suspend fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String): Task<Void> {
+    suspend fun sendAttachment(me: Profile, kind: ChatKind, id: String, blobId: String, out: Outgoing, preview: String, course: String = ""): Task<Void> {
         val key = sendingKey(kind, id)
         val col = messagesOf(kind, id)
         val parts = Attachments.partsOf(out.bytes.size)
@@ -583,6 +593,7 @@ class OnlineRepository {
             if (out.width > 0) put("width", out.width)
             if (out.height > 0) put("height", out.height)
             out.thumb?.let { put("thumb", Blob.fromBytes(if (key == null) it else ChatCrypto.sealBytes(id, key, it, "thumb|$blobId"))) }
+            if (course.isNotBlank()) put("course", course.trim())
         }
         return write(me, kind, id, fields, preview, key)
     }

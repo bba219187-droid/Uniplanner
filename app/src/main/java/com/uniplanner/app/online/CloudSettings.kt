@@ -35,6 +35,8 @@ import org.json.JSONObject
 object CloudSettings {
     private const val PERSONAL = "personal"
     private const val TIMETABLE = "timetable"
+    private const val FLASHCARDS = "flashcards"
+    private const val GYM_PLAN = "gym_plan"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Mutex()
@@ -53,7 +55,7 @@ object CloudSettings {
             if (uid == null) pulledFor = null else scope.launch { runCatching { pull(uid) } }
         }
         scope.launch {
-            combine(PersonalSettings.flow(app), TimetableStore.flow(app)) { p, t -> p to t }
+            combine(PersonalSettings.flow(app), TimetableStore.flow(app), com.uniplanner.app.study.Flashcards.flow(app)) { p, t, f -> Triple(p, t, f) }
                 .drop(1)
                 .debounce(3_000)
                 .collect { runCatching { push() } }
@@ -82,6 +84,14 @@ object CloudSettings {
                 TimetableStore.reload(app)
                 val source = TimetableStore.get(app).source
                 if (source == TimetableSource.PORTAL || source == TimetableSource.CALENDAR) TimetableSync.schedule(app)
+            }
+            val cards = remote.getString(FLASHCARDS)
+            if (cards != null && com.uniplanner.app.study.Flashcards.flow(app).value?.decks.isNullOrEmpty()) {
+                restorePrefs(prefs(FLASHCARDS), cards)
+                com.uniplanner.app.study.Flashcards.reload(app)
+            }
+            remote.getString(GYM_PLAN)?.let { plan ->
+                if (prefs(GYM_PLAN).all.isEmpty()) restorePrefs(prefs(GYM_PLAN), plan)
             }
         }
         runCatching { fillName(uid) }
@@ -112,6 +122,8 @@ object CloudSettings {
         if (PersonalSettings.get(app).done) data[PERSONAL] = dumpPrefs(prefs(PERSONAL))
         val timetable = TimetableStore.get(app)
         if (timetable.slots.isNotEmpty() || timetable.source != TimetableSource.NONE) data[TIMETABLE] = dumpPrefs(prefs(TIMETABLE))
+        if (com.uniplanner.app.study.Flashcards.flow(app).value?.decks?.isNotEmpty() == true) data[FLASHCARDS] = dumpPrefs(prefs(FLASHCARDS))
+        if (prefs(GYM_PLAN).all.isNotEmpty()) data[GYM_PLAN] = dumpPrefs(prefs(GYM_PLAN))
         if (data.size == 1) return
         doc(uid).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
     }

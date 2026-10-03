@@ -466,6 +466,11 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
 
     LaunchedEffect(messages.firstOrNull()?.id) { vm.markRead(kind, id, messages.firstOrNull { !it.pending }?.createdAt) }
     OnlineMessages(vm)
+    var showNotes by remember { mutableStateOf(false) }
+    if (showNotes) {
+        GroupNotesPage(vm, kind, id, messages, onClose = { showNotes = false })
+        return
+    }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(
@@ -503,6 +508,7 @@ fun ChatScreen(vm: OnlineViewModel, kind: ChatKind, id: String, onBack: () -> Un
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.chat_options)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("📝 Apontamentos") }, onClick = { menu = false; showNotes = true })
                     if (group != null) {
                         val shareText = stringResource(R.string.groups_share_text, group.name, group.inviteCode)
                         DropdownMenuItem(

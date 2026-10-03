@@ -143,7 +143,10 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun sendFile(kind: ChatKind, id: String, uri: Uri) = sendEach(kind, id, listOf(uri)) { Attachments.file(getApplication(), it) }
+    fun sendFile(kind: ChatKind, id: String, uri: Uri, course: String = "") =
+        sendEach(kind, id, listOf(uri), course) { Attachments.file(getApplication(), it) }
+
+    fun sendNote(kind: ChatKind, id: String, course: String, text: String) = withProfile { r, me -> r.sendNote(me, kind, id, course, text) }
 
     private fun failed(e: Exception) {
         _error.value = e.localizedMessage ?: e.javaClass.simpleName
@@ -153,7 +156,7 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
      * Each item is handed to Firestore as soon as it is ready, without waiting for the server:
      * Firestore keeps it on the phone and sends it when there is internet, even after the app closes.
      */
-    private fun sendEach(kind: ChatKind, id: String, uris: List<Uri>, read: suspend (Uri) -> Outgoing?) = viewModelScope.launch {
+    private fun sendEach(kind: ChatKind, id: String, uris: List<Uri>, course: String = "", read: suspend (Uri) -> Outgoing?) = viewModelScope.launch {
         val r = repo ?: return@launch
         _sending.value += 1
         try {
@@ -176,7 +179,8 @@ class OnlineViewModel(app: Application) : AndroidViewModel(app) {
                     val blobId = r.newBlobId(kind, id)
                     Attachments.remember(getApplication(), Attachments.cacheKey(kind, id, blobId), out.bytes)
                     val preview = if (out.type == MessageType.IMAGE) text(R.string.chat_preview_photo) else text(R.string.chat_preview_file, out.fileName)
-                    r.sendAttachment(me, kind, id, blobId, out, preview).addOnFailureListener(::failed)
+                    val shown = if (course.isNotBlank()) "📝 $course: $preview" else preview
+                    r.sendAttachment(me, kind, id, blobId, out, shown, course).addOnFailureListener(::failed)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: TooBigException) {
