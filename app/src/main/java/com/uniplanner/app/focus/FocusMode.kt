@@ -34,18 +34,36 @@ object FocusMode {
         }
         // Android asks once to confirm pinning; after that the app stays on screen until focus ends.
         runCatching { activity.startLockTask() }
-        prefs.edit().putBoolean("on", true).apply()
+        prefs.edit().putBoolean("on", true).putLong("since", System.currentTimeMillis()).apply()
     }
+
+    /** Study done with focus on, as (start, minutes): the only time that counts for achievements. */
+    fun log(ctx: Context): List<Pair<Long, Int>> =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("log", "").orEmpty()
+            .split(';').mapNotNull { e ->
+                val (a, m) = e.split(',').takeIf { it.size == 2 } ?: return@mapNotNull null
+                val at = a.toLongOrNull() ?: return@mapNotNull null
+                val min = m.toIntOrNull() ?: return@mapNotNull null
+                at to min
+            }
 
     fun stop(activity: Activity?, ctx: Context) {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("on", false)) return
+        // Leaving the pin early (back + recents) means the screen was not locked: that time does not count.
+        val stillPinned = ctx.getSystemService(android.app.ActivityManager::class.java)?.lockTaskModeState !=
+            android.app.ActivityManager.LOCK_TASK_MODE_NONE
         runCatching { activity?.stopLockTask() }
         val nm = ctx.getSystemService(NotificationManager::class.java)
         if (canSilence(ctx) && nm != null) {
             val before = prefs.getInt("filter", NotificationManager.INTERRUPTION_FILTER_ALL)
             runCatching { nm.setInterruptionFilter(before) }
         }
-        prefs.edit().putBoolean("on", false).apply()
+        val since = prefs.getLong("since", 0L)
+        val minutes = if (since > 0) ((System.currentTimeMillis() - since) / 60_000).toInt() else 0
+        val log = prefs.getString("log", "").orEmpty()
+        val entry = if (minutes > 0 && stillPinned) "$since,$minutes" else null
+        prefs.edit().putBoolean("on", false).remove("since")
+            .putString("log", listOfNotNull(log.takeIf { it.isNotBlank() }, entry).joinToString(";")).apply()
     }
 }

@@ -57,7 +57,9 @@ private data class Badge(val emoji: String, val name: String, val how: String, v
 @Composable
 fun AchievementsScreen(vm: AppViewModel) {
     val ctx = LocalContext.current
-    val study by vm.allStudy.collectAsStateWithLifecycle()
+    // Only study done with focus mode on (the app pinned to the screen) counts here.
+    val focused = remember { com.uniplanner.app.focus.FocusMode.log(ctx) }
+    val study = focused.map { (at, min) -> com.uniplanner.app.data.StudySession(courseId = 0, startedAt = at, minutes = min) }
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     val deadlines by vm.deadlines.collectAsStateWithLifecycle()
     val flash = Flashcards.flow(ctx).collectAsState().value ?: FlashState()
@@ -98,6 +100,13 @@ fun AchievementsScreen(vm: AppViewModel) {
     ) {
         item(span = { GridItemSpan(3) }) { ScreenHeader("Conquistas", "$earned de ${badges.size} desbloqueadas") }
         item(span = { GridItemSpan(3) }) { StreakHero(streak, best) }
+        item(span = { GridItemSpan(3) }) {
+            Text(
+                "🔒 Só conta o estudo feito com o modo foco ligado.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         itemsIndexed(badges) { i, b -> BadgeTile(b, i) }
         item(span = { GridItemSpan(3) }) { Spacer(Modifier.height(24.dp)) }
     }
@@ -127,7 +136,7 @@ private fun StreakHero(streak: Int, best: Int) {
         Spacer(Modifier.padding(8.dp))
         Column {
             Text("$streak", fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, color = Color.White)
-            Text(if (streak == 1) "dia seguido a estudar" else "dias seguidos a estudar", color = Color.White.copy(alpha = 0.75f))
+            Text(if (streak == 1) "dia seguido em modo foco" else "dias seguidos em modo foco", color = Color.White.copy(alpha = 0.75f))
             Text("Recorde: $best", fontFamily = Mono, fontSize = 12.sp, color = Coral)
         }
     }
