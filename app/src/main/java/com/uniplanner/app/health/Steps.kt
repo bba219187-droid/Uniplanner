@@ -40,7 +40,7 @@ object Steps {
         permission == null || ContextCompat.checkSelfPermission(ctx, permission) == PackageManager.PERMISSION_GRANTED
 
     fun schedule(ctx: Context) {
-        if (!hasSensor(ctx) || !hasPermission(ctx)) return
+        if (!(hasSensor(ctx) && hasPermission(ctx)) && !HealthConnectSteps.available(ctx)) return
         val request = PeriodicWorkRequestBuilder<StepWorker>(30, TimeUnit.MINUTES).build()
         WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, request)
     }
@@ -67,11 +67,14 @@ object Steps {
 
     /** Reads the sensor and adds the new steps to the right days. */
     suspend fun refresh(ctx: Context) = lock.withLock {
-        if (!hasPermission(ctx)) return@withLock
+        // Health Connect, when allowed, has the fuller count (watch, Samsung Health, other apps).
+        val fromHealthConnect = HealthConnectSteps.sync(ctx, days = 7)
+        if (!hasSensor(ctx) || !hasPermission(ctx)) return@withLock
         val counter = readCounter(ctx) ?: return@withLock
         val (reading, add) = StepTracker.update(HealthPrefs.lastStepReading(ctx), LocalDate.now().toString(), counter)
         val dao = AppDatabase.get(ctx).health()
-        if (add.isNotEmpty()) {
+        // With Health Connect the phone's steps are already in its count; only keep the sensor in step.
+        if (add.isNotEmpty() && !fromHealthConnect) {
             val known = dao.steps().associate { it.day to it.count }
             add.forEach { (day, steps) -> dao.putSteps(StepDay(day, (known[day] ?: 0) + steps)) }
         }

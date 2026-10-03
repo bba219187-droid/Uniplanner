@@ -676,4 +676,23 @@
     <string name="tone_marimba">Marimba</string>
     <string name="tone_soft">Soft</string>
     <string name="tone_system">System ringtone</string>
+    <string name="range_week">7 days</string>
+    <string name="range_month">30 days</string>
+    <string name="range_year">1 year</string>
+    <string name="range_all">All</string>
+    <string name="history_weight">Your weight</string>
+    <string name="history_bmi">Your BMI</string>
+    <string name="history_steps">Your steps</string>
+    <string name="history_empty">Nothing recorded in this period yet.</string>
+    <string name="history_entries">Every record</string>
+    <string name="history_total">Total</string>
+    <string name="history_average">Daily average</string>
+    <string name="history_best">Best day</string>
+    <string name="history_start">Start</string>
+    <string name="history_now">Now</string>
+    <string name="history_change">Change</string>
+    <string name="health_steps_unit">steps</string>
+    <string name="health_connect_why">If your phone does not count steps here, link Health Connect: it brings the steps from Samsung Health, Google Fit or your watch, including past days.</string>
+    <string name="health_connect_link">Link Health Connect</string>
+    <string name="health_connect_short">Link steps</string>
 </resources>

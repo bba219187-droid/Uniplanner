@@ -120,6 +120,33 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
     var addingFood by remember { mutableStateOf(false) }
     var pasting by remember { mutableStateOf(false) }
     var stepsAllowed by remember { mutableStateOf(Steps.hasPermission(context)) }
+    var history by remember { mutableStateOf<HealthMetric?>(null) }
+    val allSteps by vm.steps.collectAsStateWithLifecycle()
+    val hcAvailable = remember { HealthConnectSteps.available(context) }
+    val hcInstallable = remember { HealthConnectSteps.canInstall(context) }
+    var hcGranted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { hcGranted = HealthConnectSteps.granted(context) }
+    val askHealthConnect = rememberLauncherForActivityResult(
+        androidx.health.connect.client.PermissionController.createRequestPermissionResultContract(),
+    ) { got ->
+        hcGranted = got.isNotEmpty()
+        if (hcGranted) vm.syncHealthConnect()
+    }
+    val linkSteps: () -> Unit = {
+        if (hcAvailable) {
+            askHealthConnect.launch(HealthConnectSteps.permissions)
+        } else {
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("market://details?id=com.google.android.apps.healthdata"),
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+        }
+    }
+    val canLinkSteps = !hcGranted && (hcAvailable || hcInstallable)
 
     val askSteps = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         stepsAllowed = ok
@@ -170,25 +197,41 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         item {
             CleanCard {
                 Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
-                    Stat(stringResource(R.string.health_bmi), bmiText(kg, profile?.heightCm), bmiNote(kg, profile?.heightCm), Modifier.weight(1f).clickable { editingProfile = true })
+                    Stat(
+                        stringResource(R.string.health_bmi),
+                        bmiText(kg, profile?.heightCm),
+                        bmiNote(kg, profile?.heightCm),
+                        Modifier.weight(1f).combinedClickable(
+                            onClick = { if (kg != null && profile?.heightCm != null) history = HealthMetric.BMI else editingProfile = true },
+                            onLongClick = { editingProfile = true },
+                        ),
+                    )
                     VerticalDivider(Modifier.padding(horizontal = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Stat(
                         stringResource(R.string.health_weight),
                         kg?.let { formatKg(it) } ?: "—",
                         if (kg != null) "kg" else stringResource(R.string.health_weight_hint),
-                        Modifier.weight(1f).clickable { addingWeight = true },
+                        Modifier.weight(1f).clickable { if (weights.isEmpty()) addingWeight = true else history = HealthMetric.WEIGHT },
                     )
                     VerticalDivider(Modifier.padding(horizontal = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Column(Modifier.weight(1f)) {
-                        Stat(stringResource(R.string.health_steps), if (hasSensor && stepsAllowed) "%,d".format(steps) else "—", "/ %,d".format(stepGoal), Modifier)
-                        if (hasSensor && !stepsAllowed) {
+                    Column(Modifier.weight(1f).clickable { history = HealthMetric.STEPS }) {
+                        val counting = (hasSensor && stepsAllowed) || hcGranted
+                        Stat(stringResource(R.string.health_steps), if (counting) "%,d".format(steps) else "—", "/ %,d".format(stepGoal), Modifier)
+                        if (!counting && canLinkSteps && !(hasSensor && !stepsAllowed)) {
+                            Text(
+                                stringResource(R.string.health_connect_short),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(top = 4.dp).clickable { linkSteps() },
+                            )
+                        } else if (hasSensor && !stepsAllowed && !hcGranted) {
                             Text(
                                 stringResource(R.string.health_steps_allow),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.padding(top = 4.dp).clickable { Steps.permission?.let { askSteps.launch(it) } },
                             )
-                        } else if (hasSensor) {
+                        } else if (counting) {
                             Spacer(Modifier.height(8.dp))
                             ThinBar((steps.toFloat() / stepGoal).coerceIn(0f, 1f))
                         }
@@ -261,6 +304,23 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         item { Spacer(Modifier.height(24.dp)) }
     }
 
+    history?.let { metric ->
+        val values = when (metric) {
+            HealthMetric.WEIGHT -> weights.map { DayValue(it.at.toDay(), it.kg, it.id) }
+            HealthMetric.BMI -> profile?.heightCm?.let { h -> weights.map { DayValue(it.at.toDay(), Health.bmi(it.kg, h)) } }.orEmpty()
+            HealthMetric.STEPS -> allSteps.mapNotNull { s ->
+                runCatching { java.time.LocalDate.parse(s.day) }.getOrNull()?.let { DayValue(it, s.count.toDouble()) }
+            }
+        }
+        HealthHistorySheet(
+            metric = metric,
+            values = values,
+            onDismiss = { history = null },
+            onAddWeight = { addingWeight = true },
+            onDeleteWeight = { vm.deleteWeight(it) },
+            stepsHelp = if (metric == HealthMetric.STEPS && canLinkSteps) ({ HealthConnectButton(linkSteps) }) else null,
+        )
+    }
     if (editingProfile) {
         ProfileDialog(profile, onDismiss = { editingProfile = false }, onSave = { vm.saveProfile(it); editingProfile = false })
     }

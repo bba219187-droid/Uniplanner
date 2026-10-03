@@ -678,4 +678,23 @@
     <string name="tone_marimba">Marimba</string>
     <string name="tone_soft">Suave</string>
     <string name="tone_system">Toque do sistema</string>
+    <string name="range_week">7 dias</string>
+    <string name="range_month">30 dias</string>
+    <string name="range_year">1 ano</string>
+    <string name="range_all">Tudo</string>
+    <string name="history_weight">O teu peso</string>
+    <string name="history_bmi">O teu IMC</string>
+    <string name="history_steps">Os teus passos</string>
+    <string name="history_empty">Ainda não há registos neste período.</string>
+    <string name="history_entries">Todos os registos</string>
+    <string name="history_total">Total</string>
+    <string name="history_average">Média por dia</string>
+    <string name="history_best">Melhor dia</string>
+    <string name="history_start">Início</string>
+    <string name="history_now">Agora</string>
+    <string name="history_change">Diferença</string>
+    <string name="health_steps_unit">passos</string>
+    <string name="health_connect_why">Se o teu telemóvel não conta os passos aqui, liga o Health Connect: traz os passos do Samsung Health, Google Fit ou do relógio, incluindo dias anteriores.</string>
+    <string name="health_connect_link">Ligar ao Health Connect</string>
+    <string name="health_connect_short">Ligar passos</string>
 </resources>

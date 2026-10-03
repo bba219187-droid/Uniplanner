@@ -139,6 +139,16 @@ class HealthViewModel(app: Application) : AndroidViewModel(app) {
         MealReminders.rescheduleAll(ctx)
     }
 
+    fun deleteWeight(id: Long) = viewModelScope.launch {
+        weights.value.firstOrNull { it.id == id }?.let { dao.deleteWeight(it) }
+    }
+
+    /** After Health Connect is allowed: brings in the whole history it has. */
+    fun syncHealthConnect() = viewModelScope.launch {
+        Steps.schedule(ctx)
+        runCatching { HealthConnectSteps.sync(ctx) }
+    }
+
     fun refreshSteps() = viewModelScope.launch {
         Steps.schedule(ctx)
         runCatching { Steps.refresh(ctx) }
