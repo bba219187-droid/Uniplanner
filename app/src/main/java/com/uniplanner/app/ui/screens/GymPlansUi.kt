@@ -135,14 +135,14 @@ fun PlanCarousel(chosenId: String?, plans: List<GymPlan>, onOpen: (GymPlan) -> U
                     if (plan.id == chosenId) {
                         Text(
                             "A seguir",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clip(CircleShape).background(Coral).padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.inverseSurface).padding(horizontal = 8.dp, vertical = 3.dp),
                         )
                     }
                 }
-                Text(plan.name, fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink, maxLines = 1)
+                Text(plan.name, fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink, maxLines = 1)
                 Text(plan.goal, style = MaterialTheme.typography.bodySmall, color = Ink.copy(alpha = 0.7f), maxLines = 2, minLines = 2)
                 Text("${plan.level} · ${plan.perWeek}x/semana", fontFamily = Mono, fontSize = 11.sp, color = Ink.copy(alpha = 0.6f))
             }
@@ -160,7 +160,7 @@ fun PlanTodayCard(plan: GymPlan, day: PlanDay, onStart: () -> Unit, onOpen: () -
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Treino sugerido · ${plan.name}", fontSize = 12.sp, color = Ink.copy(alpha = 0.65f))
-            Text("${day.emoji} ${day.name}", fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
+            Text("${day.emoji} ${day.name}", fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
             Text("${day.exercises.size} exercícios · ~${day.minutes} min", fontFamily = Mono, fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
             Spacer(Modifier.height(6.dp))
             Button(onClick = onStart, colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)) {
@@ -193,7 +193,7 @@ fun PlanSheet(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(plan.colorArgb)).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text(plan.name, fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
+                    Text(plan.name, fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
                     Text("${plan.level} · ${plan.perWeek} treinos por semana", fontFamily = Mono, fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
                     Text(plan.about, style = MaterialTheme.typography.bodyMedium, color = Ink)
                 }
@@ -228,7 +228,7 @@ fun PlanSheet(
                 item(key = "d${day.name}") {
                     Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("${day.emoji} ${day.name}", fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                            Text("${day.emoji} ${day.name}", fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                             Text("~${day.minutes} min", fontFamily = Mono, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Button(onClick = { onStart(day) }) {

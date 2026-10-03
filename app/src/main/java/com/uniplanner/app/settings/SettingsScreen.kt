@@ -68,7 +68,7 @@ import com.uniplanner.app.ui.theme.Mono
 private data class Section(val key: String, val emoji: String, val title: String, val sub: String, val color: Color, val route: String? = null)
 
 private val sections = listOf(
-    Section("look", "🎨", "Aparência", "Tema claro, escuro ou automático", Color(0xFFEADCF5)),
+    Section("look", "🎨", "Aparência", "Temas, claro ou escuro", Color(0xFFEADCF5)),
     Section("language", "🌍", "Idioma", "Português ou inglês", Color(0xFFDCE3FC)),
     Section("calls", "📞", "Chamadas", "Toque das chamadas", Color(0xFFDDEBD0)),
     Section("alerts", "🔔", "Notificações", "Avisos de aulas, refeições e mensagens", Color(0xFFF6E6C3)),
@@ -143,7 +143,7 @@ private fun Tile(s: Section, modifier: Modifier, onClick: () -> Unit) {
             Text(s.emoji, fontSize = 22.sp)
         }
         Column {
-            Text(s.title, fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Ink, maxLines = 1)
+            Text(s.title, fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Ink, maxLines = 1)
             Text(s.sub, fontSize = 12.sp, color = Ink.copy(alpha = 0.65f), maxLines = 2, lineHeight = 15.sp)
         }
     }
@@ -164,7 +164,7 @@ private fun SectionPage(s: Section, onBack: () -> Unit) {
         ) {
             Text(s.emoji, fontSize = 34.sp)
             Spacer(Modifier.height(8.dp))
-            Text(s.title, fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = Ink)
+            Text(s.title, fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = Ink)
             Text(s.sub, color = Ink.copy(alpha = 0.7f))
         }
         when (s.key) {
@@ -218,6 +218,15 @@ private fun Look() {
     val ctx = LocalContext.current
     val theme by AppSettings.themeFlow(ctx).collectAsState()
     val modes = ThemeMode.entries
+    Text(stringResource(R.string.style_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 4.dp))
+    Text(
+        stringResource(R.string.style_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp),
+    )
+    StylePicker()
+    Text(stringResource(R.string.style_mode), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
     PillTabs(
         listOf(stringResource(R.string.theme_system), stringResource(R.string.theme_light), stringResource(R.string.theme_dark)),
         selected = modes.indexOf(theme ?: ThemeMode.SYSTEM),

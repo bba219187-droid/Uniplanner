@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.font.FontWeight
-import com.uniplanner.app.ui.theme.Ink
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -231,7 +230,7 @@ private fun StartCard(lastDone: Workout?, onStartNow: () -> Unit, onPlan: () -> 
             Button(
                 onClick = onStartNow,
                 modifier = Modifier.weight(1f).height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.inversePrimary, contentColor = Ink),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.inverseOnSurface, contentColor = MaterialTheme.colorScheme.inverseSurface),
             ) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(6.dp))

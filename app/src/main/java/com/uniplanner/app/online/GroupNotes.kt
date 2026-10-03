@@ -76,7 +76,7 @@ fun GroupNotesPage(vm: OnlineViewModel, kind: ChatKind, id: String, messages: Li
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.padding(top = 8.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
-            Text("Apontamentos", fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, modifier = Modifier.weight(1f))
+            Text("Apontamentos", fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, modifier = Modifier.weight(1f))
             Button(onClick = { adding = true }) { Text("Partilhar") }
         }
         LazyColumn(

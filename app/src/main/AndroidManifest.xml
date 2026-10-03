@@ -25,6 +25,18 @@
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- Music apps the study clock can open in the Play look. -->
+        <package android:name="com.spotify.music" />
+        <package android:name="com.google.android.apps.youtube.music" />
+        <package android:name="com.apple.android.music" />
+        <package android:name="deezer.android.app" />
+        <package android:name="com.soundcloud.android" />
+        <package android:name="com.amazon.mp3" />
+        <package android:name="com.aspiro.tidal" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_MUSIC" />
+        </intent>
     </queries>
 
     <application
