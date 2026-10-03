@@ -110,6 +110,10 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
     val setsByWorkout = sets.groupBy { it.workoutId }
     val lastDone = workouts.filter { it.done }.maxByOrNull { it.startsAt }
     val goal = PersonalSettings.flow(LocalContext.current).collectAsStateWithLifecycle().value?.gymPerWeek
+    val ctx = LocalContext.current
+    var chosenPlan by remember { mutableStateOf(com.uniplanner.app.domain.GymPlans.byId(GymPlanPrefs.chosen(ctx))) }
+    var openPlan by remember { mutableStateOf<com.uniplanner.app.domain.GymPlan?>(null) }
+    val doneTitles = workouts.filter { it.done }.sortedByDescending { it.startsAt }.map { it.title }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -123,6 +127,12 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
                 onPlan = { planning = false },
             )
         }
+        chosenPlan?.let { plan ->
+            item {
+                val day = com.uniplanner.app.domain.GymPlans.next(plan, doneTitles)
+                PlanTodayCard(plan, day, onStart = { vm.startPlanDay(plan, day) { onOpenWorkout(it) } }, onOpen = { openPlan = plan })
+            }
+        }
         item { WeekStrip(workouts, weekStart, zone) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -135,6 +145,8 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
                 )
             }
         }
+        item { SectionTitle("Planos prontos") }
+        item { PlanCarousel(chosenPlan?.id, com.uniplanner.app.domain.GymPlans.all) { openPlan = it } }
         if (sets.isNotEmpty()) item { ProgressCard(workouts, sets) }
         if (upcoming.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_next)) }
         items(upcoming, key = { "u${it.id}" }) { w ->
@@ -156,6 +168,21 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
             onCreate = { title, startsAt, minutes, copyFrom ->
                 planning = null
                 vm.createWorkout(title, startsAt, minutes, copyFrom) { id -> if (startNow) onOpenWorkout(id) }
+            },
+        )
+    }
+    openPlan?.let { plan ->
+        PlanSheet(
+            plan = plan,
+            following = chosenPlan?.id == plan.id,
+            onDismiss = { openPlan = null },
+            onFollow = { on ->
+                GymPlanPrefs.choose(ctx, if (on) plan.id else null)
+                chosenPlan = if (on) plan else null
+            },
+            onStart = { day ->
+                openPlan = null
+                vm.startPlanDay(plan, day) { onOpenWorkout(it) }
             },
         )
     }

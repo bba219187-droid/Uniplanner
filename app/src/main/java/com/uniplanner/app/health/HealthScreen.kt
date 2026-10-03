@@ -304,6 +304,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         item { Spacer(Modifier.height(24.dp)) }
     }
 
+    val stepsHelp: @Composable () -> Unit = { HealthConnectButton(linkSteps) }
     history?.let { metric ->
         val values = when (metric) {
             HealthMetric.WEIGHT -> weights.map { DayValue(it.at.toDay(), it.kg, it.id) }
@@ -318,7 +319,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
             onDismiss = { history = null },
             onAddWeight = { addingWeight = true },
             onDeleteWeight = { vm.deleteWeight(it) },
-            stepsHelp = if (metric == HealthMetric.STEPS && canLinkSteps) ({ HealthConnectButton(linkSteps) }) else null,
+            stepsHelp = stepsHelp.takeIf { metric == HealthMetric.STEPS && canLinkSteps },
         )
     }
     if (editingProfile) {

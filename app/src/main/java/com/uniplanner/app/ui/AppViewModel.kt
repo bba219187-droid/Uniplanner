@@ -155,6 +155,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             onCreated(id)
         }
 
+    /** Starts a day of a ready-made plan now, with its exercises and sets already in place. */
+    fun startPlanDay(plan: com.uniplanner.app.domain.GymPlan, day: com.uniplanner.app.domain.PlanDay, onCreated: (Long) -> Unit = {}) =
+        viewModelScope.launch {
+            val title = com.uniplanner.app.domain.GymPlans.title(plan, day)
+            val id = db.workouts().insert(Workout(title = title, startsAt = System.currentTimeMillis(), minutes = day.minutes))
+            var position = -1
+            db.exerciseSets().insertAll(
+                day.exercises.flatMap { e ->
+                    List(e.sets) { ExerciseSet(workoutId = id, exercise = e.name, position = ++position, reps = e.reps, weightKg = 0.0) }
+                },
+            )
+            onCreated(id)
+        }
+
     fun deleteExercise(workoutId: Long, exercise: String) = viewModelScope.launch {
         db.exerciseSets().deleteExercise(workoutId, exercise)
     }
