@@ -28,6 +28,8 @@ data class Personal(
     val university: String = "",
     val course: String = "",
     val year: Int? = null,
+    /** Secondary school instead of university: changes a few words and the year range. */
+    val secondary: Boolean = false,
 ) {
     val firstName: String get() = name.trim().substringBefore(' ')
 
@@ -71,6 +73,7 @@ object PersonalSettings {
             avatarColor = p.getInt("avatarColor", 0),
             university = p.getString("university", "").orEmpty(),
             course = p.getString("course", "").orEmpty(),
+            secondary = p.getBoolean("secondary", false),
             year = p.getInt("year", 0).takeIf { it > 0 },
         )
     }
@@ -90,6 +93,7 @@ object PersonalSettings {
             .putInt("avatarColor", value.avatarColor)
             .putString("university", value.university.trim())
             .putString("course", value.course.trim())
+            .putBoolean("secondary", value.secondary)
             .putInt("year", value.year ?: 0)
             .apply()
         state.value = value

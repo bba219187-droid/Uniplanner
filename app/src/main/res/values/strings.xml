@@ -613,7 +613,7 @@
     <string name="whats_new_title">What\'s new in %s</string>
     <string name="whats_new_version">Version %s</string>
     <string name="whats_new_ok">Nice!</string>
-    <string name="splash_tagline">Your whole semester, in one place.</string>
+    <string name="splash_tagline">University or high school: all in one place.</string>
     <string name="e2e_new_title">Protect your chats 🔒</string>
     <string name="e2e_new_text">Messages, photos and calls are now end-to-end encrypted: only you and the people in the chat can see them. Choose a 6-digit PIN to get them back if you change phones or clear the app\'s data.</string>
     <string name="e2e_new_lost">Choose a new PIN. Older encrypted messages can no longer be read on this phone.</string>

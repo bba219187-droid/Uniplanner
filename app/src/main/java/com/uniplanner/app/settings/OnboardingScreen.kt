@@ -311,6 +311,12 @@ private fun Answers(
                 Area.FRIENDS to stringResource(R.string.ob_area_friends),
             )
             var picked by remember { mutableStateOf(draft.areas) }
+            var secondary by remember { mutableStateOf(draft.secondary) }
+            Text("Onde estudas?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !secondary, onClick = { secondary = false }, label = { Text("🎓 Universidade", style = MaterialTheme.typography.titleSmall) })
+                FilterChip(selected = secondary, onClick = { secondary = true }, label = { Text("🏫 Secundário", style = MaterialTheme.typography.titleSmall) })
+            }
             Text(stringResource(R.string.ob_pick_many), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Area.entries.forEach { a ->
@@ -322,7 +328,7 @@ private fun Answers(
                 }
             }
             PrimaryButton(cont, enabled = picked.isNotEmpty()) {
-                onAnswer(Area.entries.filter { it in picked }.joinToString(", ") { labels.getValue(it) }) { it.copy(areas = picked) }
+                onAnswer(Area.entries.filter { it in picked }.joinToString(", ") { labels.getValue(it) }) { it.copy(areas = picked, secondary = secondary) }
             }
         }
         Question.STUDY_HOURS -> OneOf(listOf(5, 10, 15, 20, 30).map { it to "$it h" }) { h, label ->

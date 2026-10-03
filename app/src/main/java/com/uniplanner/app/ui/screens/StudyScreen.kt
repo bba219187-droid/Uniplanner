@@ -180,6 +180,14 @@ fun StudyScreen(
                         if (name != null) stringResource(R.string.study_hello, name) else stringResource(R.string.study_title),
                         style = MaterialTheme.typography.headlineMedium,
                     )
+                    personal?.let { p ->
+                        val where = listOfNotNull(
+                            if (p.secondary) "🏫 ${p.year?.let { "$it.º ano" } ?: "Secundário"}" else "🎓 ${p.year?.let { "$it.º ano" } ?: "Universidade"}",
+                            p.course.takeIf { it.isNotBlank() },
+                            p.university.takeIf { it.isNotBlank() },
+                        ).joinToString(" · ")
+                        Text(where, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                    }
                 }
                 Surface(onClick = onOpenProfile, shape = CircleShape, modifier = Modifier.size(44.dp)) {
                     com.uniplanner.app.settings.Avatar(personal ?: com.uniplanner.app.settings.Personal(), 44.dp, fallback = name ?: "U")

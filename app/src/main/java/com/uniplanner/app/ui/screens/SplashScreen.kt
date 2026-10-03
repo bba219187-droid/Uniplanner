@@ -122,7 +122,7 @@ fun AreaCards(modifier: Modifier = Modifier, animate: Boolean = true) {
     }
 }
 
-private val burstEmojis = listOf("📚", "💪", "🍎", "👋", "📅", "⏱", "🎓", "🔥", "✏️", "🎧")
+private val burstEmojis = listOf("🎓", "📚", "✏️", "🧪", "📐", "🏫", "📅", "⏱", "🧮", "💪", "🍎", "🔬")
 private val letterColors = listOf(Color(0xFFDCE3FC), Color(0xFFDDEBD0), Color(0xFFF6E6C3), Color(0xFFEADCF5), Coral)
 
 /**

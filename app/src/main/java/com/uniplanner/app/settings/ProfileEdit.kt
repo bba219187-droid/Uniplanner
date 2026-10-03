@@ -144,16 +144,24 @@ fun ProfileDialog(initial: Personal, onDismiss: () -> Unit, onSave: (Personal) -
                     label = { Text(stringResource(R.string.profile_field_name)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
+                androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(
+                        selected = !p.secondary, onClick = { p = p.copy(secondary = false) }, label = { Text("🎓 Universidade") },
+                    )
+                    androidx.compose.material3.FilterChip(
+                        selected = p.secondary, onClick = { p = p.copy(secondary = true) }, label = { Text("🏫 Secundário") },
+                    )
+                }
                 OutlinedTextField(
                     p.university, { p = p.copy(university = it.take(60)) },
-                    label = { Text(stringResource(R.string.profile_university)) }, singleLine = true,
+                    label = { Text(if (p.secondary) "Escola" else stringResource(R.string.profile_university)) }, singleLine = true,
                 )
                 OutlinedTextField(
                     p.course, { p = p.copy(course = it.take(80)) },
-                    label = { Text(stringResource(R.string.profile_course)) }, singleLine = true,
+                    label = { Text(if (p.secondary) "Área (ex.: Ciências e Tecnologias)" else stringResource(R.string.profile_course)) }, singleLine = true,
                 )
                 OutlinedTextField(
-                    year, { year = it.filter(Char::isDigit).take(1) },
+                    year, { year = it.filter(Char::isDigit).take(2) },
                     label = { Text(stringResource(R.string.profile_year)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
