@@ -1,5 +1,5 @@
 [versions]
-healthConnect = "1.1.0"
+healthConnect = "1.1.0-alpha07"
 agp = "8.10.1"
 kotlin = "2.1.21"
 ksp = "2.1.21-2.0.1"

@@ -194,6 +194,18 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
             }
         }
         item { BalanceCard(balance, personal?.healthGoal) }
+        if (plan.isNotEmpty()) {
+            item {
+                MealHero(
+                    next = nextMeal,
+                    eaten = plan.count { it.id in eatenIds },
+                    total = plan.size,
+                    kcalEaten = plan.filter { it.id in eatenIds }.sumOf { it.kcal },
+                    kcalPlan = plan.sumOf { it.kcal },
+                    onEat = { nextMeal?.let { vm.toggleEaten(it) } },
+                )
+            }
+        }
         item {
             CleanCard {
                 Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
@@ -489,6 +501,51 @@ private fun MealRow(meal: PlanMeal, eaten: Boolean, next: Boolean, modifier: Mod
         ) {
             if (eaten) Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(14.dp))
         }
+    }
+}
+
+/** The meal plan at the centre of the screen: the next meal, big, and how the day is going. */
+@Composable
+private fun MealHero(next: PlanMeal?, eaten: Int, total: Int, kcalEaten: Int, kcalPlan: Int, onEat: () -> Unit) {
+    val ink = com.uniplanner.app.ui.theme.Ink
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Color(0xFFDDEBD0)).padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            stringResource(if (next != null) R.string.meal_next else R.string.meal_all_done),
+            style = MaterialTheme.typography.labelLarge,
+            color = ink.copy(alpha = 0.65f),
+        )
+        if (next != null) {
+            Text(clock(next.minuteOfDay), style = MaterialTheme.typography.displaySmall.copy(fontFamily = Mono), color = ink)
+            Text(next.name, style = MaterialTheme.typography.headlineSmall, color = ink)
+            val detail = listOf(next.food, if (next.kcal > 0) "${next.kcal} kcal" else "").filter { it.isNotBlank() }.joinToString(" · ")
+            if (detail.isNotEmpty()) {
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = ink.copy(alpha = 0.75f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            Button(
+                onClick = onEat,
+                colors = ButtonDefaults.buttonColors(containerColor = ink, contentColor = Color.White),
+                modifier = Modifier.padding(top = 6.dp),
+            ) {
+                Icon(Icons.Filled.Check, null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.meal_ate))
+            }
+        } else {
+            Text("🎉", style = MaterialTheme.typography.displaySmall)
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(ink.copy(alpha = 0.12f))) {
+            Box(Modifier.fillMaxWidth((eaten.toFloat() / total).coerceIn(0f, 1f)).height(8.dp).clip(CircleShape).background(ink))
+        }
+        Text(
+            stringResource(R.string.meal_progress, eaten, total) + if (kcalPlan > 0) " · $kcalEaten / $kcalPlan kcal" else "",
+            style = MaterialTheme.typography.labelMedium.copy(fontFamily = Mono),
+            color = ink.copy(alpha = 0.7f),
+        )
     }
 }
 

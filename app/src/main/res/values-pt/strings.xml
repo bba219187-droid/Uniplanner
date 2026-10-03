@@ -697,4 +697,8 @@
     <string name="health_connect_why">Se o teu telemóvel não conta os passos aqui, liga o Health Connect: traz os passos do Samsung Health, Google Fit ou do relógio, incluindo dias anteriores.</string>
     <string name="health_connect_link">Ligar ao Health Connect</string>
     <string name="health_connect_short">Ligar passos</string>
+    <string name="meal_next">Próxima refeição</string>
+    <string name="meal_all_done">Todas as refeições do dia feitas</string>
+    <string name="meal_ate">Já comi</string>
+    <string name="meal_progress">%1$d de %2$d refeições</string>
 </resources>

@@ -151,7 +151,11 @@ fun StudyScreen(
     val name = personal?.firstName?.takeIf { it.isNotBlank() }
         ?: FirebaseAuth.getInstance().currentUser?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() }
 
+    var focus by remember { mutableStateOf(com.uniplanner.app.focus.FocusMode.isOn(context)) }
+
     fun stop(course: Course) {
+        com.uniplanner.app.focus.FocusMode.stop(context as? android.app.Activity, context)
+        focus = false
         val minutes = ((System.currentTimeMillis() - startedAt) / 60_000).toInt()
         vm.logStudy(course.id, startedAt, minutes)
         startedAt = 0L
@@ -190,6 +194,18 @@ fun StudyScreen(
                     elapsedSeconds = (now - startedAt) / 1000,
                     onStop = { stop(running) },
                     onAdd = { manualFor = running },
+                    focus = focus,
+                    onFocus = {
+                        val activity = context as? android.app.Activity
+                        if (focus) {
+                            com.uniplanner.app.focus.FocusMode.stop(activity, context)
+                            focus = false
+                        } else if (activity != null) {
+                            if (!com.uniplanner.app.focus.FocusMode.canSilence(context)) com.uniplanner.app.focus.FocusMode.askToSilence(context)
+                            com.uniplanner.app.focus.FocusMode.start(activity)
+                            focus = true
+                        }
+                    },
                 )
             } else {
                 WeekCard(
@@ -428,7 +444,14 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
 }
 
 @Composable
-private fun TimerCard(course: Course, elapsedSeconds: Long, onStop: () -> Unit, onAdd: () -> Unit) {
+private fun TimerCard(
+    course: Course,
+    elapsedSeconds: Long,
+    onStop: () -> Unit,
+    onAdd: () -> Unit,
+    focus: Boolean = false,
+    onFocus: () -> Unit = {},
+) {
     val tint = courseTint(course.color)
     val ink = courseInk(course.color)
     val minutes = (elapsedSeconds / 60).toInt()
@@ -462,6 +485,28 @@ private fun TimerCard(course: Course, elapsedSeconds: Long, onStop: () -> Unit, 
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                .background(if (focus) MaterialTheme.colorScheme.inverseSurface else ink.copy(alpha = 0.10f))
+                .clickable(onClick = onFocus).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(if (focus) "🔒" else "🔓", fontSize = 20.sp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (focus) "Modo foco ligado" else "Ligar modo foco",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (focus) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    if (focus) "A app fica presa no ecrã e sem notificações até parares."
+                    else "Prende a app no ecrã e silencia as notificações.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (focus) MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(

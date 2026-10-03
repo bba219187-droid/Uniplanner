@@ -320,7 +320,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                 WorkoutScreen(vm, entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() })
             }
             composable("agenda") { AgendaScreen() }
-            composable("settings") { SettingsScreen() }
+            composable("settings") { SettingsScreen(onOpen = { nav.navigate(it) }) }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
             composable("backup") {

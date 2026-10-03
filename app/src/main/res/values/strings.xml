@@ -695,4 +695,8 @@
     <string name="health_connect_why">If your phone does not count steps here, link Health Connect: it brings the steps from Samsung Health, Google Fit or your watch, including past days.</string>
     <string name="health_connect_link">Link Health Connect</string>
     <string name="health_connect_short">Link steps</string>
+    <string name="meal_next">Next meal</string>
+    <string name="meal_all_done">Every meal of the day done</string>
+    <string name="meal_ate">I ate it</string>
+    <string name="meal_progress">%1$d of %2$d meals</string>
 </resources>
