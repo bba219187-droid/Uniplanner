@@ -1,5 +1,6 @@
 package com.uniplanner.app.ui.screens
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -105,8 +106,7 @@ fun WorkoutScreen(vm: AppViewModel, workoutId: Long, onBack: () -> Unit) {
         items(byExercise.entries.toList(), key = { it.key }) { (name, exerciseSets) ->
             val before = allSets.filter { it.exercise.trim() == name && it.workoutId in earlier && it.weightKg > 0 }.maxOfOrNull { it.weightKg }
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp)).padding(14.dp),
+                Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 24.dp, outlined = true).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

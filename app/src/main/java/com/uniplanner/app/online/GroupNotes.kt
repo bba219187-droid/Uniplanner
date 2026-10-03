@@ -1,5 +1,6 @@
 package com.uniplanner.app.online
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -114,7 +115,7 @@ fun GroupNotesPage(vm: OnlineViewModel, kind: ChatKind, id: String, messages: Li
             }
             items(shown, key = { it.id }) { n ->
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(colorOf(n.course))
+                    Modifier.fillMaxWidth().frame(colorOf(n.course), 22.dp)
                         .clickable(enabled = n.attachment != null) {
                             n.attachment?.let { a -> scope.launch { vm.openAttachment(kind, id, a) } }
                         }

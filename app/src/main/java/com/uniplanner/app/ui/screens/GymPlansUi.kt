@@ -1,5 +1,6 @@
 package com.uniplanner.app.ui.screens
 
+import com.uniplanner.app.ui.theme.frame
 import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
@@ -126,7 +127,7 @@ fun PlanCarousel(chosenId: String?, plans: List<GymPlan>, onOpen: (GymPlan) -> U
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
         items(plans, key = { it.id }) { plan ->
             Column(
-                Modifier.width(210.dp).clip(RoundedCornerShape(24.dp)).background(Color(plan.colorArgb))
+                Modifier.width(210.dp).frame(Color(plan.colorArgb), 24.dp)
                     .clickable { onOpen(plan) }.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -155,7 +156,7 @@ fun PlanCarousel(chosenId: String?, plans: List<GymPlan>, onOpen: (GymPlan) -> U
 fun PlanTodayCard(plan: GymPlan, day: PlanDay, onStart: () -> Unit, onOpen: () -> Unit) {
     val allMuscles = day.exercises.flatMap { it.muscles }.toSet()
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(plan.colorArgb)).clickable(onClick = onOpen).padding(16.dp),
+        Modifier.fillMaxWidth().frame(Color(plan.colorArgb), 24.dp).clickable(onClick = onOpen).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -190,7 +191,7 @@ fun PlanSheet(
         ) {
             item {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(plan.colorArgb)).padding(18.dp),
+                    Modifier.fillMaxWidth().frame(Color(plan.colorArgb), 24.dp).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(plan.name, fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
@@ -249,7 +250,7 @@ private fun ExerciseRow(e: PlanExercise) {
     var open by remember { mutableStateOf(false) }
     val timed = e.name == "Prancha" || e.name.startsWith("Bicicleta")
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface)
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 20.dp)
             .clickable { open = !open }.animateContentSize().padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

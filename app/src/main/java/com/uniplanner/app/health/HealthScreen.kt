@@ -1,5 +1,6 @@
 package com.uniplanner.app.health
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -376,8 +377,7 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
 @Composable
 private fun CleanCard(modifier: Modifier = Modifier, padding: androidx.compose.ui.unit.Dp = 16.dp, content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp)).then(modifier).padding(padding),
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 24.dp, outlined = true).then(modifier).padding(padding),
     ) { content() }
 }
 
@@ -509,7 +509,7 @@ private fun MealRow(meal: PlanMeal, eaten: Boolean, next: Boolean, modifier: Mod
 private fun MealHero(next: PlanMeal?, eaten: Int, total: Int, kcalEaten: Int, kcalPlan: Int, onEat: () -> Unit) {
     val ink = com.uniplanner.app.ui.theme.Ink
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Color(0xFFDDEBD0)).padding(20.dp),
+        Modifier.fillMaxWidth().frame(Color(0xFFDDEBD0), 28.dp).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {

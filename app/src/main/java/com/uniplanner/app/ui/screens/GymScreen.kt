@@ -1,5 +1,6 @@
 package com.uniplanner.app.ui.screens
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -211,7 +212,7 @@ fun ConfirmDelete(title: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
 private fun StartCard(lastDone: Workout?, onStartNow: () -> Unit, onPlan: () -> Unit) {
     val fg = MaterialTheme.colorScheme.inverseOnSurface
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(20.dp),
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.inverseSurface, 28.dp).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column {
@@ -380,7 +381,7 @@ private fun NewWorkoutSheet(
             }
             if (source != null) {
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                    Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainer, 18.dp)
                         .clickable { repeat = !repeat }.padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -422,8 +423,7 @@ private fun SheetLabel(text: String) {
 @Composable
 private fun GymStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)).padding(12.dp),
+        modifier.frame(MaterialTheme.colorScheme.surfaceContainerHigh, 20.dp, outlined = true).padding(12.dp),
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         Text(value, style = MaterialTheme.typography.titleLarge, maxLines = 1)
@@ -445,7 +445,7 @@ private fun ProgressCard(workouts: List<Workout>, sets: List<ExerciseSet>) {
         .takeLast(12)
     val fg = MaterialTheme.colorScheme.inverseOnSurface
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(18.dp),
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.inverseSurface, 26.dp).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -502,8 +502,7 @@ private fun WorkoutCard(
     onDelete: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 22.dp, outlined = true)
             .combinedClickable(onClick = { onOpen(w.id) }, onLongClick = onDelete)
             .padding(start = 6.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
