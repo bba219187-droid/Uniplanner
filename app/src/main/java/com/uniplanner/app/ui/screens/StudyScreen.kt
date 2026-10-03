@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -534,9 +535,14 @@ private fun DarkWeek(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
 @Composable
 private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val look = LocalUniLook.current
-    if (look.style == AppStyle.MARCA) {
-        AlbumCard(course, done, goal, active, enabled, onClick)
-        return
+    when (look.style) {
+        AppStyle.MARCA -> return AlbumCard(course, done, goal, active, enabled, onClick)
+        AppStyle.METRO -> return MetroTile(course, done, goal, active, enabled, onClick)
+        AppStyle.FITAS -> return TicketCard(course, done, goal, active, enabled, onClick)
+        AppStyle.RISO -> return RisoCard(course, done, goal, active, enabled, onClick)
+        AppStyle.PAPEL -> return IndexCard(course, done, goal, active, enabled, onClick)
+        AppStyle.CLASSICO -> return RingCard(course, done, goal, active, enabled, onClick)
+        AppStyle.MARCADOR -> Unit
     }
     val tint = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.surfaceContainerHigh else courseTint(course.color)
     val ink = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.onSurface else courseInk(course.color)
@@ -587,6 +593,109 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+private fun pct(done: Int, goal: Int) = if (goal > 0) (done.toFloat() / goal).coerceIn(0f, 1f) else 0f
+
+/** Metro: a flat square live tile, name at the bottom, the hours big in the corner. */
+@Composable
+private fun MetroTile(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    Box(
+        Modifier.fillMaxWidth().height(140.dp).background(c)
+            .then(if (active) Modifier.border(3.dp, Color.White) else Modifier)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(10.dp),
+    ) {
+        BigNumber(formatMinutes(done), Modifier.align(Alignment.TopStart), size = 34.sp, color = Color.White)
+        if (goal > 0) {
+            Text("${(pct(done, goal) * 100).toInt()}%", Modifier.align(Alignment.TopEnd), color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+        }
+        Text(
+            course.name.lowercase(), Modifier.align(Alignment.BottomStart),
+            color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Fitas: a ticket with a coloured ribbon down the side and a dashed tear line. */
+@Composable
+private fun TicketCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier.fillMaxWidth().height(140.dp).clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .then(if (active) Modifier.border(2.dp, c, shape) else Modifier)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+    ) {
+        Box(Modifier.width(14.dp).fillMaxHeight().background(c))
+        Column(Modifier.weight(1f).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(course.name.uppercase(), style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("- - - - - - - - - - -", color = MaterialTheme.colorScheme.outline, maxLines = 1, fontSize = 10.sp)
+            BigNumber(formatMinutes(done), size = 28.sp, color = c)
+            if (goal > 0) Text(stringResource(R.string.study_of, formatMinutes(goal)), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+/** Riso: a print with the colour layer slipped off the black one, like a risograph. */
+@Composable
+private fun RisoCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    val ink = MaterialTheme.colorScheme.onSurface
+    Box(Modifier.fillMaxWidth().height(144.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)) {
+        Box(Modifier.matchParentSize().padding(start = 6.dp, top = 6.dp).background(c.copy(alpha = 0.85f)))
+        Column(
+            Modifier.matchParentSize().padding(end = 6.dp, bottom = 6.dp).background(MaterialTheme.colorScheme.surface)
+                .border(if (active) 3.dp else 2.dp, ink).padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(course.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            BigNumber(formatMinutes(done), size = 30.sp, color = c)
+            if (goal > 0) CourseProgress(pct(done, goal), c, height = 6.dp)
+        }
+    }
+}
+
+/** Papel: a lined index card with the course written at the top. */
+@Composable
+private fun IndexCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    val line = MaterialTheme.colorScheme.outlineVariant
+    Column(
+        Modifier.fillMaxWidth().height(140.dp).background(MaterialTheme.colorScheme.surface)
+            .border(if (active) 2.dp else 1.dp, if (active) c else line)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+    ) {
+        Box(Modifier.fillMaxWidth().height(4.dp).background(c))
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(course.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            HorizontalDivider(color = c.copy(alpha = 0.5f))
+            BigNumber(formatMinutes(done), size = 28.sp, color = MaterialTheme.colorScheme.onSurface)
+            HorizontalDivider(color = line)
+            if (goal > 0) Text(stringResource(R.string.study_of, formatMinutes(goal)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Clássico: a plain Material card with a progress ring. */
+@Composable
+private fun RingCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    androidx.compose.material3.ElevatedCard(
+        onClick = onClick, enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(140.dp).then(if (active) Modifier.border(2.dp, c, RoundedCornerShape(12.dp)) else Modifier),
+    ) {
+        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Box(contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    progress = { pct(done, goal) }, modifier = Modifier.size(54.dp), color = c,
+                    trackColor = c.copy(alpha = 0.15f), strokeWidth = 5.dp,
+                )
+                Text(formatMinutes(done), style = MaterialTheme.typography.labelSmall)
+            }
+            Text(course.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
