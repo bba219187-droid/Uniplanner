@@ -1,9 +1,10 @@
 {
-  "id": "2026-10-03-foco-blindado",
+  "id": "2026-10-03-foco-blindado-2",
   "title": "Modo foco sem truques",
   "intro": "O modo foco ficou à prova de batota.",
   "items": [
     "A app já não abre em ecrã dividido nem em janela flutuante.",
+    "Abrir outra app numa janela flutuante por cima (YouTube, por exemplo) acaba a sessão de foco.",
     "Se puseres o ecrã dividido durante o modo foco, a sessão acaba e não conta para as conquistas.",
     "Mudar a hora do telemóvel já não dá minutos a mais."
   ]

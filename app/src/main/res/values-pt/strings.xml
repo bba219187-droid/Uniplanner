@@ -734,5 +734,5 @@
     <string name="mini_studying">A estudar · toca para abrir</string>
     <string name="week_left">Faltam %s</string>
     <string name="focus_split">Fecha o ecrã dividido ou a janela flutuante primeiro: o modo foco só funciona em ecrã inteiro.</string>
-    <string name="focus_split_lost">Ecrã dividido não é permitido no modo foco. Esta sessão não conta.</string>
+    <string name="focus_split_lost">Ecrã dividido e janelas flutuantes não são permitidos no modo foco. Esta sessão não conta.</string>
 </resources>

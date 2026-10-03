@@ -223,6 +223,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Another app's floating window (e.g. a pop-up video) took over the screen during focus.
+    private val lostTop = Runnable {
+        if (com.uniplanner.app.focus.FocusMode.isOn(this)) {
+            com.uniplanner.app.focus.FocusMode.void(this)
+            com.uniplanner.app.focus.FocusMode.stop(this, this)
+            android.widget.Toast.makeText(this, getString(R.string.focus_split_lost), android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onTopResumedActivityChanged(isTopResumedActivity: Boolean) {
+        super.onTopResumedActivityChanged(isTopResumedActivity)
+        val main = window.decorView
+        main.removeCallbacks(lostTop)
+        // A short grace period covers system prompts that only flash on screen.
+        if (!isTopResumedActivity && com.uniplanner.app.focus.FocusMode.isOn(this)) main.postDelayed(lostTop, 3_000)
+    }
+
     override fun onStop() {
         super.onStop()
         com.uniplanner.app.focus.FocusMode.leftApp(this)
