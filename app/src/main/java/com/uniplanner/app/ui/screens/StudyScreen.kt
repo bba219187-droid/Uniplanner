@@ -70,7 +70,20 @@ import com.uniplanner.app.domain.StudyEntry
 import com.uniplanner.app.domain.StudyStats
 import com.uniplanner.app.reminders.formatMinutes
 import com.uniplanner.app.ui.AppViewModel
+import com.uniplanner.app.ui.theme.AppStyle
+import com.uniplanner.app.ui.theme.BigNumber
+import com.uniplanner.app.ui.theme.Caveat
+import com.uniplanner.app.ui.theme.CourseProgress
+import com.uniplanner.app.ui.theme.LocalUniLook
 import com.uniplanner.app.ui.theme.Mono
+import com.uniplanner.app.ui.theme.courseColor
+import com.uniplanner.app.ui.theme.highlighterStroke
+import com.uniplanner.app.ui.theme.markerBand
+import com.uniplanner.app.ui.theme.wash
+import com.uniplanner.app.study.MusicStrip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.draw.rotate
 import com.uniplanner.app.ui.theme.courseInk
 import com.uniplanner.app.ui.theme.courseTint
 import kotlinx.coroutines.delay
@@ -162,9 +175,13 @@ fun StudyScreen(
         runningId = 0L
     }
 
+    val look = LocalUniLook.current
+    val washColor = running?.let { courseColor(it.color) } ?: MaterialTheme.colorScheme.secondaryContainer
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxSize()
+            .then(if (look.style == AppStyle.MARCA) Modifier.wash(washColor, if (look.dark) 0.30f else 0.38f) else Modifier)
+            .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -347,6 +364,119 @@ fun StudyScreen(
 
 @Composable
 private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>, todayIndex: Int, segments: List<Pair<Long, Int>>) {
+    when (LocalUniLook.current.style) {
+        AppStyle.MARCA, AppStyle.RISO, AppStyle.MARCADOR -> OpenWeek(studied, planned, streak, perDay, todayIndex)
+        AppStyle.CLASSICO -> ClassicWeek(studied, planned, streak)
+        else -> DarkWeek(studied, planned, streak, perDay, todayIndex, segments)
+    }
+}
+
+/** No card: the hours of the week stand on the screen itself, in huge numbers, with the look's mark. */
+@Composable
+private fun OpenWeek(studied: Int, planned: Int, streak: Int, perDay: List<Int>, todayIndex: Int) {
+    val look = LocalUniLook.current
+    val colors = MaterialTheme.colorScheme
+    val fraction = if (planned > 0) (studied.toFloat() / planned).coerceIn(0f, 1f) else 0f
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.week_title), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.Bottom) {
+            when (look.style) {
+                AppStyle.MARCA -> BigNumber(formatMinutes(studied), Modifier.highlighterStroke(colors.secondaryContainer, fraction), size = 76.sp)
+                AppStyle.MARCADOR -> BigNumber(formatMinutes(studied), Modifier.markerBand(colors.secondaryContainer, fraction), size = 60.sp)
+                else -> BigNumber(formatMinutes(studied), size = 76.sp, aligned = fraction)
+            }
+            if (planned > 0) {
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "/ " + formatMinutes(planned),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (streak > 0) {
+                if (look.style == AppStyle.MARCADOR) {
+                    Text(
+                        pluralStringResource(R.plurals.study_streak, streak, streak),
+                        fontFamily = Caveat,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = colors.secondary,
+                        modifier = Modifier.rotate(-3f),
+                    )
+                } else {
+                    Text(
+                        pluralStringResource(R.plurals.study_streak, streak, streak),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.onSecondaryContainer,
+                        modifier = Modifier.clip(CircleShape).background(colors.secondaryContainer).padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
+            if (planned > studied) {
+                Text(
+                    stringResource(R.string.week_left, formatMinutes(planned - studied)),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface,
+                    modifier = Modifier.clip(CircleShape).background(colors.surfaceContainerHighest).padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+            }
+        }
+        val max = (perDay.maxOrNull() ?: 0).coerceAtLeast(1)
+        Row(Modifier.fillMaxWidth().height(70.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+            perDay.forEachIndexed { i, m ->
+                Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.BottomCenter) {
+                        Box(
+                            Modifier.fillMaxWidth()
+                                .fillMaxHeight((m.toFloat() / max).coerceAtLeast(0.1f))
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    when {
+                                        i == todayIndex -> colors.secondaryContainer
+                                        i < todayIndex && m > 0 -> colors.onSurface
+                                        else -> colors.surfaceContainerHighest
+                                    },
+                                ),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        DayOfWeek.of(i + 1).getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Android's own card, filled with the wallpaper's colour. */
+@Composable
+private fun ClassicWeek(studied: Int, planned: Int, streak: Int) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(colors.primaryContainer).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(stringResource(R.string.week_title), style = MaterialTheme.typography.bodyMedium, color = colors.onPrimaryContainer)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(formatMinutes(studied), style = MaterialTheme.typography.displaySmall, color = colors.onPrimaryContainer)
+            if (planned > 0) {
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.study_of, formatMinutes(planned)), style = MaterialTheme.typography.bodyLarge, color = colors.onPrimaryContainer, modifier = Modifier.padding(bottom = 6.dp))
+            }
+        }
+        if (planned > 0) CourseProgress((studied.toFloat() / planned).coerceIn(0f, 1f), colors.primary)
+        if (streak > 0) Text(pluralStringResource(R.plurals.study_streak, streak, streak), style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer)
+    }
+}
+
+@Composable
+private fun DarkWeek(studied: Int, planned: Int, streak: Int, perDay: List<Int>, todayIndex: Int, segments: List<Pair<Long, Int>>) {
     val bg = MaterialTheme.colorScheme.inverseSurface
     val fg = MaterialTheme.colorScheme.inverseOnSurface
     val muted = fg.copy(alpha = 0.65f)
@@ -358,7 +488,7 @@ private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.week_title), style = MaterialTheme.typography.bodyMedium, color = muted)
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(formatMinutes(studied), style = MaterialTheme.typography.displayMedium, color = fg)
+                    BigNumber(formatMinutes(studied), size = 56.sp, color = fg)
                     if (planned > 0) {
                         Spacer(Modifier.width(8.dp))
                         Text(
@@ -384,7 +514,7 @@ private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
         val total = maxOf(planned, studied).coerceAtLeast(1)
         Row(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             segments.forEach { (color, minutes) ->
-                Box(Modifier.weight(minutes.toFloat() / total).fillMaxHeight().background(Color(color)))
+                Box(Modifier.weight(minutes.toFloat() / total).fillMaxHeight().background(courseColor(color)))
             }
             val rest = total - segments.sumOf { it.second }
             if (rest > 0) Box(Modifier.weight(rest.toFloat() / total).fillMaxHeight().background(fg.copy(alpha = 0.15f)))
@@ -397,8 +527,13 @@ private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
 
 @Composable
 private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    val tint = courseTint(course.color)
-    val ink = courseInk(course.color)
+    val look = LocalUniLook.current
+    if (look.style == AppStyle.MARCA) {
+        AlbumCard(course, done, goal, active, enabled, onClick)
+        return
+    }
+    val tint = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.surfaceContainerHigh else courseTint(course.color)
+    val ink = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.onSurface else courseInk(course.color)
     val progress = if (goal > 0) (done.toFloat() / goal).coerceIn(0f, 1f) else 0f
     Column(
         Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(24.dp)).background(tint)
@@ -408,11 +543,11 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Text(
+            BigNumber(
                 if (goal > 0) "${(progress * 100).toInt()}%" else formatMinutes(done),
-                style = MaterialTheme.typography.headlineMedium,
+                Modifier.weight(1f).padding(top = 2.dp),
+                size = 30.sp,
                 color = ink,
-                modifier = Modifier.weight(1f).padding(top = 2.dp),
             )
             Box(
                 Modifier.size(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.inverseSurface),
@@ -427,10 +562,8 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (goal > 0) {
-                Box(Modifier.fillMaxWidth().height(5.dp).clip(CircleShape).background(ink.copy(alpha = 0.15f))) {
-                    Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(CircleShape).background(ink))
-                }
+            if (goal > 0 && look.style != AppStyle.MARCADOR) {
+                CourseProgress(progress, if (look.style == AppStyle.PAPEL) ink else courseColor(course.color), height = 6.dp)
             }
             Text(
                 course.name,
@@ -438,6 +571,7 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = if (look.style == AppStyle.MARCADOR) Modifier.markerBand(courseColor(course.color), if (goal > 0) progress.coerceAtLeast(0.06f) else 1f) else Modifier,
             )
             if (goal > 0) {
                 Text(
@@ -446,6 +580,49 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+/** The Play look: a course as an album cover in its colour, with the hours in big numbers. */
+@Composable
+private fun AlbumCard(course: Course, done: Int, goal: Int, active: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val c = courseColor(course.color)
+    val dark = Color(0xFF111111)
+    val progress = if (goal > 0) (done.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val shape = RoundedCornerShape(20.dp)
+    Column(
+        Modifier.fillMaxWidth().height(150.dp)
+            .then(if (active) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, shape) else Modifier)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(lerp(c, Color.White, 0.18f), c, lerp(c, Color.Black, 0.32f))))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(Modifier.padding(start = 14.dp, end = 10.dp, top = 12.dp), verticalAlignment = Alignment.Top) {
+            Text(
+                course.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = dark,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Box(Modifier.size(32.dp).clip(CircleShape).background(dark), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.study_start), tint = c, modifier = Modifier.size(18.dp))
+            }
+        }
+        Column {
+            Column(Modifier.padding(horizontal = 14.dp)) {
+                BigNumber(formatMinutes(done), size = 30.sp, color = dark)
+                if (goal > 0) {
+                    Text(stringResource(R.string.study_of, formatMinutes(goal)), style = MaterialTheme.typography.labelMedium, color = dark.copy(alpha = 0.7f))
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Box(Modifier.fillMaxWidth().height(5.dp).background(dark.copy(alpha = 0.15f))) {
+                Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(dark.copy(alpha = 0.85f)))
             }
         }
     }
@@ -460,25 +637,44 @@ private fun TimerCard(
     focus: Boolean = false,
     onFocus: () -> Unit = {},
 ) {
+    val look = LocalUniLook.current
+    val play = look.style == AppStyle.MARCA
     val tint = courseTint(course.color)
-    val ink = courseInk(course.color)
+    val ink = if (play) MaterialTheme.colorScheme.onSurface else courseInk(course.color)
     val minutes = (elapsedSeconds / 60).toInt()
     val inSession = minutes % SESSION_MINUTES
+    val full = courseColor(course.color)
+    val surface = MaterialTheme.colorScheme.surface
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(tint).padding(20.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
+            .then(
+                if (play) Modifier.background(Brush.verticalGradient(listOf(full, lerp(full, surface, 0.6f), lerp(full, surface, 0.88f))))
+                else Modifier.background(tint),
+            )
+            .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column {
-            Text(stringResource(R.string.study_studying), style = MaterialTheme.typography.labelLarge, color = ink)
-            Text(course.name, style = MaterialTheme.typography.headlineSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(R.string.study_studying), style = MaterialTheme.typography.labelLarge, color = if (play) Color(0xFF111111) else ink)
+            Text(
+                course.name,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = if (play) Color(0xFF111111) else MaterialTheme.colorScheme.onSurface,
+            )
         }
-        Text(
-            if (elapsedSeconds >= 3600) "%d:%02d:%02d".format(elapsedSeconds / 3600, elapsedSeconds / 60 % 60, elapsedSeconds % 60)
+        val hours = elapsedSeconds >= 3600
+        val wide = look.numbers == com.uniplanner.app.ui.theme.Anybody
+        BigNumber(
+            if (hours) "%d:%02d:%02d".format(elapsedSeconds / 3600, elapsedSeconds / 60 % 60, elapsedSeconds % 60)
             else "%02d:%02d".format(elapsedSeconds / 60, elapsedSeconds % 60),
-            fontFamily = Mono,
-            fontWeight = FontWeight.Medium,
-            fontSize = 72.sp,
-            letterSpacing = (-4).sp,
+            size = when {
+                hours && wide -> 44.sp
+                hours -> 54.sp
+                wide -> 60.sp
+                else -> 72.sp
+            },
             color = MaterialTheme.colorScheme.onSurface,
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -494,6 +690,7 @@ private fun TimerCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (look.music) MusicStrip(tint = MaterialTheme.colorScheme.onSurface, onTint = MaterialTheme.colorScheme.surface)
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
                 .background(if (focus) MaterialTheme.colorScheme.inverseSurface else ink.copy(alpha = 0.10f))

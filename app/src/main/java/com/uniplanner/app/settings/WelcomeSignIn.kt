@@ -131,7 +131,7 @@ fun WelcomeSignIn() {
         Spacer(Modifier.height(36.dp))
         Text(
             stringResource(R.string.welcome_title),
-            fontFamily = Bricolage,
+            fontFamily = MaterialTheme.typography.headlineMedium.fontFamily,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 30.sp,
             lineHeight = 34.sp,

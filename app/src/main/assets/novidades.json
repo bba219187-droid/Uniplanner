@@ -1,19 +1,14 @@
 {
-  "id": "2026-10-03-ronda-grande-2",
-  "title": "A maior atualização até hoje",
-  "intro": "Saúde, ginásio, estudo e definições: quase tudo ficou melhor.",
+  "id": "2026-10-03-temas",
+  "title": "A app tem cara nova (e 7 temas)",
+  "intro": "Escolhe o aspeto de que mais gostas em Mais, Definições, Aparência.",
   "items": [
-    "Saúde: toca no peso, no IMC ou nos passos para ver o gráfico desde o início.",
-    "Passos: se o telemóvel não os contar, liga o Health Connect (Samsung Health, Google Fit, relógio).",
-    "Plano alimentar ao centro: a próxima refeição em grande, com o botão Já comi.",
-    "Ginásio: 5 planos prontos com imagens dos músculos e o treino sugerido para hoje.",
-    "Estudo: modo foco que prende a app no ecrã e silencia as notificações.",
-    "Notas: calculadora de quanto precisas no exame.",
-    "Cartões de estudo com repetição espaçada e conquistas com sequências, em Mais.",
-    "Widget no ecrã inicial com as aulas de hoje e as entregas.",
-    "Definições novas, organizadas em cartões.",
-    "Apontamentos nos grupos: partilha resumos e ficheiros por cadeira e pesquisa-os (menu ⋮ do grupo).",
-    "Também para o secundário: escolhe Universidade ou Secundário no perfil.",
-    "Entrada nova com ar académico."
+    "Play: escuro e vivo, as cadeiras como capas de álbum e música enquanto estudas.",
+    "Fitas, Metro, Riso, Marcador, Clássico e Papel (o aspeto de antes).",
+    "As horas da semana em números enormes, com o detalhe de cada tema.",
+    "No tema Play, toca, pausa e salta músicas do Spotify ou da tua app de música sem sair do estudo.",
+    "Enquanto estudas, uma barra em baixo mostra o tempo em todos os separadores.",
+    "Ginásio e Saúde com aspeto de ginásio: cores fortes e letras de equipamento desportivo.",
+    "Tudo o resto funciona como antes."
   ]
 }

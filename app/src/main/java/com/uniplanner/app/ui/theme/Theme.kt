@@ -8,7 +8,10 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
@@ -27,7 +30,7 @@ val Coral = Color(0xFFC94220)
 private val DarkPaper = Color(0xFF121114)
 private val LightInk = Color(0xFFEDE9DF)
 
-private val Light = lightColorScheme(
+internal val PaperLight = lightColorScheme(
     primary = Ink,
     onPrimary = Paper,
     primaryContainer = Color(0xFFE9E4D8),
@@ -58,7 +61,7 @@ private val Light = lightColorScheme(
     outlineVariant = Color(0xFFE4DFD3),
 )
 
-private val Dark = darkColorScheme(
+internal val PaperDark = darkColorScheme(
     primary = LightInk,
     onPrimary = DarkPaper,
     primaryContainer = Color(0xFF2C2A31),
@@ -89,7 +92,7 @@ private val Dark = darkColorScheme(
     outlineVariant = Color(0xFF2C2A31),
 )
 
-private val AppShapes = Shapes(
+internal val PaperShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(22.dp),
@@ -112,7 +115,7 @@ private fun TextStyle.brand(weight: FontWeight, spacing: Float? = null) =
     copy(fontFamily = Bricolage, fontWeight = weight, letterSpacing = spacing?.sp ?: letterSpacing)
 
 private val base = Typography()
-private val AppTypography = Typography(
+internal val PaperTypography = Typography(
     displayLarge = base.displayLarge.brand(FontWeight.ExtraBold, -2f),
     displayMedium = base.displayMedium.brand(FontWeight.ExtraBold, -1.5f),
     displaySmall = base.displaySmall.brand(FontWeight.ExtraBold, -1f),
@@ -134,7 +137,7 @@ private val AppTypography = Typography(
 @Composable
 @ReadOnlyComposable
 fun courseTint(color: Long): Color {
-    val c = Color(color)
+    val c = LocalUniLook.current.ink(color)
     val bg = MaterialTheme.colorScheme.background
     return if (bg.luminance() > 0.5f) lerp(c, Color.White, 0.8f) else lerp(c, bg, 0.72f)
 }
@@ -143,16 +146,43 @@ fun courseTint(color: Long): Color {
 @Composable
 @ReadOnlyComposable
 fun courseInk(color: Long): Color {
-    val c = Color(color)
+    val c = LocalUniLook.current.ink(color)
     return if (MaterialTheme.colorScheme.background.luminance() > 0.5f) lerp(c, Color.Black, 0.35f) else lerp(c, Color.White, 0.45f)
 }
 
+/** A course's own colour in the chosen look, at full strength. */
 @Composable
-fun UniPlannerTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+@ReadOnlyComposable
+fun courseColor(color: Long): Color = LocalUniLook.current.ink(color)
+
+@Composable
+fun UniPlannerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    style: AppStyle = AppStyle.MARCA,
+    content: @Composable () -> Unit,
+) {
+    val ctx = LocalContext.current
+    val colors = remember(style, darkTheme) { schemeFor(style, darkTheme, ctx) }
+    val look = remember(style, darkTheme, colors) { lookFor(style, darkTheme, colors) }
+    CompositionLocalProvider(LocalUniLook provides look) {
+        MaterialTheme(
+            colorScheme = colors,
+            shapes = shapesFor(style),
+            typography = typographyFor(style),
+            content = content,
+        )
+    }
+}
+
+/** The gym and health tabs: the same look, turned up, with sportswear letters. */
+@Composable
+fun SportTheme(content: @Composable () -> Unit) {
+    val look = LocalUniLook.current
+    val colors = MaterialTheme.colorScheme
     MaterialTheme(
-        colorScheme = if (darkTheme) Dark else Light,
-        shapes = AppShapes,
-        typography = AppTypography,
+        colorScheme = remember(colors, look) { colors.sporty(look) },
+        shapes = MaterialTheme.shapes,
+        typography = MaterialTheme.typography.sporty(),
         content = content,
     )
 }

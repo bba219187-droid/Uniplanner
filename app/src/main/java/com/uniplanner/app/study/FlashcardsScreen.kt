@@ -85,7 +85,7 @@ fun FlashcardsScreen() {
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Color(deck.color)).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(deck.name, fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
+                        Text(deck.name, fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
                         Text("${cards.size} cartões · $due para rever hoje", fontFamily = Mono, fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
                         Spacer(Modifier.height(6.dp))
                         Button(
@@ -134,7 +134,7 @@ fun FlashcardsScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(d.name, fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Ink)
+                        Text(d.name, fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Ink)
                         Text("$total cartões", fontFamily = Mono, fontSize = 12.sp, color = Ink.copy(alpha = 0.6f))
                     }
                     if (due > 0) {
@@ -204,7 +204,7 @@ private fun StudyCards(deck: Deck, due: List<Flashcard>, onBack: () -> Unit) {
         if (card == null) {
             Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("🎉", fontSize = 64.sp)
-                Text("Revisão feita!", fontFamily = Bricolage, fontWeight = FontWeight.Bold, fontSize = 26.sp)
+                Text("Revisão feita!", fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.Bold, fontSize = 26.sp)
                 Spacer(Modifier.height(12.dp))
                 Button(onClick = onBack) { Text("Voltar") }
             }
@@ -220,7 +220,7 @@ private fun StudyCards(deck: Deck, due: List<Flashcard>, onBack: () -> Unit) {
             ) {
                 Text(
                     if (turn <= 90f) card.front else card.back,
-                    fontFamily = Bricolage,
+                    fontFamily = MaterialTheme.typography.headlineMedium.fontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 26.sp,
                     textAlign = TextAlign.Center,

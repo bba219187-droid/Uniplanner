@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.widthIn
@@ -109,6 +111,9 @@ import com.uniplanner.app.ui.screens.SplashScreen
 import com.uniplanner.app.ui.screens.StatsScreen
 import com.uniplanner.app.ui.screens.StudyScreen
 import com.uniplanner.app.ui.theme.UniPlannerTheme
+import com.uniplanner.app.ui.theme.SportTheme
+import com.uniplanner.app.ui.theme.LocalUniLook
+import com.uniplanner.app.ui.theme.AppStyle
 import com.uniplanner.app.health.HealthScreen
 import com.uniplanner.app.settings.Area
 import com.uniplanner.app.settings.OnboardingScreen
@@ -182,7 +187,8 @@ class MainActivity : ComponentActivity() {
                 val bars = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark }
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
-            UniPlannerTheme(dark) {
+            val style by com.uniplanner.app.ui.theme.StylePrefs.flow(applicationContext).collectAsState()
+            UniPlannerTheme(dark, style ?: com.uniplanner.app.ui.theme.AppStyle.MARCA) {
                 var splash by rememberSaveable { mutableStateOf(true) }
                 AnimatedContent(
                     targetState = splash,
@@ -258,27 +264,33 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     Scaffold(
         bottomBar = {
             // A chat takes the whole screen, like in a messaging app.
-            if (current?.startsWith("chat/") != true) FloatingTabBar(
-                selected = { tab ->
-                    if (tab == Tab.More) current in moreRoutes
-                    else if (tab == Tab.Gym && current?.startsWith("workout") == true) true
-                    else if (tab == Tab.Social && current?.startsWith("chat/") == true) true
-                    else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
-                },
-                onSelect = { tab ->
-                    // The first tab sits at the bottom of the back stack, so going to it means going back
-                    // to it. Restoring its saved state instead would bring back the screen opened on top.
-                    if (tab == Tab.Study) {
-                        if (!nav.popBackStack(Tab.Study.route, inclusive = false)) nav.navigate(Tab.Study.route)
-                    } else {
-                        nav.navigate(tab.route) {
-                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+            if (current?.startsWith("chat/") != true) Column {
+                // While the clock runs, a bar on every other tab shows it, like the song playing in a music app.
+                if (current != Tab.Study.route) StudyingBar(vm, onOpen = {
+                    if (!nav.popBackStack(Tab.Study.route, inclusive = false)) nav.navigate(Tab.Study.route)
+                })
+                FloatingTabBar(
+                    selected = { tab ->
+                        if (tab == Tab.More) current in moreRoutes
+                        else if (tab == Tab.Gym && current?.startsWith("workout") == true) true
+                        else if (tab == Tab.Social && current?.startsWith("chat/") == true) true
+                        else backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
+                    },
+                    onSelect = { tab ->
+                        // The first tab sits at the bottom of the back stack, so going to it means going back
+                        // to it. Restoring its saved state instead would bring back the screen opened on top.
+                        if (tab == Tab.Study) {
+                            if (!nav.popBackStack(Tab.Study.route, inclusive = false)) nav.navigate(Tab.Study.route)
+                        } else {
+                            nav.navigate(tab.route) {
+                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         },
     ) { padding ->
         NavHost(
@@ -310,15 +322,15 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                 )
             }
             composable(Tab.More.route) { MoreScreen(onOpen = { nav.navigate(it) }) }
-            composable(Tab.Health.route) { HealthScreen() }
+            composable(Tab.Health.route) { SportTheme { HealthScreen() } }
             composable(Tab.Timetable.route) { TimetableScreen(onOpenPortal = { nav.navigate("portal") }) }
             composable("portal") { PortalScreen(onClose = { nav.popBackStack() }) }
             composable("location") { LocationScreen(onOpenAdmin = { nav.navigate("admin") }) }
             composable("admin") { AdminScreen() }
             composable("courses") { CoursesScreen(vm) }
-            composable(Tab.Gym.route) { GymScreen(vm, onOpenWorkout = { nav.navigate("workout/$it") }) }
+            composable(Tab.Gym.route) { SportTheme { GymScreen(vm, onOpenWorkout = { nav.navigate("workout/$it") }) } }
             composable("workout/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
-                WorkoutScreen(vm, entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() })
+                SportTheme { WorkoutScreen(vm, entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() }) }
             }
             composable("agenda") { AgendaScreen() }
             composable("settings") { SettingsScreen(onOpen = { nav.navigate(it) }) }
@@ -345,22 +357,26 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
 @Composable
 private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val look = LocalUniLook.current
+    // The Play look floats a glassy bar in the screen's own colour; the others keep the dark pill.
+    val open = look.style == AppStyle.MARCA
+    val barBg = if (open) colors.surfaceContainerHigh.copy(alpha = 0.94f) else colors.inverseSurface
+    val barFg = if (open) colors.onSurfaceVariant else colors.inverseOnSurface.copy(alpha = 0.6f)
     Box(
         Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
     ) {
         Row(
-            Modifier.fillMaxWidth().height(64.dp).clip(CircleShape).background(colors.inverseSurface).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().height(64.dp).clip(CircleShape).background(barBg)
+                .then(if (open) Modifier.border(1.dp, colors.outlineVariant, CircleShape) else Modifier)
+                .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val areas = PersonalSettings.flow(LocalContext.current).collectAsState().value?.areas ?: Area.entries.toSet()
             Tab.entries.filter { it.area == null || it.area in areas }.forEach { tab ->
                 val on = selected(tab)
-                val bg by animateColorAsState(if (on) com.uniplanner.app.ui.theme.Coral else Color.Transparent, label = "tabBg")
-                val fg by animateColorAsState(
-                    if (on) Color.White else colors.inverseOnSurface.copy(alpha = 0.6f),
-                    label = "tabFg",
-                )
+                val bg by animateColorAsState(if (on) look.accent else Color.Transparent, label = "tabBg")
+                val fg by animateColorAsState(if (on) look.onAccent else barFg, label = "tabFg")
                 // With every tab on, a narrow phone shares the width so none is pushed off the bar.
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Box(
@@ -388,6 +404,51 @@ private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) 
                 }
             }
         }
+    }
+}
+
+/** The running study clock, on every tab but Study: the course, the time, and a tap back to it. */
+@Composable
+private fun StudyingBar(vm: AppViewModel, onOpen: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("study_timer", Context.MODE_PRIVATE) }
+    val courses by vm.courses.collectAsState()
+    var startedAt by remember { mutableStateOf(0L) }
+    var courseId by remember { mutableStateOf(0L) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            startedAt = prefs.getLong("startedAt", 0L)
+            courseId = prefs.getLong("course", 0L)
+            now = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    val course = courses.firstOrNull { it.id == courseId }
+    if (startedAt == 0L || course == null) return
+    val color = com.uniplanner.app.ui.theme.courseColor(course.color)
+    val seconds = ((now - startedAt) / 1000).coerceAtLeast(0)
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 6.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .background(androidx.compose.ui.graphics.lerp(color, colors.surfaceContainerHigh, 0.55f))
+            .clickable(role = Role.Button, onClick = onOpen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(36.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(9.dp)).background(color), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Timer, contentDescription = null, tint = Color(0xFF111111), modifier = Modifier.size(20.dp))
+        }
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(course.name, style = MaterialTheme.typography.titleSmall, color = colors.onSurface, maxLines = 1)
+            Text(stringResource(R.string.mini_studying), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
+        }
+        com.uniplanner.app.ui.theme.BigNumber(
+            if (seconds >= 3600) "%d:%02d:%02d".format(seconds / 3600, seconds / 60 % 60, seconds % 60) else "%02d:%02d".format(seconds / 60, seconds % 60),
+            size = 20.sp,
+            color = colors.onSurface,
+        )
     }
 }
 

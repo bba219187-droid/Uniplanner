@@ -135,7 +135,7 @@ private fun StreakHero(streak: Int, best: Int) {
         Text("🔥", fontSize = 54.sp, modifier = Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; rotationZ = (1 - pop.value) * 40f })
         Spacer(Modifier.padding(8.dp))
         Column {
-            Text("$streak", fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, color = Color.White)
+            Text("$streak", fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, color = Color.White)
             Text(if (streak == 1) "dia seguido em modo foco" else "dias seguidos em modo foco", color = Color.White.copy(alpha = 0.75f))
             Text("Recorde: $best", fontFamily = Mono, fontSize = 12.sp, color = Coral)
         }
