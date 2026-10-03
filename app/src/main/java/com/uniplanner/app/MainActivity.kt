@@ -211,6 +211,7 @@ class MainActivity : ComponentActivity() {
         // Picks up tests and deadlines the student moved in the phone's agenda.
         lifecycleScope.launch(Dispatchers.IO) { runCatching { AgendaSync.pullChanges(applicationContext) } }
         lifecycleScope.launch(Dispatchers.IO) { runCatching { Steps.refresh(applicationContext) } }
+        runCatching { com.uniplanner.app.widget.TodayWidget.refresh(applicationContext) }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -323,6 +324,8 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable("settings") { SettingsScreen(onOpen = { nav.navigate(it) }) }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
+            composable("flashcards") { com.uniplanner.app.study.FlashcardsScreen() }
+            composable("achievements") { com.uniplanner.app.study.AchievementsScreen(vm) }
             composable("backup") {
                 BackupScreen(online, onSignIn = {
                     nav.navigate(Tab.Social.route) {

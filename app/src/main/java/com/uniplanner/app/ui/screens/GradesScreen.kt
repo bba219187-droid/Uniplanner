@@ -1,6 +1,8 @@
 package com.uniplanner.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -87,6 +89,7 @@ fun GradesScreen(vm: AppViewModel) {
                 }
             }
         }
+        item { NeededCalculator(courses, grades) }
         items(courses, key = { it.id }) { course ->
             CourseGradeCard(course, grades.getValue(course.id)) { editing = course }
         }
@@ -213,5 +216,61 @@ private fun EditGradesDialog(
             }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** "How much do I need?": pick a course, the exam's weight and the grade wanted. */
+@Composable
+private fun NeededCalculator(courses: List<Course>, grades: Map<Long, com.uniplanner.app.domain.CourseGrade>) {
+    var courseId by remember { mutableStateOf(courses.firstOrNull()?.id) }
+    val g = courseId?.let { grades[it] }
+    var current by remember(courseId) { mutableStateOf(g?.takeIf { it.estimated }?.grade?.let(Grades::format).orEmpty()) }
+    var graded by remember(courseId) { mutableStateOf((g?.gradedPercent?.takeIf { it in 1..99 } ?: 0).toString()) }
+    var exam by remember(courseId) { mutableStateOf((100 - (g?.gradedPercent?.takeIf { it in 1..99 } ?: 0)).toString()) }
+    var target by remember { mutableStateOf("9,5") }
+    val need = Grades.needed(
+        parseGrade(current) ?: 0.0,
+        graded.toIntOrNull() ?: 0,
+        exam.toIntOrNull() ?: 0,
+        parseGrade(target) ?: 9.5,
+    )
+    Column(
+        Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+            .background(androidx.compose.ui.graphics.Color(0xFFF6E6C3)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("🎯 Quanto preciso no exame?", style = MaterialTheme.typography.titleMedium, color = com.uniplanner.app.ui.theme.Ink)
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(courses, key = { it.id }) { c ->
+                androidx.compose.material3.FilterChip(selected = c.id == courseId, onClick = { courseId = c.id }, label = { Text(c.name, maxLines = 1) })
+            }
+        }
+        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallField(current, { current = it }, "Nota até agora", Modifier.weight(1f))
+            SmallField(graded, { graded = it }, "% já avaliada", Modifier.weight(1f))
+        }
+        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallField(exam, { exam = it }, "% do exame", Modifier.weight(1f))
+            SmallField(target, { target = it }, "Nota que queres", Modifier.weight(1f))
+        }
+        val ink = com.uniplanner.app.ui.theme.Ink
+        when {
+            need == null -> Text("Indica quanto vale o exame.", color = ink.copy(alpha = 0.7f))
+            need <= 0 -> Text("Já tens a nota garantida! 🎉", style = MaterialTheme.typography.titleLarge, color = ink)
+            need > 20 -> Text("Precisarias de ${Grades.format(need)}: não dá só com o exame. Fala com o professor sobre recurso.", color = ink)
+            else -> Text(
+                "Precisas de ${Grades.format(Math.ceil(need * 10) / 10)} no exame",
+                style = MaterialTheme.typography.titleLarge,
+                color = ink,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmallField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier) {
+    androidx.compose.material3.OutlinedTextField(
+        value, onChange, label = { Text(label) }, singleLine = true, modifier = modifier,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
     )
 }

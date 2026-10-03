@@ -699,4 +699,10 @@
     <string name="meal_all_done">Every meal of the day done</string>
     <string name="meal_ate">I ate it</string>
     <string name="meal_progress">%1$d of %2$d meals</string>
+    <string name="more_flashcards">Flashcards</string>
+    <string name="more_flashcards_sub">Study with spaced repetition</string>
+    <string name="more_achievements">Achievements</string>
+    <string name="more_achievements_sub">Streaks and badges</string>
+    <string name="widget_description">Today\'s classes and what is due soon</string>
+    <string name="widget_label">Today</string>
 </resources>

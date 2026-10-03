@@ -701,4 +701,10 @@
     <string name="meal_all_done">Todas as refeições do dia feitas</string>
     <string name="meal_ate">Já comi</string>
     <string name="meal_progress">%1$d de %2$d refeições</string>
+    <string name="more_flashcards">Cartões de estudo</string>
+    <string name="more_flashcards_sub">Estuda com repetição espaçada</string>
+    <string name="more_achievements">Conquistas</string>
+    <string name="more_achievements_sub">Sequências e medalhas</string>
+    <string name="widget_description">As aulas de hoje e o que tens para entregar</string>
+    <string name="widget_label">Hoje</string>
 </resources>

@@ -47,6 +47,15 @@ object Grades {
         return graded.sumOf { it.grade!! * it.credits.coerceAtLeast(1) } / weight
     }
 
+    /**
+     * The grade needed in what is left (an exam worth [examPercent]) to end with [target], given
+     * [current] on the [gradedPercent] already graded. Above the scale's top means out of reach.
+     */
+    fun needed(current: Double, gradedPercent: Int, examPercent: Int, target: Double): Double? {
+        if (examPercent <= 0) return null
+        return (target * 100 - current * gradedPercent) / examPercent
+    }
+
     fun format(grade: Double): String = if (grade == grade.roundToInt().toDouble()) {
         grade.roundToInt().toString()
     } else {

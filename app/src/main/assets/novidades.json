@@ -1,10 +1,16 @@
 {
-  "id": "2026-10-02-interface",
-  "title": "Interface com mais energia",
-  "intro": "A app inteira ganhou a energia da entrada.",
+  "id": "2026-10-03-ronda-grande",
+  "title": "A maior atualização até hoje",
+  "intro": "Saúde, ginásio, estudo e definições: quase tudo ficou melhor.",
   "items": [
-    "Transições entre abas com mola: o ecrã novo entra a deslizar e a crescer.",
-    "Barra de baixo: a aba escolhida fica coral e o ícone salta.",
-    "Os títulos de cada ecrã caem com um pequeno ressalto."
+    "Saúde: toca no peso, no IMC ou nos passos para ver o gráfico desde o início.",
+    "Passos: se o telemóvel não os contar, liga o Health Connect (Samsung Health, Google Fit, relógio).",
+    "Plano alimentar ao centro: a próxima refeição em grande, com o botão Já comi.",
+    "Ginásio: 5 planos prontos com imagens dos músculos e o treino sugerido para hoje.",
+    "Estudo: modo foco que prende a app no ecrã e silencia as notificações.",
+    "Notas: calculadora de quanto precisas no exame.",
+    "Cartões de estudo com repetição espaçada e conquistas com sequências, em Mais.",
+    "Widget no ecrã inicial com as aulas de hoje e as entregas.",
+    "Definições novas, organizadas em cartões."
   ]
 }
