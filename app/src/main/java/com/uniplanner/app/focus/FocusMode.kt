@@ -25,7 +25,18 @@ object FocusMode {
         }
     }
 
-    fun start(activity: Activity) {
+    /** Split screen, a pop-up window or picture-in-picture: other apps are usable, so focus cannot run. */
+    fun inSplit(activity: Activity?): Boolean =
+        activity != null && (activity.isInMultiWindowMode || activity.isInPictureInPictureMode)
+
+    /** Marks the running session as broken: it will not count, whatever happens next. */
+    fun void(ctx: Context) {
+        if (isOn(ctx)) ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("left", true).apply()
+    }
+
+    /** Starts focus, or returns false when the app is sharing the screen with another one. */
+    fun start(activity: Activity): Boolean {
+        if (inSplit(activity)) return false
         val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val nm = activity.getSystemService(NotificationManager::class.java)
         if (canSilence(activity) && nm != null) {
@@ -34,7 +45,9 @@ object FocusMode {
         }
         // Android asks once to confirm pinning; after that the app stays on screen until focus ends.
         runCatching { activity.startLockTask() }
-        prefs.edit().putBoolean("on", true).putBoolean("left", false).putLong("since", System.currentTimeMillis()).apply()
+        prefs.edit().putBoolean("on", true).putBoolean("left", false).putLong("since", System.currentTimeMillis())
+            .putLong("since_rt", android.os.SystemClock.elapsedRealtime()).apply()
+        return true
     }
 
     /** True while focus is on but the app is no longer pinned (unpinned by swiping up, back + recents…). */
@@ -71,10 +84,13 @@ object FocusMode {
             runCatching { nm.setInterruptionFilter(before) }
         }
         val since = prefs.getLong("since", 0L)
-        val minutes = if (since > 0) ((System.currentTimeMillis() - since) / 60_000).toInt() else 0
+        // Measured on the phone's uptime clock, so changing the date or time cannot add minutes.
+        val sinceRt = prefs.getLong("since_rt", 0L)
+        val nowRt = android.os.SystemClock.elapsedRealtime()
+        val minutes = if (since > 0 && sinceRt in 1..nowRt) ((nowRt - sinceRt) / 60_000).toInt() else 0
         val log = prefs.getString("log", "").orEmpty()
-        val entry = if (minutes > 0 && stillPinned && !prefs.getBoolean("left", false)) "$since,$minutes" else null
-        prefs.edit().putBoolean("on", false).remove("since")
+        val entry = if (minutes > 0 && stillPinned && !inSplit(activity) && !prefs.getBoolean("left", false)) "$since,$minutes" else null
+        prefs.edit().putBoolean("on", false).remove("since").remove("since_rt")
             .putString("log", listOfNotNull(log.takeIf { it.isNotBlank() }, entry).joinToString(";")).apply()
     }
 }

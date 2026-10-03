@@ -731,4 +731,6 @@
     <string name="music_previous">Previous song</string>
     <string name="mini_studying">Studying · tap to open</string>
     <string name="week_left">%s to go</string>
+    <string name="focus_split">Close split screen or the pop-up window first: focus only works full screen.</string>
+    <string name="focus_split_lost">Split screen is not allowed in focus mode. This session does not count.</string>
 </resources>

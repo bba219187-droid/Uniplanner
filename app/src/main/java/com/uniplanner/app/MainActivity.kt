@@ -213,6 +213,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+        // Split screen or a pop-up window during focus: the session is lost and focus ends.
+        if (isInMultiWindowMode && com.uniplanner.app.focus.FocusMode.isOn(this)) {
+            com.uniplanner.app.focus.FocusMode.void(this)
+            com.uniplanner.app.focus.FocusMode.stop(this, this)
+            android.widget.Toast.makeText(this, getString(R.string.focus_split_lost), android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         com.uniplanner.app.focus.FocusMode.leftApp(this)
