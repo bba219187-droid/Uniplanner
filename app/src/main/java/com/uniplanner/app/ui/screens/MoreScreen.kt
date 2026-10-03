@@ -2,6 +2,20 @@ package com.uniplanner.app.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import com.uniplanner.app.ui.theme.AppStyle
+import com.uniplanner.app.ui.theme.LocalUniLook
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +39,7 @@ import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
+import com.uniplanner.app.ui.theme.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -87,14 +101,29 @@ fun MoreScreen(onOpen: (String) -> Unit) {
     ) {
         ScreenHeader(stringResource(R.string.tab_more))
         groups.forEach { group ->
-            Text(
-                stringResource(group.title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-            )
+            SectionTitle(stringResource(group.title), Modifier.padding(top = 4.dp, start = 4.dp))
+            when (LocalUniLook.current.style) {
+                AppStyle.MARCA -> TileGrid(group.items, onOpen)
+                AppStyle.METRO -> StationList(group.items, onOpen)
+                else -> ListCard(group.items, onOpen)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            stringResource(R.string.more_version, BuildConfig.VERSION_NAME) + "\n" + stringResource(R.string.splash_copyright),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+        )
+    }
+}
+
+/** The usual list: each item a row with its badge, name and a line under it. */
+@Composable
+private fun ListCard(items: List<MoreItem>, onOpen: (String) -> Unit) {
             Card(Modifier.fillMaxWidth()) {
-                group.items.forEachIndexed { i, item ->
+                items.forEachIndexed { i, item ->
                     if (i > 0) HorizontalDivider(Modifier.padding(start = 68.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         Modifier.fillMaxWidth().clickable { onOpen(item.route) }.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -118,14 +147,66 @@ fun MoreScreen(onOpen: (String) -> Unit) {
                     }
                 }
             }
+}
+
+/** Play: the items as coloured tiles two by two, like the genres page of a music app. */
+@Composable
+private fun TileGrid(items: List<MoreItem>, onOpen: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { item ->
+                    Box(
+                        Modifier.weight(1f).height(96.dp).clip(RoundedCornerShape(8.dp)).background(item.tint)
+                            .clickable { onOpen(item.route) }.padding(12.dp),
+                    ) {
+                        Text(
+                            stringResource(item.title),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                            color = Color.White,
+                            maxLines = 2,
+                        )
+                        Icon(
+                            item.icon,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.align(Alignment.BottomEnd).offset(x = 14.dp, y = 10.dp).size(58.dp).rotate(25f),
+                        )
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            stringResource(R.string.more_version, BuildConfig.VERSION_NAME) + "\n" + stringResource(R.string.splash_copyright),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-        )
+    }
+}
+
+/** Metro: the items are stops on one line, each with its station circle. */
+@Composable
+private fun StationList(items: List<MoreItem>, onOpen: (String) -> Unit) {
+    val line = MaterialTheme.colorScheme.primary
+    val ground = MaterialTheme.colorScheme.surface
+    Column(Modifier.fillMaxWidth()) {
+        items.forEachIndexed { i, item ->
+            Row(
+                Modifier.fillMaxWidth().height(64.dp).clickable { onOpen(item.route) }.drawBehind {
+                    val x = 22.dp.toPx()
+                    val top = if (i == 0) size.height / 2 else 0f
+                    val bottom = if (i == items.lastIndex) size.height / 2 else size.height
+                    drawLine(line, Offset(x, top), Offset(x, bottom), strokeWidth = 8.dp.toPx())
+                    drawCircle(ground, 11.dp.toPx(), Offset(x, size.height / 2))
+                    drawCircle(line, 11.dp.toPx(), Offset(x, size.height / 2), style = Stroke(4.dp.toPx()))
+                },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.width(48.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(item.title).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black))
+                    Text(stringResource(item.subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+                Box(Modifier.size(28.dp).background(item.tint, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(item.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
     }
 }

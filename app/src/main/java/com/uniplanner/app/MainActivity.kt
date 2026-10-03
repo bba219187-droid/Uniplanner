@@ -114,6 +114,7 @@ import com.uniplanner.app.ui.theme.UniPlannerTheme
 import com.uniplanner.app.ui.theme.SportTheme
 import com.uniplanner.app.ui.theme.LocalUniLook
 import com.uniplanner.app.ui.theme.AppStyle
+import com.uniplanner.app.ui.theme.screenTexture
 import com.uniplanner.app.health.HealthScreen
 import com.uniplanner.app.settings.Area
 import com.uniplanner.app.settings.OnboardingScreen
@@ -296,7 +297,8 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
         NavHost(
             nav,
             startDestination = Tab.Study.route,
-            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+            modifier = Modifier.screenTexture(LocalUniLook.current, MaterialTheme.colorScheme.onBackground, MaterialTheme.colorScheme.primary)
+                .padding(padding).consumeWindowInsets(padding),
             enterTransition = { slideIn(direction(initialState.destination.route, targetState.destination.route)) },
             exitTransition = { slideOut(direction(initialState.destination.route, targetState.destination.route)) },
             popEnterTransition = { slideIn(-1) },
@@ -353,58 +355,15 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
     }
 }
 
-/** The dark pill of tabs floating above the bottom of the screen; the open tab sits in a light circle. */
+/** The tabs at the bottom, drawn by the current look: a pill, a music bar, metro stations, bookmarks... */
 @Composable
 private fun FloatingTabBar(selected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val look = LocalUniLook.current
-    // The Play look floats a glassy bar in the screen's own colour; the others keep the dark pill.
-    val open = look.style == AppStyle.MARCA
-    val barBg = if (open) colors.surfaceContainerHigh.copy(alpha = 0.94f) else colors.inverseSurface
-    val barFg = if (open) colors.onSurfaceVariant else colors.inverseOnSurface.copy(alpha = 0.6f)
-    Box(
-        Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().height(64.dp).clip(CircleShape).background(barBg)
-                .then(if (open) Modifier.border(1.dp, colors.outlineVariant, CircleShape) else Modifier)
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val areas = PersonalSettings.flow(LocalContext.current).collectAsState().value?.areas ?: Area.entries.toSet()
-            Tab.entries.filter { it.area == null || it.area in areas }.forEach { tab ->
-                val on = selected(tab)
-                val bg by animateColorAsState(if (on) look.accent else Color.Transparent, label = "tabBg")
-                val fg by animateColorAsState(if (on) look.onAccent else barFg, label = "tabFg")
-                // With every tab on, a narrow phone shares the width so none is pushed off the bar.
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Box(
-                        Modifier.fillMaxWidth().widthIn(max = 48.dp).aspectRatio(1f).clip(CircleShape).background(bg)
-                            .clickable(role = Role.Tab) { onSelect(tab) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        // The chosen tab jumps and wiggles, like the letters of the entrance.
-                        val jump by androidx.compose.animation.core.animateFloatAsState(
-                            if (on) 1f else 0f,
-                            androidx.compose.animation.core.spring(dampingRatio = 0.32f, stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
-                            label = "tabJump",
-                        )
-                        Icon(
-                            tab.icon,
-                            contentDescription = stringResource(tab.label),
-                            tint = fg,
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = 1f + 0.18f * jump
-                                scaleY = 1f + 0.18f * jump
-                                rotationZ = (1f - jump) * if (on) -30f else 0f
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
+    val areas = PersonalSettings.flow(LocalContext.current).collectAsState().value?.areas ?: Area.entries.toSet()
+    com.uniplanner.app.ui.theme.TabBar(
+        Tab.entries.filter { it.area == null || it.area in areas }.map { tab ->
+            com.uniplanner.app.ui.theme.TabItem(tab.icon, stringResource(tab.label), selected(tab)) { onSelect(tab) }
+        },
+    )
 }
 
 /** The running study clock, on every tab but Study: the course, the time, and a tap back to it. */

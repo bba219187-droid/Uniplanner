@@ -1,14 +1,12 @@
 {
-  "id": "2026-10-03-temas",
-  "title": "A app tem cara nova (e 7 temas)",
-  "intro": "Escolhe o aspeto de que mais gostas em Mais, Definições, Aparência.",
+  "id": "2026-10-03-temas-2",
+  "title": "Cada tema muda a app toda",
+  "intro": "Escolhe o tema em Mais, Definições, Aparência e vê a app inteira mudar.",
   "items": [
-    "Play: escuro e vivo, as cadeiras como capas de álbum e música enquanto estudas.",
-    "Fitas, Metro, Riso, Marcador, Clássico e Papel (o aspeto de antes).",
-    "As horas da semana em números enormes, com o detalhe de cada tema.",
-    "No tema Play, toca, pausa e salta músicas do Spotify ou da tua app de música sem sair do estudo.",
-    "Enquanto estudas, uma barra em baixo mostra o tempo em todos os separadores.",
-    "Ginásio e Saúde com aspeto de ginásio: cores fortes e letras de equipamento desportivo.",
+    "Cada tema tem a sua barra de baixo: barra de música no Play, estações no Metro, fitas marcadoras nas Fitas, papel no Marcador.",
+    "Títulos, cartões, separadores e ícones mudam de forma em todos os ecrãs.",
+    "O fundo também muda: papel quadriculado no Marcador, pontos de impressão no Riso.",
+    "No Play, o ecrã Mais vira mosaicos de cor; no Metro, uma linha com paragens.",
     "Tudo o resto funciona como antes."
   ]
 }

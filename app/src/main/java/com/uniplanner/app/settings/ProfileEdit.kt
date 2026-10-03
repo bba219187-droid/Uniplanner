@@ -1,5 +1,6 @@
 package com.uniplanner.app.settings
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,8 +71,7 @@ fun Avatar(p: Personal, size: Dp, fallback: String = "") {
 @Composable
 fun ProfileCard(p: Personal, onEdit: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 24.dp, outlined = true)
             .clickable(onClick = onEdit).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

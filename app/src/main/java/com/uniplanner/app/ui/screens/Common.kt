@@ -86,63 +86,18 @@ fun EmptyState(text: String) {
 }
 
 @Composable
-fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = modifier.padding(vertical = 8.dp))
-}
+fun SectionTitle(text: String, modifier: Modifier = Modifier) = com.uniplanner.app.ui.theme.ThemedSection(text, modifier)
 
-/** Big title at the top of a main screen, with an optional line under it. */
+/** Big title at the top of a main screen, with an optional line under it, written the way the look writes it. */
 @Composable
-fun ScreenHeader(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
-    // The title drops in with a bounce each time the screen opens, echoing the entrance.
-    val drop = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        drop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))
-    }
-    Column(
-        modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp).graphicsLayer {
-            translationY = (1f - drop.value) * -60f
-            rotationZ = (1f - drop.value) * -4f
-            alpha = drop.value.coerceIn(0f, 1f)
-        },
-    ) {
-        if (subtitle != null) {
-            Text(subtitle, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        }
-        Text(title, style = MaterialTheme.typography.headlineMedium)
-    }
-}
+fun ScreenHeader(title: String, subtitle: String? = null, modifier: Modifier = Modifier) =
+    com.uniplanner.app.ui.theme.ThemedHeader(title, subtitle, modifier)
 
-/** An icon on a soft tinted circle, used in lists and menus. */
+/** An icon on a small badge, used in lists and menus. */
 @Composable
-fun IconBadge(icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
-    Box(
-        modifier.size(40.dp).background(tint.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center,
-    ) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp)) }
-}
+fun IconBadge(icon: ImageVector, tint: Color, modifier: Modifier = Modifier) = com.uniplanner.app.ui.theme.ThemedBadge(icon, tint, modifier)
 
-/** Two or three options as a rounded segmented switch, cleaner than a tab row. */
+/** Two or three options as a switch, drawn the way the look draws one. */
 @Composable
-fun PillTabs(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, CircleShape).padding(4.dp),
-    ) {
-        options.forEachIndexed { i, label ->
-            val on = i == selected
-            Box(
-                Modifier.weight(1f)
-                    .clip(CircleShape)
-                    .background(if (on) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent, CircleShape)
-                    .clickable { onSelect(i) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
+fun PillTabs(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) =
+    com.uniplanner.app.ui.theme.ThemedTabs(options, selected, onSelect, modifier)

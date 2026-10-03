@@ -1,5 +1,6 @@
 package com.uniplanner.app.timetable
 
+import com.uniplanner.app.ui.theme.frame
 import android.net.Uri
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -130,7 +131,7 @@ fun TimetableScreen(onOpenPortal: () -> Unit) {
         if (s.needsLogin) {
             item {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.errorContainer).padding(14.dp),
+                    Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.errorContainer, 18.dp).padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(stringResource(R.string.timetable_login_text), color = MaterialTheme.colorScheme.onErrorContainer)
@@ -298,7 +299,7 @@ private fun ImportOptions(onPortal: () -> Unit, onLink: () -> Unit, onFile: () -
 @Composable
 private fun ImportOption(icon: ImageVector, title: String, detail: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 18.dp)
             .clickable(onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -315,7 +316,7 @@ private fun NextClass(slot: ClassSlot, at: LocalDateTime) {
     val now = LocalDateTime.now()
     val going = !at.isAfter(now)
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(18.dp),
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.inverseSurface, 24.dp).padding(18.dp),
     ) {
         val label = when {
             going -> stringResource(R.string.timetable_now)
@@ -335,7 +336,7 @@ private fun NextClass(slot: ClassSlot, at: LocalDateTime) {
 @Composable
 private fun ClassRow(slot: ClassSlot, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 18.dp)
             .clickable(onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

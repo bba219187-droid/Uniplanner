@@ -1,5 +1,6 @@
 package com.uniplanner.app.settings
 
+import com.uniplanner.app.ui.theme.frame
 import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
@@ -136,7 +137,7 @@ fun SettingsScreen(onOpen: (String) -> Unit = {}) {
 @Composable
 private fun Tile(s: Section, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.aspectRatio(1.05f).clip(RoundedCornerShape(26.dp)).background(s.color).clickable(onClick = onClick).padding(16.dp),
+        modifier.aspectRatio(1.05f).frame(s.color, 26.dp).clickable(onClick = onClick).padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
@@ -160,7 +161,7 @@ private fun SectionPage(s: Section, onBack: () -> Unit) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
         }
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(s.color).padding(20.dp),
+            Modifier.fillMaxWidth().frame(s.color, 28.dp).padding(20.dp),
         ) {
             Text(s.emoji, fontSize = 34.sp)
             Spacer(Modifier.height(8.dp))
@@ -191,7 +192,7 @@ private fun SectionPage(s: Section, onBack: () -> Unit) {
 @Composable
 private fun Group(content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surface),
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 24.dp),
     ) { content() }
 }
 

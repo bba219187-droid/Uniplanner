@@ -1,5 +1,6 @@
 package com.uniplanner.app.study
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -129,7 +130,7 @@ private fun StreakHero(streak: Int, best: Int) {
     val pop = remember { Animatable(0.4f) }
     LaunchedEffect(streak) { pop.snapTo(0.4f); pop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessLow)) }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Ink).padding(20.dp),
+        Modifier.fillMaxWidth().frame(Ink, 28.dp).padding(20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("🔥", fontSize = 54.sp, modifier = Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; rotationZ = (1 - pop.value) * 40f })

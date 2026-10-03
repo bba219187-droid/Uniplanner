@@ -1,5 +1,6 @@
 package com.uniplanner.app.location
 
+import com.uniplanner.app.ui.theme.frame
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -173,8 +174,7 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
             }
             items(friends, key = { it.uid }) { f ->
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+                    Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 20.dp, outlined = true)
                         .clickable {
                             val uri = Uri.parse("geo:${f.lat},${f.lng}?q=${f.lat},${f.lng}(${Uri.encode(f.name)})")
                             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
@@ -223,8 +223,7 @@ fun LocationScreen(onOpenAdmin: () -> Unit, vm: LocationViewModel = viewModel())
 @Composable
 private fun ChoiceRow(title: String, detail: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 20.dp, outlined = true)
             .clickable { onChange(!checked) }.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -256,7 +255,7 @@ fun AdminScreen(vm: LocationViewModel = viewModel()) {
         } else {
             item {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.inverseSurface).padding(20.dp),
+                    Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.inverseSurface, 28.dp).padding(20.dp),
                 ) {
                     Text(
                         stringResource(R.string.admin_sharing),
@@ -287,7 +286,7 @@ fun AdminScreen(vm: LocationViewModel = viewModel()) {
             }
             items(list, key = { "${it.city}|${it.country}" }) { row ->
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(14.dp),
+                    Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surfaceContainerHigh, 18.dp).padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Row {

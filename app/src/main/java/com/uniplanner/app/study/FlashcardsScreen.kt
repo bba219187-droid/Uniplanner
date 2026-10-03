@@ -1,5 +1,6 @@
 package com.uniplanner.app.study
 
+import com.uniplanner.app.ui.theme.frame
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -82,7 +83,7 @@ fun FlashcardsScreen() {
                 }
                 item {
                     Column(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Color(deck.color)).padding(20.dp),
+                        Modifier.fillMaxWidth().frame(Color(deck.color), 28.dp).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(deck.name, fontFamily = MaterialTheme.typography.headlineMedium.fontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
@@ -103,7 +104,7 @@ fun FlashcardsScreen() {
                 }
                 items(cards, key = { it.id }) { c ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surface).padding(14.dp),
+                        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 18.dp).padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -130,7 +131,7 @@ fun FlashcardsScreen() {
                 val due = Flashcards.due(s, d.id).size
                 val total = s.cards.count { it.deckId == d.id }
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(d.color)).clickable { openDeck = d.id }.padding(18.dp),
+                    Modifier.fillMaxWidth().frame(Color(d.color), 24.dp).clickable { openDeck = d.id }.padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
