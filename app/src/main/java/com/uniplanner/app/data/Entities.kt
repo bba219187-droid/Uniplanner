@@ -74,3 +74,19 @@ data class Workout(
     val minutes: Int = 60,
     val done: Boolean = false,
 )
+
+/** A page of class notes: typed text and/or a drawing, filed under a course, a topic and the class day. */
+@Entity(tableName = "notes")
+data class Note(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val courseId: Long? = null,
+    val topic: String = "",
+    /** The class day, as yyyy-MM-dd. */
+    val lessonDate: String,
+    val title: String = "",
+    val text: String = "",
+    /** The drawing, written by [com.uniplanner.app.notes.InkCodec]. */
+    val ink: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)

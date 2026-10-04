@@ -344,6 +344,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     onOpenAgenda = { nav.navigate("agenda") },
                     onOpenStats = { nav.navigate("stats") },
                     onOpenProfile = { nav.navigate(Tab.More.route) { launchSingleTop = true } },
+                    onOpenNotes = { nav.navigate("notes") },
                 )
             }
             composable(Tab.Social.route) { SocialScreen(online, onOpenChat = { kind, id -> nav.navigate("chat/${kind.name}/$id") }) }
@@ -370,6 +371,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable("settings") { SettingsScreen(onOpen = { nav.navigate(it) }) }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
+            composable("notes") { com.uniplanner.app.notes.NotesScreen() }
             composable("flashcards") { com.uniplanner.app.study.FlashcardsScreen() }
             composable("achievements") { com.uniplanner.app.study.AchievementsScreen(vm) }
             composable("backup") {

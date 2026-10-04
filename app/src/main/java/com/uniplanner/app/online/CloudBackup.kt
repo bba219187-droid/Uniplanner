@@ -65,7 +65,7 @@ object CloudBackup {
                 db.courses().observeAll(),
                 db.deadlines().observeAll(),
                 db.studySessions().observeAll(),
-                db.workouts().observeAll(),
+                combine(db.workouts().observeAll(), db.notes().observeAll()) { w, n -> listOf(w, n) },
                 combine(
                     db.exerciseSets().observeAll(),
                     db.health().observeWeights(),
@@ -109,7 +109,10 @@ object CloudBackup {
     /** Uploads this phone's planner to the account. */
     suspend fun save(uid: String = Firebase.auth.currentUser?.uid ?: error("Not signed in")) = lock.withLock {
         val now = System.currentTimeMillis()
-        val data = BackupCodec.pack(BackupCodec.encode(AppDatabase.get(app).snapshot()))
+        val snapshot = AppDatabase.get(app).snapshot()
+        var data = BackupCodec.pack(BackupCodec.encode(snapshot))
+        // One account document holds at most 1 MB: if drawings push past that, keep the notes' text only.
+        if (data.length > 900_000) data = BackupCodec.pack(BackupCodec.encode(snapshot.copy(notes = snapshot.notes.map { it.copy(ink = "") })))
         doc(uid).set(
             mapOf(
                 "format" to BackupCodec.FORMAT,

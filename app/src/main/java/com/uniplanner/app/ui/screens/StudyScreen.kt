@@ -25,6 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.uniplanner.app.ui.theme.frame
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.PlayArrow
@@ -111,6 +114,7 @@ fun StudyScreen(
     onOpenAgenda: () -> Unit,
     onOpenStats: () -> Unit,
     onOpenProfile: () -> Unit,
+    onOpenNotes: () -> Unit = {},
 ) {
     val courses by vm.courses.collectAsStateWithLifecycle()
     val sessions by vm.studyThisWeek.collectAsStateWithLifecycle()
@@ -326,6 +330,21 @@ fun StudyScreen(
                         )
                     }
                 }
+            }
+        }
+
+        item(span = { GridItemSpan(2) }) {
+            Row(
+                Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 20.dp, outlined = true).clickable(onClick = onOpenNotes).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBadge(Icons.Filled.EditNote, Color(0xFF2563EB))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.notes_title), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.notes_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
             }
         }
 

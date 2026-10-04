@@ -15,6 +15,7 @@ data class Snapshot(
     val mealPlan: List<PlanMeal> = emptyList(),
     val food: List<FoodLog> = emptyList(),
     val steps: List<StepDay> = emptyList(),
+    val notes: List<Note> = emptyList(),
 ) {
     /**
      * Nothing the student planned yet. Steps and weights are left out: a new phone gets them on its
@@ -23,7 +24,7 @@ data class Snapshot(
      */
     val isEmpty: Boolean
         get() = courses.isEmpty() && deadlines.isEmpty() && studySessions.isEmpty() && workouts.isEmpty() &&
-            exerciseSets.isEmpty() && mealPlan.isEmpty() && food.isEmpty()
+            exerciseSets.isEmpty() && mealPlan.isEmpty() && food.isEmpty() && notes.isEmpty()
 }
 
 object BackupCodec {
@@ -75,6 +76,10 @@ object BackupCodec {
             JSONObject().put("id", f.id).put("at", f.at).put("name", f.name).put("kcal", f.kcal).putOpt("mealId", f.mealId)
         }))
         .put("steps", JSONArray(s.steps.map { d -> JSONObject().put("day", d.day).put("count", d.count) }))
+        .put("notes", JSONArray(s.notes.map { n ->
+            JSONObject().put("id", n.id).putOpt("courseId", n.courseId).put("topic", n.topic).put("lessonDate", n.lessonDate)
+                .put("title", n.title).put("text", n.text).put("ink", n.ink).put("createdAt", n.createdAt).put("updatedAt", n.updatedAt)
+        }))
         .toString()
 
     fun decode(text: String): Snapshot {
@@ -126,6 +131,12 @@ object BackupCodec {
                 FoodLog(o.getLong("id"), o.getLong("at"), o.getString("name"), o.optInt("kcal"), o.longOrNull("mealId"))
             },
             steps = root.optJSONArray("steps").objects().map { o -> StepDay(o.getString("day"), o.getInt("count")) },
+            notes = root.optJSONArray("notes").objects().map { o ->
+                Note(
+                    o.getLong("id"), o.longOrNull("courseId"), o.optString("topic"), o.getString("lessonDate"), o.optString("title"),
+                    o.optString("text"), o.optString("ink"), o.optLong("createdAt"), o.optLong("updatedAt"),
+                )
+            },
         )
     }
 
@@ -146,6 +157,7 @@ suspend fun AppDatabase.snapshot(): Snapshot = Snapshot(
     health().plan(),
     health().food(),
     health().steps(),
+    notes().getAll(),
 )
 
 /** Replaces everything on this phone with the snapshot, keeping ids so links between items hold. */
@@ -170,4 +182,6 @@ suspend fun AppDatabase.replaceWith(s: Snapshot) = withTransaction {
     health().insertFoods(s.food)
     health().clearSteps()
     health().putAllSteps(s.steps)
+    notes().deleteAll()
+    notes().insertAll(s.notes)
 }

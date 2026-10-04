@@ -1,12 +1,12 @@
 {
-  "id": "2026-10-04-foco-blindado-3",
-  "title": "Modo foco sem truques",
-  "intro": "O modo foco ficou à prova de batota.",
+  "id": "2026-10-04-apontamentos",
+  "title": "Apontamentos das aulas",
+  "intro": "Agora podes tirar apontamentos durante a aula, na própria app.",
   "items": [
-    "A app já não abre em ecrã dividido nem em janela flutuante.",
-    "O modo foco pede acesso de utilização: assim deteta qualquer app aberta por cima, em qualquer telemóvel.",
-    "Abrir outra app numa janela flutuante por cima (YouTube, por exemplo) acaba a sessão de foco.",
-    "Se puseres o ecrã dividido durante o modo foco, a sessão acaba e não conta para as conquistas.",
-    "Mudar a hora do telemóvel já não dá minutos a mais."
+    "Escreve com o teclado ou desenha com a caneta ou o dedo, como num caderno.",
+    "Canetas de várias cores e grossuras, marcador, borracha e desfazer.",
+    "Num tablet com caneta, a mão apoiada no ecrã não risca.",
+    "Organiza tudo por cadeira, tema e dia da aula, e procura em todas as notas.",
+    "Abre em Estudo ou em Mais → Apontamentos. Resumos com IA e gravação da aula chegam em breve."
   ]
 }

@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -118,5 +119,26 @@ interface WorkoutDao {
     suspend fun insertAll(workouts: List<Workout>)
 
     @Query("DELETE FROM workouts")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface NoteDao {
+    @Query("SELECT * FROM notes ORDER BY lessonDate DESC, updatedAt DESC")
+    fun observeAll(): Flow<List<Note>>
+
+    @Query("SELECT * FROM notes")
+    suspend fun getAll(): List<Note>
+
+    @Upsert
+    suspend fun upsert(note: Note): Long
+
+    @Query("DELETE FROM notes WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Insert
+    suspend fun insertAll(notes: List<Note>)
+
+    @Query("DELETE FROM notes")
     suspend fun deleteAll()
 }

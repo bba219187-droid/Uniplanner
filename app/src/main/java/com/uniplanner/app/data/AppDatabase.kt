@@ -20,9 +20,9 @@ class Converters {
 @Database(
     entities = [
         Course::class, Deadline::class, StudySession::class, Workout::class,
-        ExerciseSet::class, WeightEntry::class, PlanMeal::class, FoodLog::class, StepDay::class,
+        ExerciseSet::class, WeightEntry::class, PlanMeal::class, FoodLog::class, StepDay::class, Note::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -33,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workouts(): WorkoutDao
     abstract fun exerciseSets(): ExerciseSetDao
     abstract fun health(): HealthDao
+    abstract fun notes(): NoteDao
 
     companion object {
         /** Version 2 remembers which Moodle course and assignment an item came from. */
@@ -83,6 +84,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Version 6 adds class notes (typed text and drawings). */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `notes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`courseId` INTEGER, `topic` TEXT NOT NULL, `lessonDate` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                        "`text` TEXT NOT NULL, `ink` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+                )
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -92,7 +104,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "uniplanner.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
             }
     }
 }

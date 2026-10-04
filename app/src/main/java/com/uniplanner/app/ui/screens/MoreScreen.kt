@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.CloudDone
@@ -72,6 +73,7 @@ private val groups = listOf(
             MoreItem("courses", R.string.tab_courses, R.string.more_courses_sub, Icons.Filled.School, Color(0xFF4F46E5)),
             MoreItem("grades", R.string.more_grades, R.string.more_grades_sub, Icons.Filled.Grade, Color(0xFFF59E0B)),
             MoreItem("stats", R.string.more_stats, R.string.more_stats_sub, Icons.Filled.BarChart, Color(0xFF0D9488)),
+            MoreItem("notes", R.string.notes_title, R.string.notes_sub, Icons.Filled.EditNote, Color(0xFF2563EB)),
             MoreItem("flashcards", R.string.more_flashcards, R.string.more_flashcards_sub, Icons.Filled.Layers, Color(0xFFDB2777)),
             MoreItem("achievements", R.string.more_achievements, R.string.more_achievements_sub, Icons.Filled.EmojiEvents, Color(0xFFEA580C)),
         ),
