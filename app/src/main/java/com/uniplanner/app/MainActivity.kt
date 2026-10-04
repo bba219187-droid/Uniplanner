@@ -371,7 +371,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
             composable("settings") { SettingsScreen(onOpen = { nav.navigate(it) }) }
             composable("grades") { GradesScreen(vm) }
             composable("stats") { StatsScreen(vm) }
-            composable("notes") { com.uniplanner.app.notes.NotesScreen() }
+            composable("notes") { com.uniplanner.app.notes.NotesScreen(online) }
             composable("flashcards") { com.uniplanner.app.study.FlashcardsScreen() }
             composable("achievements") { com.uniplanner.app.study.AchievementsScreen(vm) }
             composable("backup") {

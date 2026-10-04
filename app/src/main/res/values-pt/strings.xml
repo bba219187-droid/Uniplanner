@@ -767,4 +767,9 @@
     <string name="notes_cancel">Cancelar</string>
     <string name="notes_back">Voltar</string>
     <string name="notes_pick">Escolhe uma nota ou cria uma nova.</string>
+    <string name="notes_share">Partilhar</string>
+    <string name="notes_share_title">Partilhar com…</string>
+    <string name="notes_share_none">Ainda não tens amigos nem grupos. Entra na tua conta e adiciona-os em Amigos.</string>
+    <string name="notes_share_sent">Partilhado com %1$s</string>
+    <string name="notes_share_ink">Os desenhos não são partilhados, só o texto.</string>
 </resources>

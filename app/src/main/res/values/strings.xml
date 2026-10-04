@@ -765,4 +765,9 @@
     <string name="notes_cancel">Cancel</string>
     <string name="notes_back">Back</string>
     <string name="notes_pick">Pick a note or create a new one.</string>
+    <string name="notes_share">Share</string>
+    <string name="notes_share_title">Share with…</string>
+    <string name="notes_share_none">No friends or groups yet. Sign in and add them in Friends.</string>
+    <string name="notes_share_sent">Shared with %1$s</string>
+    <string name="notes_share_ink">Drawings are not shared, only the text.</string>
 </resources>

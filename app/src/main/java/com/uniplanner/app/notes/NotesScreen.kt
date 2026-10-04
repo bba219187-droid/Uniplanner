@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -88,6 +89,7 @@ import com.uniplanner.app.R
 import com.uniplanner.app.data.AppDatabase
 import com.uniplanner.app.data.Course
 import com.uniplanner.app.data.Note
+import com.uniplanner.app.online.OnlineViewModel
 import com.uniplanner.app.ui.screens.ColorDot
 import com.uniplanner.app.ui.screens.PillTabs
 import com.uniplanner.app.ui.screens.ScreenHeader
@@ -109,7 +111,7 @@ private val inkWidths = listOf(1.5f, 3f, 6f)
 private const val ERASER = 2
 
 @Composable
-fun NotesScreen() {
+fun NotesScreen(online: OnlineViewModel) {
     val ctx = LocalContext.current
     val db = remember { AppDatabase.get(ctx) }
     val notes by db.notes().observeAll().collectAsState(initial = emptyList())
@@ -123,14 +125,16 @@ fun NotesScreen() {
         }
     }
     val open = notes.firstOrNull { it.id == openId }
+    var sharing by remember { mutableStateOf<List<Note>?>(null) }
+    val share: (List<Note>) -> Unit = { sharing = it }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth >= 840.dp) {
             Row(Modifier.fillMaxSize()) {
-                NoteList(notes, courses, openId, onOpen = { openId = it }, onNew = newNote, modifier = Modifier.weight(0.4f))
+                NoteList(notes, courses, openId, onOpen = { openId = it }, onNew = newNote, onShare = share, modifier = Modifier.weight(0.4f))
                 Box(Modifier.weight(0.6f).fillMaxHeight()) {
                     if (open != null) {
-                        key(open.id) { NoteEditor(open, courses, notes, onClose = { openId = null }, showBack = false) }
+                        key(open.id) { NoteEditor(open, courses, notes, onClose = { openId = null }, showBack = false, onShare = share) }
                     } else {
                         Text(
                             stringResource(R.string.notes_pick),
@@ -142,11 +146,57 @@ fun NotesScreen() {
             }
         } else if (open != null) {
             BackHandler { openId = null }
-            key(open.id) { NoteEditor(open, courses, notes, onClose = { openId = null }, showBack = true) }
+            key(open.id) { NoteEditor(open, courses, notes, onClose = { openId = null }, showBack = true, onShare = share) }
         } else {
-            NoteList(notes, courses, null, onOpen = { openId = it }, onNew = newNote, modifier = Modifier.fillMaxSize())
+            NoteList(notes, courses, null, onOpen = { openId = it }, onNew = newNote, onShare = share, modifier = Modifier.fillMaxSize())
         }
     }
+    sharing?.let { list -> ShareDialog(online, list, courses, onDismiss = { sharing = null }) }
+}
+
+/**
+ * Sends the notes' text to a friend or a group as a course note, so it also shows on the group's
+ * notes page. Messages are end-to-end encrypted like the rest of the chat. Drawings stay on the phone.
+ */
+@Composable
+private fun ShareDialog(online: OnlineViewModel, notes: List<Note>, courses: List<Course>, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
+    val chats by online.conversations.collectAsState()
+    val noCourse = stringResource(R.string.notes_title)
+    val course = notes.firstNotNullOfOrNull { n -> courses.firstOrNull { it.id == n.courseId }?.name } ?: notes.firstOrNull()?.topic?.ifBlank { null } ?: noCourse
+    val text = notes.sortedBy { it.lessonDate }.joinToString("\n\n") { n ->
+        listOf(
+            n.title.ifBlank { null }?.let { "# $it" },
+            listOf(n.topic.ifBlank { null }, prettyDate(n.lessonDate)).filterNotNull().joinToString(" · "),
+            n.text.trim().ifBlank { null },
+        ).filterNotNull().joinToString("\n")
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.notes_share_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (notes.any { it.ink.isNotEmpty() }) {
+                    Text(stringResource(R.string.notes_share_ink), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (chats.isEmpty()) Text(stringResource(R.string.notes_share_none))
+                LazyColumn(Modifier.height(320.dp)) {
+                    items(chats, key = { it.kind.name + it.id }) { c ->
+                        Text(
+                            c.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+                                online.sendNote(c.kind, c.id, course, text)
+                                android.widget.Toast.makeText(ctx, ctx.getString(R.string.notes_share_sent, c.title), android.widget.Toast.LENGTH_SHORT).show()
+                                onDismiss()
+                            }.padding(12.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.notes_cancel)) } },
+    )
 }
 
 @Composable
@@ -156,6 +206,7 @@ private fun NoteList(
     selected: Long?,
     onOpen: (Long) -> Unit,
     onNew: (Long?) -> Unit,
+    onShare: (List<Note>) -> Unit,
     modifier: Modifier,
 ) {
     var courseFilter by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -220,7 +271,12 @@ private fun NoteList(
             }
         }
         groups.forEach { (label, list) ->
-            item(key = "g-$label") { SectionTitle(label, Modifier.padding(top = 8.dp, start = 4.dp)) }
+            item(key = "g-$label") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SectionTitle(label, Modifier.weight(1f).padding(top = 8.dp, start = 4.dp))
+                    IconButton(onClick = { onShare(list) }) { Icon(Icons.Filled.Share, stringResource(R.string.notes_share)) }
+                }
+            }
             items(list, key = { it.id }) { n ->
                 val course = courses.firstOrNull { it.id == n.courseId }
                 val sel = n.id == selected
@@ -287,7 +343,7 @@ private class Ink(initial: List<InkStroke>) {
 }
 
 @Composable
-private fun NoteEditor(note: Note, courses: List<Course>, all: List<Note>, onClose: () -> Unit, showBack: Boolean) {
+private fun NoteEditor(note: Note, courses: List<Course>, all: List<Note>, onClose: () -> Unit, showBack: Boolean, onShare: (List<Note>) -> Unit) {
     val ctx = LocalContext.current
     val db = remember { AppDatabase.get(ctx) }
     // Keyed on the id so switching notes on a tablet starts fresh instead of carrying the old text.
@@ -334,6 +390,7 @@ private fun NoteEditor(note: Note, courses: List<Course>, all: List<Note>, onClo
                 textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = { onShare(listOf(current())) }) { Icon(Icons.Filled.Share, stringResource(R.string.notes_share)) }
             IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.DeleteOutline, stringResource(R.string.notes_delete)) }
         }
         Row(
