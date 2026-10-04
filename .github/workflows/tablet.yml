@@ -1,0 +1,41 @@
+name: Tablet
+
+on:
+  push:
+    paths: ["tablet/**", ".github/workflows/tablet.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: tablet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk UniPlannerTablet.apk
+      - name: Move release tag
+        run: |
+          git tag -f tablet
+          git push -f origin refs/tags/tablet
+      # Prerelease so the phone app's /releases/latest link keeps pointing at UniPlanner.
+      # Direct link: /releases/download/tablet/UniPlannerTablet.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tablet
+          name: UniPlanner Tablet
+          body: APK para o tablet, gerado a partir do commit ${{ github.sha }}.
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          files: tablet/UniPlannerTablet.apk
