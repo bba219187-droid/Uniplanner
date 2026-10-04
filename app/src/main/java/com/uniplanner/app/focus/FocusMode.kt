@@ -25,6 +25,40 @@ object FocusMode {
         }
     }
 
+    /** "Usage access": lets focus mode see every app that comes to the front, on any phone. */
+    fun hasUsageAccess(ctx: Context): Boolean {
+        val ops = ctx.getSystemService(android.app.AppOpsManager::class.java) ?: return false
+        val mode = if (android.os.Build.VERSION.SDK_INT >= 29)
+            ops.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        else @Suppress("DEPRECATION") ops.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    fun askUsageAccess(ctx: Context) {
+        runCatching {
+            ctx.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    // System screens and phone calls may come up without it being cheating.
+    private val allowed = listOf("com.android.systemui", "permissioncontroller", "incallui", "dialer", "telecom", "com.android.server.telecom")
+
+    /** True when another app was opened during this session: full screen, split, floating or pop-up. */
+    fun otherAppOpened(ctx: Context): Boolean {
+        if (!isOn(ctx)) return false
+        val since = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("since", 0L).takeIf { it > 0 } ?: return false
+        val usm = ctx.getSystemService(android.app.usage.UsageStatsManager::class.java) ?: return false
+        val events = runCatching { usm.queryEvents(since, System.currentTimeMillis()) }.getOrNull() ?: return false
+        val e = android.app.usage.UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(e)
+            @Suppress("DEPRECATION")
+            if (e.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND && e.packageName != ctx.packageName &&
+                e.packageName != "android" && allowed.none { e.packageName.contains(it) }) return true
+        }
+        return false
+    }
+
     /** Split screen, a pop-up window or picture-in-picture: other apps are usable, so focus cannot run. */
     fun inSplit(activity: Activity?): Boolean =
         activity != null && (activity.isInMultiWindowMode || activity.isInPictureInPictureMode)
@@ -36,7 +70,7 @@ object FocusMode {
 
     /** Starts focus, or returns false when the app is sharing the screen with another one. */
     fun start(activity: Activity): Boolean {
-        if (inSplit(activity)) return false
+        if (inSplit(activity) || !hasUsageAccess(activity)) return false
         val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val nm = activity.getSystemService(NotificationManager::class.java)
         if (canSilence(activity) && nm != null) {

@@ -732,5 +732,6 @@
     <string name="mini_studying">Studying · tap to open</string>
     <string name="week_left">%s to go</string>
     <string name="focus_split">Close split screen or the pop-up window first: focus only works full screen.</string>
-    <string name="focus_split_lost">Split screen and floating windows are not allowed in focus mode. This session does not count.</string>
+    <string name="focus_split_lost">Another app was opened during focus mode. This session does not count.</string>
+    <string name="focus_usage">To stop cheating, focus mode needs usage access. Turn it on for UniPlanner and tap focus again.</string>
 </resources>

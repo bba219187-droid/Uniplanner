@@ -734,5 +734,6 @@
     <string name="mini_studying">A estudar · toca para abrir</string>
     <string name="week_left">Faltam %s</string>
     <string name="focus_split">Fecha o ecrã dividido ou a janela flutuante primeiro: o modo foco só funciona em ecrã inteiro.</string>
-    <string name="focus_split_lost">Ecrã dividido e janelas flutuantes não são permitidos no modo foco. Esta sessão não conta.</string>
+    <string name="focus_split_lost">Abriste outra app durante o modo foco. Esta sessão não conta.</string>
+    <string name="focus_usage">Para não haver batota, o modo foco precisa de acesso de utilização. Liga-o para a UniPlanner e volta a carregar no foco.</string>
 </resources>

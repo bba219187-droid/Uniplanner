@@ -152,7 +152,10 @@ fun StudyScreen(
             // Unpinned, split screen or a pop-up window mid-session: focus ends at once and earns nothing.
             val act = context as? android.app.Activity
             if (focus && (com.uniplanner.app.focus.FocusMode.unpinned(context) || com.uniplanner.app.focus.FocusMode.inSplit(act) ||
+                    com.uniplanner.app.focus.FocusMode.otherAppOpened(context) ||
                     !com.uniplanner.app.focus.FocusMode.isOn(context))) {
+                if (com.uniplanner.app.focus.FocusMode.isOn(context))
+                    android.widget.Toast.makeText(context, context.getString(com.uniplanner.app.R.string.focus_split_lost), android.widget.Toast.LENGTH_LONG).show()
                 com.uniplanner.app.focus.FocusMode.void(context)
                 com.uniplanner.app.focus.FocusMode.stop(context as? android.app.Activity, context)
                 focus = false
@@ -236,7 +239,10 @@ fun StudyScreen(
                             focus = false
                         } else if (activity != null) {
                             if (!com.uniplanner.app.focus.FocusMode.canSilence(context)) com.uniplanner.app.focus.FocusMode.askToSilence(context)
-                            if (com.uniplanner.app.focus.FocusMode.start(activity)) focus = true
+                            if (!com.uniplanner.app.focus.FocusMode.hasUsageAccess(context)) {
+                                android.widget.Toast.makeText(context, context.getString(com.uniplanner.app.R.string.focus_usage), android.widget.Toast.LENGTH_LONG).show()
+                                com.uniplanner.app.focus.FocusMode.askUsageAccess(context)
+                            } else if (com.uniplanner.app.focus.FocusMode.start(activity)) focus = true
                             else android.widget.Toast.makeText(context, context.getString(com.uniplanner.app.R.string.focus_split), android.widget.Toast.LENGTH_LONG).show()
                         }
                     },
