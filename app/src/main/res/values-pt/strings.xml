@@ -772,4 +772,14 @@
     <string name="notes_share_none">Ainda não tens amigos nem grupos. Entra na tua conta e adiciona-os em Amigos.</string>
     <string name="notes_share_sent">Partilhado com %1$s</string>
     <string name="notes_share_ink">Os desenhos não são partilhados, só o texto.</string>
+    <string name="student_card_title">Cartão de aluno</string>
+    <string name="student_card_sub">O teu cartão sempre à mão, com o ecrã no máximo</string>
+    <string name="student_card_front">frente</string>
+    <string name="student_card_back">verso</string>
+    <string name="student_card_add">Adicionar %1$s</string>
+    <string name="student_card_change">Trocar %1$s</string>
+    <string name="student_card_remove">Tirar</string>
+    <string name="student_card_link">Link do cartão digital da tua universidade</string>
+    <string name="student_card_open">Abrir cartão digital</string>
+    <string name="student_card_private">Podes usar uma foto do cartão ou uma captura do cartão digital. Fica só neste telemóvel.</string>
 </resources>

@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -82,6 +83,7 @@ private val groups = listOf(
         R.string.more_group_connections,
         listOf(
             MoreItem("agenda", R.string.more_agenda, R.string.more_agenda_sub, Icons.Filled.EventAvailable, Color(0xFF0EA5E9)),
+            MoreItem("studentcard", R.string.student_card_title, R.string.student_card_sub, Icons.Filled.Badge, Color(0xFF16A34A)),
             MoreItem("moodle", R.string.more_moodle, R.string.more_moodle_sub, Icons.AutoMirrored.Filled.MenuBook, Color(0xFFF97316)),
         ),
     ),

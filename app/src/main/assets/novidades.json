@@ -1,13 +1,12 @@
 {
-  "id": "2026-10-04-apontamentos",
-  "title": "Apontamentos das aulas",
-  "intro": "Agora podes tirar apontamentos durante a aula, na própria app.",
+  "id": "2026-10-22-cartao-aluno",
+  "title": "Cartão de aluno",
+  "intro": "O teu cartão de aluno agora também está na app.",
   "items": [
-    "Escreve com o teclado ou desenha com a caneta ou o dedo, como num caderno.",
-    "Canetas de várias cores e grossuras, marcador, borracha e desfazer.",
-    "Num tablet com caneta, a mão apoiada no ecrã não risca.",
-    "Organiza tudo por cadeira, tema e dia da aula, e procura em todas as notas.",
-    "Partilha uma nota, um tema ou uma aula inteira com amigos e grupos (só o texto).",
-    "Abre em Estudo ou em Mais → Apontamentos. Resumos com IA e gravação da aula chegam em breve."
+    "Guarda uma foto da frente e do verso, ou uma captura do cartão digital da tua universidade.",
+    "Se a tua universidade tem cartão digital, põe o link e abre-o com um toque.",
+    "Ao abrir o cartão, o ecrã fica no máximo de brilho para o leitor da porta ou da cantina.",
+    "Abre em Mais → Cartão de aluno. Fica só no teu telemóvel.",
+    "Corrigido: com mais de 10 mil passos já não desaparece nenhum número."
   ]
 }
