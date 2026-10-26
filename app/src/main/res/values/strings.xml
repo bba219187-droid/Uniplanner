@@ -770,4 +770,14 @@
     <string name="notes_share_none">No friends or groups yet. Sign in and add them in Friends.</string>
     <string name="notes_share_sent">Shared with %1$s</string>
     <string name="notes_share_ink">Drawings are not shared, only the text.</string>
+    <string name="student_card_title">Student card</string>
+    <string name="student_card_sub">Your card always at hand, with the screen at full brightness</string>
+    <string name="student_card_front">front</string>
+    <string name="student_card_back">back</string>
+    <string name="student_card_add">Add %1$s</string>
+    <string name="student_card_change">Change %1$s</string>
+    <string name="student_card_remove">Remove</string>
+    <string name="student_card_link">Link to your university\'s digital card</string>
+    <string name="student_card_open">Open digital card</string>
+    <string name="student_card_private">Use a photo of your card or a screenshot of the digital one. It stays on this phone only.</string>
 </resources>
