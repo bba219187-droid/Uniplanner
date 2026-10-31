@@ -215,6 +215,7 @@ class OnlineRepository {
                         friendCode = snap.getString("friendCode").orEmpty(),
                     ),
                 )
+                if (uid == auth.currentUser?.uid) register("friendCodes", snap.getString("friendCode").orEmpty(), "uid", uid)
             }
         }
         awaitClose { reg.remove() }
@@ -258,8 +259,7 @@ class OnlineRepository {
 
     /** Returns false when no student has that friend code. */
     suspend fun sendFriendRequest(me: Profile, code: String): Boolean {
-        val found = db.collection("users").whereEqualTo("friendCode", code.trim().uppercase()).limit(1)
-            .get().await().documents.firstOrNull() ?: return false
+        val found = findByCode("friendCodes", "uid", "users", "friendCode", code) ?: return false
         if (found.id == me.uid) return false
         val ref = db.collection("friendships").document(Online.friendshipId(me.uid, found.id))
         // Already friends or already asked: nothing to do (rules only let the receiver change it).
@@ -303,7 +303,7 @@ class OnlineRepository {
                             memberCount = (d.get("members") as? List<*>)?.size ?: 0,
                             ownerId = d.getString("ownerId").orEmpty(),
                             last = d.lastMessage(),
-                        )
+                        ).also { g -> register("groupInvites", g.inviteCode, "groupId", g.id) }
                     }.sortedBy { it.name.lowercase() },
                 )
             }
@@ -325,11 +325,49 @@ class OnlineRepository {
 
     /** Returns false when no group has that invite code. */
     suspend fun joinGroup(me: Profile, code: String): Boolean {
-        val group = db.collection("groups").whereEqualTo("inviteCode", code.trim().uppercase()).limit(1)
-            .get().await().documents.firstOrNull() ?: return false
+        val clean = code.trim().uppercase()
+        // New rules: the group is only readable by members, so the code leads to its id.
+        val groupId = runCatching { db.collection("groupInvites").document(clean).get().await().getString("groupId") }.getOrNull()
+        if (groupId != null) {
+            // Adding someone who is already in is refused by the rules; that is fine.
+            runCatching { db.collection("groups").document(groupId).update("members", FieldValue.arrayUnion(me.uid)).await() }
+            return true
+        }
+        // Rules not published yet, or the group's code was never registered: the old lookup.
+        val group = runCatching {
+            db.collection("groups").whereEqualTo("inviteCode", clean).limit(1).get().await().documents.firstOrNull()
+        }.getOrNull() ?: return false
         val members = group.get("members") as? List<*> ?: emptyList<Any>()
         if (me.uid !in members) group.reference.update("members", FieldValue.arrayUnion(me.uid)).await()
         return true
+    }
+
+    /**
+     * A code's document in [lookup] (friendCodes or groupInvites) points to the id in [idField];
+     * before the rules that add those collections are published, the old search still works.
+     */
+    private suspend fun findByCode(lookup: String, idField: String, collection: String, codeField: String, code: String) =
+        code.trim().uppercase().let { clean ->
+            val id = runCatching { db.collection(lookup).document(clean).get().await().getString(idField) }.getOrNull()
+            if (id != null) {
+                db.collection(collection).document(id).get().await().takeIf { it.exists() }
+            } else {
+                runCatching {
+                    db.collection(collection).whereEqualTo(codeField, clean).limit(1).get().await().documents.firstOrNull()
+                }.getOrNull()
+            }
+        }
+
+    /**
+     * Writes this student's friend code and the invite codes of their groups to the lookup
+     * collections, once per run. Codes made before the lookups existed get registered this way.
+     */
+    private val registered = java.util.Collections.synchronizedSet(HashSet<String>())
+
+    private fun register(lookup: String, code: String, field: String, value: String) {
+        if (code.isBlank() || !registered.add("$lookup/$code")) return
+        val ref = db.collection(lookup).document(code)
+        ref.get().addOnSuccessListener { if (!it.exists()) ref.set(mapOf(field to value)) }
     }
 
     suspend fun leaveGroup(me: Profile, groupId: String) {

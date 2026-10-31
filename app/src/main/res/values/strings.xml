@@ -782,4 +782,38 @@
     <string name="student_card_link">Link to your university\'s digital card</string>
     <string name="student_card_open">Open digital card</string>
     <string name="student_card_private">Use a photo of your card or a screenshot of the digital one. It stays on this phone only.</string>
+    <!-- Privacy and data (GDPR) -->
+    <string name="privacy_title">Privacy and data</string>
+    <string name="privacy_intro">Your data is yours. See what UniPlanner keeps, take a copy of everything, or delete everything.</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="privacy_health_title">Health data in the account copy</string>
+    <string name="privacy_health_text">Weight, meal plan, meals and steps are health data. By default they stay on this phone only. Turn this on to include them in your account copy so they come back on a new phone. Turn it off any time and they leave the account on the next copy.</string>
+    <string name="privacy_export">Export my data</string>
+    <string name="privacy_export_text">One file with everything you wrote in the app: courses, deadlines, study, gym, health, notes, settings and your online profile.</string>
+    <string name="privacy_exported">File saved.</string>
+    <string name="privacy_failed">That didn\'t work. Check the internet and try again.</string>
+    <string name="privacy_wipe_phone">Delete this phone\'s data</string>
+    <string name="privacy_wipe_phone_confirm">Deletes everything on this phone (planner, health, student card photos, chat keys) and closes the app. Your online account stays. Continue?</string>
+    <string name="privacy_delete_account">Delete account and all data</string>
+    <string name="privacy_delete_account_confirm">Deletes your account, profile, account copy, your messages, shared location and everything on this phone. You leave your groups and friendships. This cannot be undone. Continue?</string>
+    <string name="privacy_delete_sign_in_again">For your safety, sign out and back in, then delete right away.</string>
+    <string name="privacy_delete">Delete</string>
+    <string name="welcome_privacy">By signing in you accept the Privacy policy</string>
+    <string name="privacy_policy_text">Who handles the data: TecSolve, the maker of UniPlanner. Contact: [CONTACT TO BE SET BY TECSOLVE].
+
+What stays on your phone only: your planner (courses, deadlines, study hours, gym, notes), health data (weight, meal plan, meals, steps), student card photos, the phone calendar, Moodle access (stored encrypted) and your chat keys. UniPlanner has no ads and sells no data.
+
+What goes to your account (Google Firebase), only if you sign in: the name, photo, university, course and year on your profile; your friend code; a copy of your planner so you don\'t lose it; health data only if you turn that option on; your friendships and groups.
+
+Messages are end-to-end encrypted. Only you and the people in the chat can read them; the server only sees who wrote and when.
+
+Location: only if you say yes in the questions or in Settings → Location. You can stop and delete it at any time.
+
+Why: so the app works (contract) and, for health and location, with your consent, which you can withdraw at any time.
+
+How long: while you have an account. Deleting the account deletes the profile, the copy, your messages and your location.
+
+Your rights: see and take your data (Export), correct it (edit your profile), delete it (Delete account), withdraw consent (the switches on this page) and complain to your data protection authority.
+
+Phone permissions: calendar, notifications, steps, location, camera and microphone are only asked for the feature that uses them, and you can remove them in Android settings.</string>
 </resources>

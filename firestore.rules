@@ -6,16 +6,46 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function me() { return request.auth.uid; }
 
-    // Profiles are visible to signed-in students (needed to find friends by code).
+    // A profile is read by its id only (friends, group members). Nobody can list every student:
+    // friend codes are looked up in friendCodes instead.
     match /users/{uid} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && me() == uid;
-      allow delete: if false;
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && me() == uid;
+      // The friend code never changes, so nobody can take over someone else's code.
+      allow update: if signedIn() && me() == uid
+        && (!('friendCode' in resource.data) || request.resource.data.friendCode == resource.data.friendCode);
+      // Deleting the account removes the profile.
+      allow delete: if signedIn() && me() == uid;
 
       // The student's own planner copy; nobody else can read it.
       match /private/{doc} {
         allow read, write: if signedIn() && me() == uid;
       }
+    }
+
+    // Friend code -> account, so a code finds one student without listing them all.
+    match /friendCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == me()
+        && get(/databases/$(database)/documents/users/$(me())).data.friendCode == code;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
+
+    // Invite code -> group, so a code finds one group without listing them all.
+    match /groupInvites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['groupId'])
+        && me() in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members
+        && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.inviteCode == code;
+      allow update: if false;
+      allow delete: if signedIn()
+        && (!exists(/databases/$(database)/documents/groups/$(resource.data.groupId))
+          || get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId == me());
     }
 
     match /friendships/{id} {
@@ -76,8 +106,8 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      // Readable by signed-in students so an invite code can be looked up.
-      allow read: if signedIn();
+      // Only members see the group (name, members, newest message). Others join with the invite code.
+      allow read: if signedIn() && me() in resource.data.members;
       allow create: if signedIn()
         && request.resource.data.ownerId == me()
         && request.resource.data.members == [me()];
