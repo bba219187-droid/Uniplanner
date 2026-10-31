@@ -700,6 +700,8 @@
     <string name="meal_next">Próxima refeição</string>
     <string name="meal_all_done">Todas as refeições do dia feitas</string>
     <string name="meal_ate">Já comi</string>
+    <string name="meal_progress_label">Refeições feitas hoje</string>
+    <string name="health_meal_hint">Toca numa refeição para a marcar, mantém premido para a mudar.</string>
     <string name="meal_progress">%1$d de %2$d refeições</string>
     <string name="more_flashcards">Cartões de estudo</string>
     <string name="more_flashcards_sub">Estuda com repetição espaçada</string>

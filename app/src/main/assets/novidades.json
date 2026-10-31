@@ -1,12 +1,12 @@
 {
-  "id": "2026-10-22-cartao-aluno",
-  "title": "Cartão de aluno",
-  "intro": "O teu cartão de aluno agora também está na app.",
+  "id": "2026-10-31-saude-ginasio",
+  "title": "Ginásio e Saúde renovados",
+  "intro": "Planos de treino mais completos e um plano alimentar mais fácil de ler.",
   "items": [
-    "Guarda uma foto da frente e do verso, ou uma captura do cartão digital da tua universidade.",
-    "Se a tua universidade tem cartão digital, põe o link e abre-o com um toque.",
-    "Ao abrir o cartão, o ecrã fica no máximo de brilho para o leitor da porta ou da cantina.",
-    "Abre em Mais → Cartão de aluno. Fica só no teu telemóvel.",
-    "Corrigido: com mais de 10 mil passos já não desaparece nenhum número."
+    "Novos planos: Peito e tríceps, Costas e bíceps, Pernas completo, Glúteos e posteriores, Ombros e abdómen, Braços, Abdómen em 20 minutos e Divisão 5 dias.",
+    "Os planos aparecem em lista, separados em programas semanais, treinos por músculo e em casa.",
+    "Cada exercício mostra séries, intervalo de repetições e descanso. Cada dia tem aquecimento e o plano diz como evoluir.",
+    "Plano alimentar: cada refeição num cartão, com a hora à esquerda e cada alimento numa linha.",
+    "A próxima refeição fica em destaque, com o botão Já comi, e o progresso do dia aparece por cima."
   ]
 }
