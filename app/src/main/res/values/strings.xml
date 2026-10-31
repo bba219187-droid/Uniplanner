@@ -797,7 +797,7 @@
     <string name="privacy_delete_sign_in_again">For your safety, sign out and back in, then delete right away.</string>
     <string name="privacy_delete">Delete</string>
     <string name="welcome_privacy">By signing in you accept the Privacy policy</string>
-    <string name="privacy_policy_text">Who handles the data: TecSolve, the maker of UniPlanner.
+    <string name="privacy_policy_text">Who handles the data: TecSolve, the maker of UniPlanner. Contact: [CONTACT TO BE SET BY TECSOLVE].
 
 What stays on your phone only: your planner (courses, deadlines, study hours, gym, notes), health data (weight, meal plan, meals, steps), student card photos, the phone calendar, Moodle access (stored encrypted) and your chat keys. UniPlanner has no ads and sells no data.
 
