@@ -23,4 +23,11 @@ class BackupCodecTest {
     fun emptyBackupIsEmpty() {
         assertTrue(BackupCodec.decode("""{"format":1}""").isEmpty)
     }
+
+    @Test
+    fun healthCanBeLeftOutOfTheCopy() {
+        val withHealth = Snapshot(emptyList(), emptyList(), emptyList(), emptyList(), weights = listOf(WeightEntry(1, 1_760_000_000_000, 70.5)))
+        assertTrue(withHealth.hasHealth)
+        assertTrue(!BackupCodec.decode(BackupCodec.encode(withHealth.withoutHealth())).hasHealth)
+    }
 }

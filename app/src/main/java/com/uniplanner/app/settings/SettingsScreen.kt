@@ -76,6 +76,7 @@ private val sections = listOf(
     Section("me", "🧭", "As minhas áreas", "Refazer o questionário inicial", Color(0xFFFADBD2)),
     Section("account", "☁️", "Conta e cópia", "Guardar e repor os teus dados", Color(0xFFD7EEF0), route = "backup"),
     Section("privacy", "📍", "Localização", "Partilha com amigos", Color(0xFFE4E4DC), route = "location"),
+    Section("data", "🔒", "Privacidade e dados", "Exportar, apagar, política", Color(0xFFDCEFE3), route = "privacy_data"),
     Section("about", "✨", "Sobre", "Versão e novidades", Color(0xFFEFE7DA)),
 )
 

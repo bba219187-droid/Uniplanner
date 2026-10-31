@@ -84,6 +84,7 @@ fun WelcomeSignIn() {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
+    var showPolicy by remember { mutableStateOf(false) }
 
     fun signIn() {
         busy = true
@@ -172,6 +173,10 @@ fun WelcomeSignIn() {
             TextButton(onClick = { Welcome.finish(ctx) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.welcome_later))
             }
+            TextButton(onClick = { showPolicy = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.welcome_privacy), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
         }
     }
+    if (showPolicy) PrivacyPolicyDialog { showPolicy = false }
 }

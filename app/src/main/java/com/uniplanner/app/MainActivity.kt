@@ -275,7 +275,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the More tab; the More tab stays highlighted while they are open. */
-private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda", "settings", "location", "admin")
+private val moreRoutes = setOf("more", "courses", "moodle", "moodle_web", "moodle_calendar", "grades", "stats", "backup", "agenda", "settings", "location", "admin", "privacy_data")
 
 
 @Composable
@@ -382,6 +382,7 @@ private fun UniPlannerRoot(vm: AppViewModel = viewModel(), online: OnlineViewMod
                     }
                 })
             }
+            composable("privacy_data") { com.uniplanner.app.settings.PrivacyScreen() }
             composable("studentcard") { com.uniplanner.app.settings.StudentCardScreen() }
             composable("moodle") { MoodleScreen(onOpenWeb = { calendar -> nav.navigate(if (calendar) "moodle_calendar" else "moodle_web") }) }
             composable("moodle_web") { MoodleWebScreen(calendarPage = false, onClose = { nav.popBackStack() }) }
