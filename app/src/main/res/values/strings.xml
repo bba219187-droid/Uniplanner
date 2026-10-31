@@ -698,6 +698,8 @@
     <string name="meal_next">Next meal</string>
     <string name="meal_all_done">Every meal of the day done</string>
     <string name="meal_ate">I ate it</string>
+    <string name="meal_progress_label">Meals done today</string>
+    <string name="health_meal_hint">Tap a meal to tick it, hold it to change it.</string>
     <string name="meal_progress">%1$d of %2$d meals</string>
     <string name="more_flashcards">Flashcards</string>
     <string name="more_flashcards_sub">Study with spaced repetition</string>

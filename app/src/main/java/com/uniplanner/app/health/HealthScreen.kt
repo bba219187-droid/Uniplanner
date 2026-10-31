@@ -4,6 +4,7 @@ import com.uniplanner.app.ui.theme.frame
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -199,18 +200,6 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
             }
         }
         item { BalanceCard(balance, personal?.healthGoal) }
-        if (plan.isNotEmpty()) {
-            item {
-                MealHero(
-                    next = nextMeal,
-                    eaten = plan.count { it.id in eatenIds },
-                    total = plan.size,
-                    kcalEaten = plan.filter { it.id in eatenIds }.sumOf { it.kcal },
-                    kcalPlan = plan.sumOf { it.kcal },
-                    onEat = { nextMeal?.let { vm.toggleEaten(it) } },
-                )
-            }
-        }
         item {
             CleanCard {
                 Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
@@ -263,12 +252,6 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionTitle(stringResource(R.string.health_meals), Modifier.weight(1f))
-                IconButton(onClick = { pickPlan.launch(arrayOf("image/*", "application/pdf")) }) {
-                    Icon(Icons.Filled.PhotoCamera, stringResource(R.string.health_import), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                IconButton(onClick = { pasting = true }) {
-                    Icon(Icons.Filled.ContentPaste, stringResource(R.string.health_paste), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 val on = reminders ?: true
                 IconButton(onClick = { vm.setReminders(!on) }) {
                     Icon(
@@ -279,26 +262,51 @@ fun HealthScreen(vm: HealthViewModel = viewModel()) {
                 }
             }
         }
-        item {
-            CleanCard(padding = 0.dp) {
-                if (plan.isEmpty()) {
+        if (plan.isEmpty()) {
+            item {
+                CleanCard {
                     Text(
                         stringResource(R.string.health_meals_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
                     )
                 }
-                plan.forEach { meal ->
-                    MealRow(
-                        meal = meal,
-                        eaten = meal.id in eatenIds,
-                        next = meal.id == nextMeal?.id,
-                        modifier = Modifier.combinedClickable(onClick = { vm.toggleEaten(meal) }, onLongClick = { editingMeal = meal }),
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        } else {
+            item {
+                MealProgress(
+                    eaten = plan.count { it.id in eatenIds },
+                    total = plan.size,
+                    kcalEaten = plan.filter { it.id in eatenIds }.sumOf { it.kcal },
+                    kcalPlan = plan.sumOf { it.kcal },
+                )
+            }
+            items(plan, key = { "meal${it.id}" }) { meal ->
+                MealCard(
+                    meal = meal,
+                    eaten = meal.id in eatenIds,
+                    next = meal.id == nextMeal?.id,
+                    onToggle = { vm.toggleEaten(meal) },
+                    onEdit = { editingMeal = meal },
+                )
+            }
+            item {
+                Text(
+                    stringResource(R.string.health_meal_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PlanTool(Icons.Filled.Add, stringResource(R.string.health_add_meal), Modifier.weight(1f)) {
+                    editingMeal = PlanMeal(minuteOfDay = 12 * 60 + 30, name = "")
                 }
-                AddRow(stringResource(R.string.health_add_meal)) { editingMeal = PlanMeal(minuteOfDay = 12 * 60 + 30, name = "") }
+                PlanTool(Icons.Filled.PhotoCamera, stringResource(R.string.health_import), Modifier.weight(1f)) {
+                    pickPlan.launch(arrayOf("image/*", "application/pdf"))
+                }
+                PlanTool(Icons.Filled.ContentPaste, stringResource(R.string.health_paste), Modifier.weight(1f)) { pasting = true }
             }
         }
         item { SectionTitle(stringResource(R.string.health_other_food)) }
@@ -484,79 +492,114 @@ private fun AddRow(label: String, onClick: () -> Unit) {
     }
 }
 
+/** "Oats, milk; banana" as one food per line. */
+private fun foodItems(text: String): List<String> = text.split(',', ';', '\n', '+', '•').map { it.trim() }.filter { it.isNotEmpty() }
+
+/** How the day's plan is going: meals ticked and kcal eaten against the plan. */
 @Composable
-private fun MealRow(meal: PlanMeal, eaten: Boolean, next: Boolean, modifier: Modifier) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        Modifier.fillMaxWidth().then(modifier).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(if (next) MaterialTheme.colorScheme.secondary else Color.Transparent))
-        Spacer(Modifier.width(8.dp))
-        Text(clock(meal.minuteOfDay), style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono), color = if (next) MaterialTheme.colorScheme.onSurface else muted, modifier = Modifier.width(52.dp))
-        Column(Modifier.weight(1f)) {
+private fun MealProgress(eaten: Int, total: Int, kcalEaten: Int, kcalPlan: Int) {
+    CleanCard {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("$eaten", style = MaterialTheme.typography.displaySmall.copy(fontFamily = Mono))
+            Text("/$total", style = MaterialTheme.typography.titleLarge.copy(fontFamily = Mono), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
-                meal.name,
+                stringResource(if (eaten >= total) R.string.meal_all_done else R.string.meal_progress_label),
                 style = MaterialTheme.typography.titleSmall,
-                textDecoration = if (eaten) TextDecoration.LineThrough else null,
-                color = if (eaten) muted else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f).padding(bottom = 6.dp),
             )
-            val detail = listOf(meal.food, if (meal.kcal > 0) "${meal.kcal} kcal" else "").filter { it.isNotBlank() }.joinToString(" · ")
-            if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = muted, maxLines = 2)
+            if (kcalPlan > 0) {
+                Text(
+                    "$kcalEaten / $kcalPlan kcal",
+                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = Mono),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
+            }
         }
-        Box(
-            Modifier.size(24.dp).clip(CircleShape)
-                .background(if (eaten) MaterialTheme.colorScheme.onSurface else Color.Transparent)
-                .border(1.5.dp, if (eaten) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (eaten) Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            repeat(total) { i ->
+                Box(
+                    Modifier.weight(1f).height(6.dp).clip(CircleShape)
+                        .background(if (i < eaten) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant),
+                )
+            }
         }
     }
 }
 
-/** The meal plan at the centre of the screen: the next meal, big, and how the day is going. */
+/**
+ * One meal of the plan: the time on the left, the name and each food on its own line, and a tick.
+ * The next meal stands out with a button to mark it eaten.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MealHero(next: PlanMeal?, eaten: Int, total: Int, kcalEaten: Int, kcalPlan: Int, onEat: () -> Unit) {
+private fun MealCard(meal: PlanMeal, eaten: Boolean, next: Boolean, onToggle: () -> Unit, onEdit: () -> Unit) {
     val ink = com.uniplanner.app.ui.theme.Ink
-    Column(
-        Modifier.fillMaxWidth().frame(Color(0xFFDDEBD0), 28.dp).padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+    val fg = if (next) ink else MaterialTheme.colorScheme.onSurface
+    val muted = if (next) ink.copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val base = if (next) Modifier.frame(Color(0xFFDDEBD0), 24.dp) else Modifier.frame(MaterialTheme.colorScheme.surface, 24.dp, outlined = true)
+    Row(
+        Modifier.fillMaxWidth().then(base)
+            .combinedClickable(onClick = onToggle, onLongClick = onEdit)
+            .alpha(if (eaten) 0.55f else 1f)
+            .padding(16.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            stringResource(if (next != null) R.string.meal_next else R.string.meal_all_done),
-            style = MaterialTheme.typography.labelLarge,
-            color = ink.copy(alpha = 0.65f),
-        )
-        if (next != null) {
-            Text(clock(next.minuteOfDay), style = MaterialTheme.typography.displaySmall.copy(fontFamily = Mono), color = ink)
-            Text(next.name, style = MaterialTheme.typography.headlineSmall, color = ink)
-            val detail = listOf(next.food, if (next.kcal > 0) "${next.kcal} kcal" else "").filter { it.isNotBlank() }.joinToString(" · ")
-            if (detail.isNotEmpty()) {
-                Text(detail, style = MaterialTheme.typography.bodyMedium, color = ink.copy(alpha = 0.75f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            }
-            Button(
-                onClick = onEat,
-                colors = ButtonDefaults.buttonColors(containerColor = ink, contentColor = Color.White),
-                modifier = Modifier.padding(top = 6.dp),
-            ) {
-                Icon(Icons.Filled.Check, null)
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.meal_ate))
-            }
-        } else {
-            Text("🎉", style = MaterialTheme.typography.displaySmall)
+        Column(Modifier.width(64.dp)) {
+            Text(clock(meal.minuteOfDay), style = MaterialTheme.typography.titleLarge.copy(fontFamily = Mono), color = fg)
+            if (meal.kcal > 0) Text("${meal.kcal} kcal", style = MaterialTheme.typography.labelSmall.copy(fontFamily = Mono), color = muted)
         }
-        Spacer(Modifier.height(4.dp))
-        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(ink.copy(alpha = 0.12f))) {
-            Box(Modifier.fillMaxWidth((eaten.toFloat() / total).coerceIn(0f, 1f)).height(8.dp).clip(CircleShape).background(ink))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            if (next) {
+                Text(stringResource(R.string.meal_next).uppercase(), style = MaterialTheme.typography.labelSmall, color = muted)
+            }
+            Text(
+                meal.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = fg,
+                textDecoration = if (eaten) TextDecoration.LineThrough else null,
+            )
+            foodItems(meal.food).forEach { item ->
+                Row {
+                    Text("•", style = MaterialTheme.typography.bodyMedium, color = muted, modifier = Modifier.width(14.dp))
+                    Text(item.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyMedium, color = fg)
+                }
+            }
+            if (next && !eaten) {
+                Button(
+                    onClick = onToggle,
+                    colors = ButtonDefaults.buttonColors(containerColor = ink, contentColor = Color.White),
+                    modifier = Modifier.padding(top = 6.dp),
+                ) {
+                    Icon(Icons.Filled.Check, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.meal_ate))
+                }
+            }
         }
-        Text(
-            stringResource(R.string.meal_progress, eaten, total) + if (kcalPlan > 0) " · $kcalEaten / $kcalPlan kcal" else "",
-            style = MaterialTheme.typography.labelMedium.copy(fontFamily = Mono),
-            color = ink.copy(alpha = 0.7f),
-        )
+        Box(
+            Modifier.size(26.dp).clip(CircleShape)
+                .background(if (eaten) fg else Color.Transparent)
+                .border(1.5.dp, if (eaten) Color.Transparent else muted.copy(alpha = 0.5f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (eaten) Icon(Icons.Filled.Check, contentDescription = null, tint = if (next) Color.White else MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+/** A labelled button under the plan: add a meal, import a photo or PDF, paste text. */
+@Composable
+private fun PlanTool(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.frame(MaterialTheme.colorScheme.surface, 18.dp, outlined = true).clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 

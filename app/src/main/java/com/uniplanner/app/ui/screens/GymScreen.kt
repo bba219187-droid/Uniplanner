@@ -145,13 +145,13 @@ fun GymScreen(vm: AppViewModel, onOpenWorkout: (Long) -> Unit) {
                 )
             }
         }
-        item { SectionTitle("Planos prontos") }
-        item { PlanCarousel(chosenPlan?.id, com.uniplanner.app.domain.GymPlans.all) { openPlan = it } }
         if (sets.isNotEmpty()) item { ProgressCard(workouts, sets) }
         if (upcoming.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_next)) }
         items(upcoming, key = { "u${it.id}" }) { w ->
             WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout, onDelete = { deleting = w })
         }
+        item { SectionTitle("Planos prontos") }
+        planList(chosenPlan?.id, com.uniplanner.app.domain.GymPlans.all) { openPlan = it }
         if (history.isNotEmpty()) item { SectionTitle(stringResource(R.string.gym_history)) }
         items(history, key = { "h${it.id}" }) { w ->
             WorkoutCard(w, setsByWorkout[w.id].orEmpty(), weight, vm, onOpenWorkout, onDelete = { deleting = w })
