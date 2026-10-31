@@ -99,6 +99,14 @@ object CloudBackup {
         }
     }
 
+    /** Whether weight, meals and steps go into the account's copy. Off until the student turns it on. */
+    fun healthInCloud(ctx: Context) = ctx.getSharedPreferences("cloud_backup", Context.MODE_PRIVATE).getBoolean("health", false)
+
+    fun setHealthInCloud(ctx: Context, on: Boolean) {
+        ctx.getSharedPreferences("cloud_backup", Context.MODE_PRIVATE).edit().putBoolean("health", on).apply()
+        if (::app.isInitialized) scope.launch { runCatching { saveIfLinked() } }
+    }
+
     private fun link(uid: String) = prefs.edit().putString("linkedUid", uid).apply()
 
     private suspend fun saveIfLinked() {
@@ -109,7 +117,8 @@ object CloudBackup {
     /** Uploads this phone's planner to the account. */
     suspend fun save(uid: String = Firebase.auth.currentUser?.uid ?: error("Not signed in")) = lock.withLock {
         val now = System.currentTimeMillis()
-        val snapshot = AppDatabase.get(app).snapshot()
+        // Health data (weight, meals, steps) is sensitive: it only goes to the account if the student said yes.
+        val snapshot = AppDatabase.get(app).snapshot().let { if (healthInCloud(app)) it else it.withoutHealth() }
         var data = BackupCodec.pack(BackupCodec.encode(snapshot))
         // One account document holds at most 1 MB: if drawings push past that, keep the notes' text only.
         if (data.length > 900_000) data = BackupCodec.pack(BackupCodec.encode(snapshot.copy(notes = snapshot.notes.map { it.copy(ink = "") })))

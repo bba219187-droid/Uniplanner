@@ -30,7 +30,8 @@ object PortalCertificates {
         val host = runCatching { URL(error.url).host }.getOrNull() ?: return false
         if (!schoolSite(host)) return false
         val leaf = error.certificate.x509Certificate ?: return false
-        val key = leaf.encoded.contentHashCode().toString()
+        // A real fingerprint (not a 32-bit hash an attacker could match) for this site name.
+        val key = host + "/" + java.security.MessageDigest.getInstance("SHA-256").digest(leaf.encoded).joinToString("") { "%02x".format(it) }
         synchronized(trusted) { if (key in trusted) return true }
         if (error.primaryError != SslError.SSL_UNTRUSTED) return false
         return runCatching {

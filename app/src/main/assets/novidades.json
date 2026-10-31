@@ -1,12 +1,12 @@
 {
-  "id": "2026-10-22-cartao-aluno",
-  "title": "Cartão de aluno",
-  "intro": "O teu cartão de aluno agora também está na app.",
+  "id": "2026-10-31-privacidade",
+  "title": "Privacidade e dados",
+  "intro": "Os teus dados são teus, e agora tens tudo num sítio.",
   "items": [
-    "Guarda uma foto da frente e do verso, ou uma captura do cartão digital da tua universidade.",
-    "Se a tua universidade tem cartão digital, põe o link e abre-o com um toque.",
-    "Ao abrir o cartão, o ecrã fica no máximo de brilho para o leitor da porta ou da cantina.",
-    "Abre em Mais → Cartão de aluno. Fica só no teu telemóvel.",
-    "Corrigido: com mais de 10 mil passos já não desaparece nenhum número."
+    "Nova página em Definições → Privacidade e dados, com a política de privacidade em português simples.",
+    "Exporta um ficheiro com tudo o que escreveste na app, ou apaga a conta e todos os dados com um toque.",
+    "Peso, refeições e passos ficam só no telemóvel. Se quiseres que vão na cópia da conta, liga essa opção na nova página.",
+    "Ninguém consegue ver a lista de todos os estudantes ou grupos: só encontras alguém com o código de amigo ou de convite.",
+    "O Android já não copia os dados da app para fora do telemóvel sem passares pela tua conta."
   ]
 }

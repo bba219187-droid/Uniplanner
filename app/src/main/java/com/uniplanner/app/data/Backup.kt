@@ -25,6 +25,12 @@ data class Snapshot(
     val isEmpty: Boolean
         get() = courses.isEmpty() && deadlines.isEmpty() && studySessions.isEmpty() && workouts.isEmpty() &&
             exerciseSets.isEmpty() && mealPlan.isEmpty() && food.isEmpty() && notes.isEmpty()
+
+    /** Health data is only in the account's copy when the student allowed it. */
+    val hasHealth: Boolean
+        get() = weights.isNotEmpty() || mealPlan.isNotEmpty() || food.isNotEmpty() || steps.isNotEmpty()
+
+    fun withoutHealth() = copy(weights = emptyList(), mealPlan = emptyList(), food = emptyList(), steps = emptyList())
 }
 
 object BackupCodec {
@@ -174,14 +180,17 @@ suspend fun AppDatabase.replaceWith(s: Snapshot) = withTransaction {
     exerciseSets().deleteAll()
     val workoutIds = s.workouts.map { it.id }.toSet()
     exerciseSets().insertAll(s.exerciseSets.filter { it.workoutId in workoutIds })
-    health().clearWeights()
-    health().insertWeights(s.weights)
-    health().clearPlan()
-    health().insertMeals(s.mealPlan)
-    health().clearFood()
-    health().insertFoods(s.food)
-    health().clearSteps()
-    health().putAllSteps(s.steps)
+    // A copy saved without health data leaves the phone's own health data alone.
+    if (s.hasHealth) {
+        health().clearWeights()
+        health().insertWeights(s.weights)
+        health().clearPlan()
+        health().insertMeals(s.mealPlan)
+        health().clearFood()
+        health().insertFoods(s.food)
+        health().clearSteps()
+        health().putAllSteps(s.steps)
+    }
     notes().deleteAll()
     notes().insertAll(s.notes)
 }

@@ -782,4 +782,38 @@
     <string name="student_card_link">Link do cartão digital da tua universidade</string>
     <string name="student_card_open">Abrir cartão digital</string>
     <string name="student_card_private">Podes usar uma foto do cartão ou uma captura do cartão digital. Fica só neste telemóvel.</string>
+    <!-- Privacy and data (RGPD) -->
+    <string name="privacy_title">Privacidade e dados</string>
+    <string name="privacy_intro">Os teus dados são teus. Aqui vês o que a UniPlanner guarda, levas uma cópia de tudo ou apagas tudo.</string>
+    <string name="privacy_policy">Política de privacidade</string>
+    <string name="privacy_health_title">Dados de saúde na cópia da conta</string>
+    <string name="privacy_health_text">Peso, plano alimentar, refeições e passos são dados de saúde. Por omissão ficam só neste telemóvel. Se ligares, vão também na cópia da tua conta e voltam se mudares de telemóvel. Podes desligar quando quiseres e saem da conta na próxima cópia.</string>
+    <string name="privacy_export">Exportar os meus dados</string>
+    <string name="privacy_export_text">Um ficheiro com tudo o que escreveste na app: cadeiras, prazos, estudo, ginásio, saúde, apontamentos, definições e o teu perfil online.</string>
+    <string name="privacy_exported">Ficheiro guardado.</string>
+    <string name="privacy_failed">Não deu. Verifica a internet e tenta outra vez.</string>
+    <string name="privacy_wipe_phone">Apagar os dados deste telemóvel</string>
+    <string name="privacy_wipe_phone_confirm">Apaga tudo o que está neste telemóvel (planeamento, saúde, fotos do cartão, chaves das conversas) e fecha a app. A tua conta online fica como está. Continuar?</string>
+    <string name="privacy_delete_account">Apagar a conta e todos os dados</string>
+    <string name="privacy_delete_account_confirm">Apaga a tua conta, o perfil, a cópia na conta, as tuas mensagens, a localização partilhada e tudo neste telemóvel. Sais dos grupos e das amizades. Não dá para desfazer. Continuar?</string>
+    <string name="privacy_delete_sign_in_again">Por segurança, sai da conta e volta a entrar, e depois apaga logo a seguir.</string>
+    <string name="privacy_delete">Apagar</string>
+    <string name="welcome_privacy">Ao entrar aceitas a Política de privacidade</string>
+    <string name="privacy_policy_text">Quem trata os dados: TecSolve, que faz a UniPlanner.
+
+O que fica só no teu telemóvel: o planeamento (cadeiras, prazos, horas de estudo, ginásio, apontamentos), os dados de saúde (peso, plano alimentar, refeições, passos), as fotos do cartão de aluno, a agenda do telemóvel, o acesso ao Moodle (guardado encriptado) e as chaves das tuas conversas. A UniPlanner não usa publicidade nem vende dados.
+
+O que vai para a tua conta (Google Firebase), só se entrares: o nome, a foto, a universidade, o curso e o ano do perfil; o código de amigo; uma cópia do planeamento para não o perderes; os dados de saúde só se ligares essa opção; as amizades e os grupos.
+
+Mensagens: são encriptadas de ponta a ponta. Só tu e quem está na conversa as lê; o servidor só vê quem escreveu e quando.
+
+Localização: só se disseres que sim no questionário ou em Definições → Localização. Podes parar e apagar a qualquer momento.
+
+Porquê: para a app funcionar (contrato) e, para a saúde e a localização, com o teu consentimento, que podes retirar quando quiseres.
+
+Quanto tempo: enquanto tiveres conta. Ao apagar a conta, o perfil, a cópia, as tuas mensagens e a localização são apagados.
+
+Os teus direitos: ver e levar os teus dados (Exportar), corrigir (editar o perfil), apagar (Apagar a conta), retirar o consentimento (os interruptores desta página) e queixar-te à CNPD (cnpd.pt).
+
+Permissões do telemóvel: agenda, notificações, passos, localização, câmara e microfone só são pedidos para a função que os usa, e podes tirá-los nas definições do Android.</string>
 </resources>
