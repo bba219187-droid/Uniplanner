@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -121,33 +121,71 @@ private fun DrawScope.drawBody(origin: Offset, area: Size, front: Boolean, muscl
     part(2.8f, 8.8f, 1.2f, 2.8f, base)
 }
 
-/** The ready-made plans, side by side; the one being followed carries a coral badge. */
-@Composable
-fun PlanCarousel(chosenId: String?, plans: List<GymPlan>, onOpen: (GymPlan) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
-        items(plans, key = { it.id }) { plan ->
-            Column(
-                Modifier.width(210.dp).frame(Color(plan.colorArgb), 24.dp)
-                    .clickable { onOpen(plan) }.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(plan.days.first().emoji, fontSize = 24.sp, modifier = Modifier.weight(1f))
-                    if (plan.id == chosenId) {
-                        Text(
-                            "A seguir",
-                            color = MaterialTheme.colorScheme.inverseOnSurface,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.inverseSurface).padding(horizontal = 8.dp, vertical = 3.dp),
-                        )
-                    }
-                }
-                Text(plan.name, fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink, maxLines = 1)
-                Text(plan.goal, style = MaterialTheme.typography.bodySmall, color = Ink.copy(alpha = 0.7f), maxLines = 2, minLines = 2)
-                Text("${plan.level} · ${plan.perWeek}x/semana", fontFamily = Mono, fontSize = 11.sp, color = Ink.copy(alpha = 0.6f))
-            }
+/** The ready-made plans, one under the other and grouped by kind; the one being followed carries a badge. */
+fun LazyListScope.planList(chosenId: String?, plans: List<GymPlan>, onOpen: (GymPlan) -> Unit) {
+    plans.groupBy { it.kind }.forEach { (kind, group) ->
+        item(key = "pk${kind.name}") {
+            Text(
+                kind.label.uppercase(),
+                fontFamily = Mono,
+                fontSize = 11.sp,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
+        items(group, key = { "p${it.id}" }) { plan -> PlanRow(plan, plan.id == chosenId) { onOpen(plan) } }
+    }
+}
+
+@Composable
+private fun PlanRow(plan: GymPlan, following: Boolean, onClick: () -> Unit) {
+    val minutes = plan.days.map { it.minutes }
+    val time = if (minutes.min() == minutes.max()) "${minutes.min()} min" else "${minutes.min()}–${minutes.max()} min"
+    Row(
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 20.dp, outlined = true)
+            .clickable(onClick = onClick).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Color(plan.colorArgb)),
+            contentAlignment = Alignment.Center,
+        ) { Text(plan.days.first().emoji, fontSize = 26.sp) }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    plan.name,
+                    fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (following) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "A seguir",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary).padding(horizontal = 7.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            Text(plan.goal, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(
+                "${plan.level} · ${plan.perWeek}x/semana · $time",
+                fontFamily = Mono,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        BodyFigure(
+            plan.days.flatMap { d -> d.exercises.flatMap { it.muscles } }.toSet(),
+            Modifier.size(width = 44.dp, height = 48.dp),
+            base = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
+        )
     }
 }
 
@@ -227,18 +265,47 @@ fun PlanSheet(
             }
             plan.days.forEach { day ->
                 item(key = "d${day.name}") {
-                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("${day.emoji} ${day.name}", fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                            Text("~${day.minutes} min", fontFamily = Mono, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("${day.emoji} ${day.name}", fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                Text(
+                                    listOf(day.focus, "~${day.minutes} min", "${day.exercises.size} exercícios", "${day.exercises.sumOf { it.sets }} séries")
+                                        .filter { it.isNotBlank() }.joinToString(" · "),
+                                    fontFamily = Mono,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Button(onClick = { onStart(day) }) {
+                                Icon(Icons.Filled.PlayArrow, null)
+                                Text("Começar")
+                            }
                         }
-                        Button(onClick = { onStart(day) }) {
-                            Icon(Icons.Filled.PlayArrow, null)
-                            Text("Começar")
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+                        ) {
+                            Text("🔥", fontSize = 16.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("Aquecimento", style = MaterialTheme.typography.labelLarge)
+                                Text(day.warmup, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
-                items(day.exercises, key = { "e${day.name}${it.name}" }) { e -> ExerciseRow(e) }
+                itemsIndexed(day.exercises, key = { _, e -> "e${day.name}${e.name}" }) { i, e -> ExerciseRow(i + 1, e) }
+            }
+            if (plan.tips.isNotEmpty()) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().frame(Color(plan.colorArgb), 20.dp).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Como evoluir", fontFamily = MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Ink)
+                        plan.tips.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, color = Ink) }
+                    }
+                }
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
@@ -246,43 +313,41 @@ fun PlanSheet(
 }
 
 @Composable
-private fun ExerciseRow(e: PlanExercise) {
+private fun ExerciseRow(number: Int, e: PlanExercise) {
     var open by remember { mutableStateOf(false) }
-    val timed = e.name == "Prancha" || e.name.startsWith("Bicicleta")
     Column(
-        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 20.dp)
+        Modifier.fillMaxWidth().frame(MaterialTheme.colorScheme.surface, 20.dp, outlined = true)
             .clickable { open = !open }.animateContentSize().padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "%02d".format(number),
+                fontFamily = Mono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.width(26.dp),
+            )
             Box(
-                Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
-            ) { BodyFigure(e.muscles, Modifier.size(56.dp)) }
+            ) { BodyFigure(e.muscles, Modifier.size(48.dp)) }
             Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(e.name, style = MaterialTheme.typography.titleSmall)
-                val unit = when {
-                    e.name == "Prancha" -> "s"
-                    e.name.startsWith("Bicicleta") -> " min"
-                    else -> ""
-                }
-                Text(
-                    "${e.sets} × ${e.reps}$unit" + if (e.restSec > 0) " · descanso ${e.restSec}s" else "",
-                    fontFamily = Mono,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    e.muscles.joinToString(" · ") { muscleName(it) },
-                    fontSize = 12.sp,
-                    color = Coral,
-                )
+                Text(e.muscles.joinToString(" · ") { muscleName(it) }, fontSize = 12.sp, color = Coral)
             }
         }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Metric("Séries", "${e.sets}", Modifier.weight(1f))
+            Metric(if (e.timed) "Tempo" else "Reps", e.repsText, Modifier.weight(1f))
+            Metric("Descanso", if (e.restSec > 0) restText(e.restSec) else "—", Modifier.weight(1f))
+        }
         if (open) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(e.how, style = MaterialTheme.typography.bodyMedium)
-            if (!timed) {
+            if (!e.timed) {
                 Text(
                     "Escolhe um peso com que faças as repetições todas com boa técnica e uma ou duas de sobra.",
                     style = MaterialTheme.typography.bodySmall,
@@ -290,7 +355,31 @@ private fun ExerciseRow(e: PlanExercise) {
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+        } else {
+            Text(
+                "Toca para ver como se faz",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
+    }
+}
+
+private fun restText(sec: Int): String = when {
+    sec < 60 -> "${sec}s"
+    sec % 60 == 0 -> "${sec / 60} min"
+    else -> "${sec / 60}:%02d".format(sec % 60)
+}
+
+@Composable
+private fun Metric(label: String, value: String, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

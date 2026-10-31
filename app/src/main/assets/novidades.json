@@ -1,11 +1,14 @@
 {
-  "id": "2026-10-31-visual-uniplanner",
-  "title": "O visual UniPlanner",
-  "intro": "A app tem agora um visual só dela, feito a partir do nosso logótipo.",
+  "id": "2026-10-31-visual-ginasio-saude",
+  "title": "Visual UniPlanner, Ginásio e Saúde",
+  "intro": "A app tem agora um visual só dela, planos de treino mais completos e um plano alimentar mais fácil de ler.",
   "items": [
-    "O U do logótipo enche à medida que estudas durante a semana.",
-    "O ponto laranja marca a aba onde estás e fecha os títulos.",
-    "Cartões com o fundo redondo, como o U, em claro e em escuro.",
-    "Já tinhas escolhido outro tema? Muda em Mais → Definições → Aparência → UniPlanner."
+    "Visual novo feito a partir do logótipo: o U enche à medida que estudas e o ponto laranja marca a aba onde estás.",
+    "Já tinhas escolhido outro tema? Muda em Mais → Definições → Aparência → UniPlanner.",
+    "Novos planos: Peito e tríceps, Costas e bíceps, Pernas completo, Glúteos e posteriores, Ombros e abdómen, Braços, Abdómen em 20 minutos e Divisão 5 dias.",
+    "Os planos aparecem em lista, separados em programas semanais, treinos por músculo e em casa.",
+    "Cada exercício mostra séries, intervalo de repetições e descanso. Cada dia tem aquecimento e o plano diz como evoluir.",
+    "Plano alimentar: cada refeição num cartão, com a hora à esquerda e cada alimento numa linha.",
+    "A próxima refeição fica em destaque, com o botão Já comi, e o progresso do dia aparece por cima."
   ]
 }
