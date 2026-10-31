@@ -189,7 +189,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
             val style by com.uniplanner.app.ui.theme.StylePrefs.flow(applicationContext).collectAsState()
-            UniPlannerTheme(dark, style ?: com.uniplanner.app.ui.theme.AppStyle.MARCA) {
+            UniPlannerTheme(dark, style ?: com.uniplanner.app.ui.theme.AppStyle.UNI) {
                 var splash by rememberSaveable { mutableStateOf(true) }
                 AnimatedContent(
                     targetState = splash,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
@@ -174,5 +176,33 @@ fun CourseProgress(progress: Float, color: Color, modifier: Modifier = Modifier,
                 drawPath(path, color)
             }
         }
+    }
+}
+
+/** The U of the logo as a cup that fills with [fraction] of the goal; the UniPlanner look's mark. */
+@Composable
+fun UGauge(fraction: Float, modifier: Modifier = Modifier, width: Dp = 58.dp, fill: Color = MaterialTheme.colorScheme.primary) {
+    val level by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(1400), label = "uFill")
+    val empty = MaterialTheme.colorScheme.surfaceContainerHighest
+    val rim = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier.size(width, width * 1.22f)) {
+        val stroke = size.width * 0.09f
+        val r = (size.width - stroke) / 2
+        val left = stroke / 2
+        val right = size.width - stroke / 2
+        val top = stroke / 2
+        val bottomY = size.height - stroke / 2 - r
+        val u = Path().apply {
+            moveTo(left, top); lineTo(left, bottomY)
+            arcTo(androidx.compose.ui.geometry.Rect(left, bottomY - r, right, bottomY + r), 180f, -180f, false)
+            lineTo(right, top)
+        }
+        val inside = Path().apply { addPath(u); close() }
+        drawPath(inside, empty)
+        clipPath(inside) {
+            val h = size.height * level
+            drawRect(fill, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+        }
+        drawPath(u, rim, style = Stroke(stroke, cap = StrokeCap.Round))
     }
 }

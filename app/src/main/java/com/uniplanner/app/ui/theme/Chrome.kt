@@ -86,6 +86,7 @@ fun Modifier.frame(color: Color = MaterialTheme.colorScheme.surface, radius: Dp 
             shadow(2.dp, shape, clip = false).clip(shape).background(color)
         }
         AppStyle.MARCA -> clip(RoundedCornerShape(8.dp)).background(color)
+        AppStyle.UNI -> clip(UShape).background(color)
         AppStyle.FITAS -> {
             val shape = CutCornerShape(topEnd = 18.dp)
             val stripe = colors.primary
@@ -128,6 +129,7 @@ fun TabBar(tabs: List<TabItem>) {
     when (LocalUniLook.current.style) {
         AppStyle.PAPEL -> PillBar(tabs)
         AppStyle.MARCA -> PlayBar(tabs)
+        AppStyle.UNI -> UBar(tabs)
         AppStyle.CLASSICO -> NavigationBar {
             tabs.forEach { t ->
                 NavigationBarItem(
@@ -181,6 +183,42 @@ private fun PillBar(tabs: List<TabItem>) {
                             },
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/** UniPlanner: cards with small top corners and a round bottom, like the U of the logo. */
+val UShape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 28.dp, bottomEnd = 28.dp)
+
+/** UniPlanner: a floating pill; the logo's orange dot drops onto the open tab and hops. */
+@Composable
+private fun UBar(tabs: List<TabItem>) {
+    val colors = MaterialTheme.colorScheme
+    val look = LocalUniLook.current
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 12.dp)) {
+        Row(
+            Modifier.fillMaxWidth().height(62.dp).clip(CircleShape).background(colors.surfaceContainerHighest),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.forEach { t ->
+                val fg by animateColorAsState(if (t.on) colors.onSurface else colors.onSurfaceVariant, label = "uFg")
+                val dot by androidx.compose.animation.core.animateFloatAsState(
+                    if (t.on) 1f else 0f,
+                    spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessMediumLow),
+                    label = "uDot",
+                )
+                Box(
+                    Modifier.weight(1f).height(62.dp).clickable(role = Role.Tab, onClick = t.onClick),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        Modifier.align(Alignment.TopCenter).offset(y = (10f - 14f * (1f - dot)).dp).size(7.dp)
+                            .graphicsLayer { alpha = dot; scaleX = dot; scaleY = dot }
+                            .clip(CircleShape).background(look.accent),
+                    )
+                    Icon(t.icon, contentDescription = t.label, tint = fg, modifier = Modifier.padding(top = 6.dp).size(24.dp))
                 }
             }
         }
@@ -398,6 +436,14 @@ fun ThemedHeader(title: String, subtitle: String?, modifier: Modifier = Modifier
                 )
             }
         }
+        AppStyle.UNI -> Column(base.padding(top = 8.dp)) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(title, style = TextStyle(fontFamily = look.numbers, fontWeight = FontWeight.Black, fontSize = 34.sp, letterSpacing = (-1).sp))
+                // The logo's dot, as the full stop of every title.
+                Box(Modifier.padding(start = 4.dp, bottom = 9.dp).size(10.dp).clip(CircleShape).background(look.accent))
+            }
+            if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        }
         AppStyle.CLASSICO -> Column(base.padding(top = 12.dp, bottom = 4.dp)) {
             Text(title, style = type.headlineLarge.copy(fontWeight = FontWeight.Normal))
             if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = colors.onSurfaceVariant)
@@ -466,6 +512,7 @@ fun ThemedSection(text: String, modifier: Modifier = Modifier) {
         AppStyle.RISO -> Text(text.uppercase(), style = type.titleMedium.copy(fontWeight = FontWeight.Black), modifier = m)
         AppStyle.MARCADOR -> Text(text, style = TextStyle(fontFamily = Caveat, fontSize = 26.sp), modifier = m)
         AppStyle.MARCA -> Text(text, style = type.titleLarge.copy(fontWeight = FontWeight.Black), modifier = m)
+        AppStyle.UNI -> Text(text.uppercase(), style = type.labelLarge.copy(letterSpacing = 1.2.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = m)
         else -> Text(text, style = type.titleMedium, modifier = m)
     }
 }
@@ -498,7 +545,7 @@ fun ThemedTabs(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mo
                 ) { Text(label, maxLines = 1) }
             }
         }
-        AppStyle.MARCA -> Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppStyle.MARCA, AppStyle.UNI -> Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEachIndexed { i, label ->
                 val on = i == selected
                 Text(
@@ -567,6 +614,7 @@ fun ThemedBadge(icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
     val (box, iconTint) = when (look.style) {
         AppStyle.PAPEL -> modifier.size(40.dp).background(tint.copy(alpha = 0.15f), RoundedCornerShape(12.dp)) to tint
         AppStyle.CLASSICO -> modifier.size(40.dp).background(tint.copy(alpha = 0.15f), CircleShape) to tint
+        AppStyle.UNI -> modifier.size(40.dp).background(tint.copy(alpha = 0.18f), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 20.dp, bottomEnd = 20.dp)) to tint
         AppStyle.MARCA -> modifier.size(44.dp).clip(RoundedCornerShape(4.dp))
             .background(Brush.linearGradient(listOf(tint, androidx.compose.ui.graphics.lerp(tint, Color.Black, 0.45f)))) to Color.White
         AppStyle.METRO -> modifier.size(36.dp).background(tint, CircleShape).border(3.dp, colors.surface, CircleShape) to Color.White
@@ -605,6 +653,10 @@ fun Modifier.screenTexture(look: UniLook, ink: Color, glow: Color): Modifier = w
     }
     AppStyle.MARCA -> drawBehind {
         drawRect(Brush.verticalGradient(listOf(glow.copy(alpha = 0.28f), Color.Transparent), endY = size.height * 0.45f))
+    }
+    AppStyle.UNI -> drawBehind {
+        // A soft orange sunrise behind the top of every screen.
+        drawCircle(Brush.radialGradient(listOf(look.accent.copy(alpha = if (look.dark) 0.16f else 0.12f), Color.Transparent), center = Offset(size.width * 0.85f, 0f), radius = size.width * 0.8f), radius = size.width * 0.8f, center = Offset(size.width * 0.85f, 0f))
     }
     AppStyle.METRO -> drawBehind {
         // A faint map line running down the side of every screen.

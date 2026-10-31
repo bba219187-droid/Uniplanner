@@ -399,7 +399,7 @@ fun StudyScreen(
 @Composable
 private fun WeekCard(studied: Int, planned: Int, streak: Int, perDay: List<Int>, todayIndex: Int, segments: List<Pair<Long, Int>>) {
     when (LocalUniLook.current.style) {
-        AppStyle.MARCA, AppStyle.RISO, AppStyle.MARCADOR -> OpenWeek(studied, planned, streak, perDay, todayIndex)
+        AppStyle.UNI, AppStyle.MARCA, AppStyle.RISO, AppStyle.MARCADOR -> OpenWeek(studied, planned, streak, perDay, todayIndex)
         AppStyle.CLASSICO -> ClassicWeek(studied, planned, streak)
         else -> DarkWeek(studied, planned, streak, perDay, todayIndex, segments)
     }
@@ -417,6 +417,11 @@ private fun OpenWeek(studied: Int, planned: Int, streak: Int, perDay: List<Int>,
             when (look.style) {
                 AppStyle.MARCA -> BigNumber(formatMinutes(studied), Modifier.highlighterStroke(colors.secondaryContainer, fraction), size = 76.sp)
                 AppStyle.MARCADOR -> BigNumber(formatMinutes(studied), Modifier.markerBand(colors.secondaryContainer, fraction), size = 60.sp)
+                AppStyle.UNI -> {
+                    com.uniplanner.app.ui.theme.UGauge(fraction, Modifier.padding(bottom = 6.dp))
+                    Spacer(Modifier.width(14.dp))
+                    BigNumber(formatMinutes(studied), size = 68.sp)
+                }
                 else -> BigNumber(formatMinutes(studied), size = 76.sp, aligned = fraction)
             }
             if (planned > 0) {
@@ -569,14 +574,15 @@ private fun CourseCard(course: Course, done: Int, goal: Int, active: Boolean, en
         AppStyle.RISO -> return RisoCard(course, done, goal, active, enabled, onClick)
         AppStyle.PAPEL -> return IndexCard(course, done, goal, active, enabled, onClick)
         AppStyle.CLASSICO -> return RingCard(course, done, goal, active, enabled, onClick)
-        AppStyle.MARCADOR -> Unit
+        AppStyle.MARCADOR, AppStyle.UNI -> Unit
     }
     val tint = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.surfaceContainerHigh else courseTint(course.color)
     val ink = if (look.style == AppStyle.MARCADOR) MaterialTheme.colorScheme.onSurface else courseInk(course.color)
     val progress = if (goal > 0) (done.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val shape = if (look.style == AppStyle.UNI) com.uniplanner.app.ui.theme.UShape else RoundedCornerShape(24.dp)
     Column(
-        Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(24.dp)).background(tint)
-            .then(if (active) Modifier.border(2.dp, ink, RoundedCornerShape(24.dp)) else Modifier)
+        Modifier.fillMaxWidth().height(140.dp).clip(shape).background(tint)
+            .then(if (active) Modifier.border(2.dp, ink, shape) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.SpaceBetween,

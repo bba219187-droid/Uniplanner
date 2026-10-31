@@ -712,6 +712,8 @@
     <string name="style_title">Tema</string>
     <string name="style_hint">Escolhe o aspeto de que mais gostas. Tudo o resto fica igual.</string>
     <string name="style_mode">Claro ou escuro</string>
+    <string name="style_uni">UniPlanner</string>
+    <string name="style_uni_about">O nosso visual: o U enche com as tuas horas e o ponto laranja marca onde estás.</string>
     <string name="style_marca">Play</string>
     <string name="style_marca_about">Escuro e vivo, cadeiras como capas de álbum e música enquanto estudas.</string>
     <string name="style_fitas">Fitas</string>
