@@ -158,7 +158,7 @@ fun courseColor(color: Long): Color = LocalUniLook.current.ink(color)
 @Composable
 fun UniPlannerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    style: AppStyle = AppStyle.MARCA,
+    style: AppStyle = AppStyle.UNI,
     content: @Composable () -> Unit,
 ) {
     val ctx = LocalContext.current

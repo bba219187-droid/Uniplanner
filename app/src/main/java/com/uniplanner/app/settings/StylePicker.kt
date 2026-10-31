@@ -51,7 +51,7 @@ fun StylePicker() {
             val scheme = remember(style, dark) { schemeFor(style, dark, ctx) }
             val look = remember(style, dark, scheme) { lookFor(style, dark, scheme) }
             val type = remember(style) { typographyFor(style) }
-            val on = style == (chosen ?: AppStyle.MARCA)
+            val on = style == (chosen ?: AppStyle.UNI)
             val shape = RoundedCornerShape(22.dp)
             Row(
                 Modifier.fillMaxWidth().clip(shape).background(scheme.background)

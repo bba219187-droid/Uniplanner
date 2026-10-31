@@ -708,6 +708,8 @@
     <string name="style_title">Theme</string>
     <string name="style_hint">Pick the look you like most. Everything else stays the same.</string>
     <string name="style_mode">Light or dark</string>
+    <string name="style_uni">UniPlanner</string>
+    <string name="style_uni_about">Our own look: the U fills up with your hours and the orange dot marks where you are.</string>
     <string name="style_marca">Play</string>
     <string name="style_marca_about">Dark and lively, courses like album covers, and music while you study.</string>
     <string name="style_fitas">Ribbons</string>

@@ -1,12 +1,11 @@
 {
-  "id": "2026-10-22-cartao-aluno",
-  "title": "Cartão de aluno",
-  "intro": "O teu cartão de aluno agora também está na app.",
+  "id": "2026-10-31-visual-uniplanner",
+  "title": "O visual UniPlanner",
+  "intro": "A app tem agora um visual só dela, feito a partir do nosso logótipo.",
   "items": [
-    "Guarda uma foto da frente e do verso, ou uma captura do cartão digital da tua universidade.",
-    "Se a tua universidade tem cartão digital, põe o link e abre-o com um toque.",
-    "Ao abrir o cartão, o ecrã fica no máximo de brilho para o leitor da porta ou da cantina.",
-    "Abre em Mais → Cartão de aluno. Fica só no teu telemóvel.",
-    "Corrigido: com mais de 10 mil passos já não desaparece nenhum número."
+    "O U do logótipo enche à medida que estudas durante a semana.",
+    "O ponto laranja marca a aba onde estás e fecha os títulos.",
+    "Cartões com o fundo redondo, como o U, em claro e em escuro.",
+    "Já tinhas escolhido outro tema? Muda em Mais → Definições → Aparência → UniPlanner."
   ]
 }

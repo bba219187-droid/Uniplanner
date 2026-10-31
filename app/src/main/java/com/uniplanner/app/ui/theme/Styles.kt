@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** The looks a student can pick in Settings. Each one changes colours, letters and a few signature details. */
 enum class AppStyle(@StringRes val label: Int, @StringRes val about: Int) {
+    UNI(R.string.style_uni, R.string.style_uni_about),
     MARCA(R.string.style_marca, R.string.style_marca_about),
     FITAS(R.string.style_fitas, R.string.style_fitas_about),
     METRO(R.string.style_metro, R.string.style_metro_about),
@@ -66,7 +67,7 @@ data class UniLook(
     val sport: Color,
 )
 
-val LocalUniLook = staticCompositionLocalOf { lookFor(AppStyle.MARCA, dark = false) }
+val LocalUniLook = staticCompositionLocalOf { lookFor(AppStyle.UNI, dark = true) }
 
 /** The chosen look, kept on the phone. */
 object StylePrefs {
@@ -77,7 +78,7 @@ object StylePrefs {
     fun flow(ctx: Context): StateFlow<AppStyle?> {
         if (flow.value == null) {
             flow.value = runCatching { AppStyle.valueOf(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)!!) }
-                .getOrDefault(AppStyle.MARCA)
+                .getOrDefault(AppStyle.UNI)
         }
         return flow
     }
@@ -243,6 +244,18 @@ private fun c(hex: Long) = Color(hex)
 
 /** The colour scheme of a look; [ctx] lets the classic look follow the phone's wallpaper. */
 fun schemeFor(style: AppStyle, dark: Boolean, ctx: Context?): ColorScheme = when (style) {
+    // UniPlanner's own look, drawn from the logo: ink, cream and the orange dot.
+    AppStyle.UNI -> if (dark) scheme(
+        true, c(0xFF121116), c(0xFF1F1D25), c(0xFF26232C), c(0xFFF2EEE5), c(0xFF9A958C), c(0xFF2E2B35),
+        primary = c(0xFFFF6A3D), onPrimary = c(0xFF160B07), second = c(0xFFFF6A3D), onSecond = c(0xFF160B07),
+        mark = c(0xFFFF6A3D), onMark = c(0xFF160B07), third = c(0xFF7FA2FF),
+        inverse = c(0xFFF2EEE5), onInverse = c(0xFF121116), inverseAccent = c(0xFFFF6A3D),
+    ) else scheme(
+        false, c(0xFFF3F0E8), c(0xFFFFFFFF), c(0xFFE9E4D8), c(0xFF17161B), c(0xFF6B675E), c(0xFFDDD7CA),
+        primary = c(0xFFD9481A), onPrimary = Color.White, second = c(0xFFD9481A), onSecond = Color.White,
+        mark = c(0xFFFF6A3D), onMark = c(0xFF160B07), third = c(0xFF3B5BDB),
+        inverse = c(0xFF17161B), onInverse = c(0xFFF2EEE5), inverseAccent = c(0xFFFF6A3D),
+    )
     AppStyle.MARCA -> if (dark) scheme(
         true, c(0xFF0B0B10), c(0xFF15151C), c(0xFF1E1E27), c(0xFFF4F4F7), c(0xFF9C9CAB), c(0xFF2A2A35),
         primary = c(0xFFF4F4F7), onPrimary = c(0xFF0B0B10), second = c(0xFFFF5FB0), onSecond = c(0xFF1A0010),
@@ -307,6 +320,15 @@ fun schemeFor(style: AppStyle, dark: Boolean, ctx: Context?): ColorScheme = when
 
 /** The look's details for [style]. */
 fun lookFor(style: AppStyle, dark: Boolean, scheme: ColorScheme? = null): UniLook = when (style) {
+    AppStyle.UNI -> UniLook(
+        style, dark, Anybody, FontWeight.Black,
+        inks = if (dark) listOf(0xFF7FA2FF, 0xFF5BD6A6, 0xFFFF7A8A, 0xFFFFB45C, 0xFFE3A6FF, 0xFFA8E05F, 0xFFFFD45C, 0xFF5CC8FF).map(::c)
+        else listOf(0xFF3B5BDB, 0xFF0E9F6E, 0xFFE03E52, 0xFFE07B00, 0xFF9B4DDB, 0xFF5A9E12, 0xFFC99A00, 0xFF1C8FD6).map(::c),
+        progress = ProgressLook.ROUNDED,
+        accent = c(0xFFFF6A3D),
+        onAccent = c(0xFF160B07),
+        sport = c(0xFFFF6A3D),
+    )
     AppStyle.MARCA -> UniLook(
         style, dark, Anybody, FontWeight.Black,
         inks = if (dark) listOf(0xFFB48CFF, 0xFF4DFFA6, 0xFFFF5FB0, 0xFFFF9A3D, 0xFFD77BFF, 0xFFA6FF4D, 0xFFFFC85C, 0xFF5CC8FF).map(::c)
@@ -368,6 +390,7 @@ fun lookFor(style: AppStyle, dark: Boolean, scheme: ColorScheme? = null): UniLoo
 }
 
 fun typographyFor(style: AppStyle): Typography = when (style) {
+    AppStyle.UNI -> typographyOf(Onest, Anybody, FontWeight.Black)
     AppStyle.MARCA -> typographyOf(Onest, Anybody, FontWeight.Black)
     AppStyle.FITAS -> typographyOf(Figtree, BigShoulders, FontWeight.Black)
     AppStyle.METRO -> typographyOf(Overpass)
@@ -378,6 +401,7 @@ fun typographyFor(style: AppStyle): Typography = when (style) {
 }
 
 fun shapesFor(style: AppStyle): Shapes = when (style) {
+    AppStyle.UNI -> shapesOf(12, 20, 28)
     AppStyle.MARCA -> shapesOf(14, 20, 26)
     AppStyle.FITAS -> shapesOf(8, 12, 16)
     AppStyle.METRO -> shapesOf(6, 10, 14)
